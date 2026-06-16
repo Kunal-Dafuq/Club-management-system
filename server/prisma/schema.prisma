@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  name          String
+  email         String         @unique
+  password      String
+  department    String?
+  role          Role           @default(MEMBER)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  eventsCreated Event[]
+  memberships   Membership[]
+  notifications Notification[]
+  rsvps         RSVP[]
+}
+
+model Club {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  description String
+  bannerImage String?
+  createdAt   DateTime     @default(now())
+  events      Event[]
+  memberships Membership[]
+}
+
+model Membership {
+  id       Int      @id @default(autoincrement())
+  userId   Int
+  clubId   Int
+  joinedAt DateTime @default(now())
+  club     Club     @relation(fields: [clubId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, clubId])
+}
+
+model Event {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  startTime   DateTime
+  endTime     DateTime
+  location    String
+  visibility  Boolean  @default(true)
+  clubId      Int
+  createdById Int
+  createdAt   DateTime @default(now())
+  club        Club     @relation(fields: [clubId], references: [id])
+  creator     User     @relation(fields: [createdById], references: [id])
+  rsvps       RSVP[]
+}
+
+model RSVP {
+  id      Int        @id @default(autoincrement())
+  userId  Int
+  eventId Int
+  status  RSVPStatus
+  event   Event      @relation(fields: [eventId], references: [id])
+  user    User       @relation(fields: [userId], references: [id])
+
+  @@unique([userId, eventId])
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  message   String
+  isRead    Boolean  @default(false)
+  userId    Int
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+enum Role {
+  GENERAL_VIEWER
+  MEMBER
+  COORDINATOR
+  SUPER_ADMIN
+}
+
+enum RSVPStatus {
+  GOING
+  MAYBE
+  NOT_GOING
+}
