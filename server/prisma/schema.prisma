@@ -61,14 +61,22 @@ model Event {
 }
 
 model RSVP {
-  id      Int        @id @default(autoincrement())
-  userId  Int
-  eventId Int
-  status  RSVPStatus
-  event   Event      @relation(fields: [eventId], references: [id])
-  user    User       @relation(fields: [userId], references: [id])
 
-  @@unique([userId, eventId])
+  id        Int @id @default(autoincrement())
+
+  userId    Int
+
+  eventId   Int
+
+  status    RSVPStatus
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields:[userId],references:[id])
+
+  event Event @relation(fields:[eventId],references:[id])
+
+  @@unique([userId,eventId])
 }
 
 model Notification {
