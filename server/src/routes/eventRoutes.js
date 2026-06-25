@@ -6,13 +6,11 @@ const {protect}=require("../middleware/authMiddleware");
 
 router.get(
     "/",
-    protect,
     getEvents
 );
 
 router.get(
     "/:id",
-    protect,
     getEventById
 );
 
@@ -20,8 +18,8 @@ router.post(
     "/",
     protect,
     allowRoles(
-        "SUPER_ADMIN",
-        "COORDINATOR"
+        "COORDINATOR",
+        "SUPER_ADMIN"
     ),
     createEvent
 );
@@ -30,8 +28,8 @@ router.put(
     "/:id",
     protect,
     allowRoles(
-        "SUPER_ADMIN",
-        "COORDINATOR"
+        "COORDINATOR",
+        "SUPER_ADMIN"
     ),
     updateEvent
 );
@@ -40,8 +38,8 @@ router.delete(
     "/:id",
     protect,
     allowRoles(
-        "SUPER_ADMIN",
-        "COORDINATOR"
+        "COORDINATOR",
+        "SUPER_ADMIN"
     ),
     deleteEvent
 );

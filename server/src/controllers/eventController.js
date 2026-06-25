@@ -1,6 +1,20 @@
 const prisma = require("../config/prisma");
+const { createNotification } = require("../services/notificationService");
+const { eventSchema, updateEventSchema } = require("../validators/eventValidator");
 const createEvent = async (req, res) => {
   try {
+    const createdById = req.user.id;
+    const validation = eventSchema.safeParse({
+      ...req.body,
+      clubId: Number(req.body.clubId)
+    });
+
+    if (!validation.success) {
+      return res.status(400).json({
+        message: validation.error.errors
+      });
+    }
+
     const {
       title,
       description,
@@ -9,14 +23,10 @@ const createEvent = async (req, res) => {
       location,
       visibility,
       clubId
-    } = req.body;
-
-    const createdById = req.user.id;
+    } = validation.data;
 
     const club = await prisma.club.findUnique({
-      where: {
-        id: Number(clubId)
-      }
+      where: { id: clubId }
     });
 
     if (!club) {
@@ -29,22 +39,87 @@ const createEvent = async (req, res) => {
       data: {
         title,
         description,
-        startTime: new Date(startTime),
-        endTime: new Date(endTime),
+        startTime,
+        endTime,
         location,
         visibility,
-        clubId: Number(clubId),
+        clubId,
         createdById
       }
+  });
+
+    const members = await prisma.membership.findMany({
+      where: { clubId },
+      select: { userId: true }
     });
 
-    res.status(201).json({
+    await Promise.all(
+      members.map(member =>
+        createNotification({
+          userId: member.userId,
+          message: `New event created: ${event.title}`
+        })
+      )
+    );
+
+    return res.status(201).json({
       message: "Event created",
       event
     });
+
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: "Server error"
+    });
   }
-  
-  catch (error) {
+};
+
+const getEvents = async (req, res) => {
+  try {
+    const { clubId, visibility } = req.query;
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+
+    const skip = (page - 1) * limit;
+
+    const events = await prisma.event.findMany({
+      skip,
+      take: limit,
+      orderBy: {
+        startTime: "desc"
+      },
+      where: {
+        ...(clubId && { clubId: Number(clubId) }),
+        ...(visibility && { visibility })
+      },
+      include: {
+        club: true,
+        creator: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    const total = await prisma.event.count({
+      where: {
+        ...(clubId && { clubId: Number(clubId) }),
+        ...(visibility && { visibility })
+      }
+    });
+
+    res.json({
+      page,
+      limit,
+      total,
+      events
+    });
+
+  } catch (error) {
     console.log(error);
     res.status(500).json({
       message: "Server error"
@@ -52,150 +127,138 @@ const createEvent = async (req, res) => {
   }
 };
 
-const getEvents = async(req,res)=>{
-  try{
-    const events = await prisma.event.findMany({
-        include:{
-            club:true,
-            creator:{
-                select:{
-                id:true,
-                name:true,
-                email:true
-                }
-            }
-        }
-    });
-    
-    res.json(events);
-  }
-
-  catch(error){
-    console.log(error);
-    res.status(500).json({
-      message:"Server error"
-    });
-  }
-};
-
-const getEventById = async(req,res)=>{
-  try{
+const getEventById = async (req, res) => {
+  try {
     const eventId = Number(req.params.id);
+
     const event = await prisma.event.findUnique({
-      where:{
-        id:eventId
-      },
-      include:{
-        club:true,
-        creator:{
-          select:{
-            id:true,
-            name:true,
-            email:true
+      where: { id: eventId },
+      include: {
+        club: true,
+        creator: {
+          select: {
+            id: true,
+            name: true,
+            email: true
           }
         }
       }
     });
 
-    if(!event){
+    if (!event) {
       return res.status(404).json({
-        message:"Event not found"
+        message: "Event not found"
       });
     }
 
-    res.json(event);
-  }
+    res.json({
+      event
+    });
 
-  catch(error){
+  } catch (error) {
     console.log(error);
     res.status(500).json({
-      message:"Server error"
+      message: "Server error"
     });
   }
 };
 
-const updateEvent = async(req,res)=>{
-  try{
+const updateEvent = async (req, res) => {
+  try {
     const eventId = Number(req.params.id);
-    const {
-      title,
-      description,
-      startTime,
-      endTime,
-      location,
-      visibility
-    } = req.body;
+    const validation = updateEventSchema.safeParse(req.body);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        message: validation.error.errors
+      });
+    }
+
+    const data = validation.data;
+
+    if (!data || Object.keys(data).length === 0) {
+      return res.status(400).json({
+        message: "No fields provided"
+      });
+    }
 
     const existingEvent = await prisma.event.findUnique({
-      where:{
-        id:eventId
-      }
+      where: { id: eventId }
     });
 
-    if(!existingEvent){
+    if (!existingEvent) {
       return res.status(404).json({
-        message:"Event not found"
+        message: "Event not found"
+      });
+    }
+
+    if (existingEvent.createdById !== req.user.id &&
+      req.user.role !== "SUPER_ADMIN"
+    ) {
+      return res.status(403).json({
+        message: "Not allowed"
       });
     }
 
     const updatedEvent = await prisma.event.update({
-      where:{
-        id:eventId
-      },
-      data:{
-        title,
-        description,
-        startTime: new Date(startTime),
-        endTime: new Date(endTime),
-        location,
-        visibility
+      where: { id: eventId },
+      data: {
+        ...(data.title && { title: data.title }),
+        ...(data.description && { description: data.description }),
+        ...(data.startTime && { startTime: new Date(data.startTime) }),
+        ...(data.endTime && { endTime: new Date(data.endTime) }),
+        ...(data.location && { location: data.location }),
+        ...(data.visibility && { visibility: data.visibility })
       }
     });
 
-    res.json({
-      message:"Event updated",
-      event:updatedEvent
+    return res.json({
+      message: "Event updated",
+      event: updatedEvent
     });
-  }
 
-  catch(error){
-    console.log(error);
-    res.status(500).json({
-      message:"Server error"
-    });
-  }
+  } catch (error) {
+      console.log(error);
+      return res.status(500).json({
+        message: "Server error"
+      });
+    }
 };
 
-const deleteEvent = async(req,res)=>{
-  try{
+const deleteEvent = async (req, res) => {
+  try {
     const eventId = Number(req.params.id);
+
     const existingEvent = await prisma.event.findUnique({
-      where:{
-        id:eventId
-      }
+      where: { id: eventId }
     });
 
-    if(!existingEvent){
+    if (!existingEvent) {
       return res.status(404).json({
-        message:"Event not found"
+        message: "Event not found"
+      });
+    }
+
+    if (existingEvent.createdById !== req.user.id &&
+      req.user.role !== "SUPER_ADMIN"
+    ) {
+      return res.status(403).json({
+        message: "Not allowed"
       });
     }
 
     await prisma.event.delete({
-      where:{
-        id:eventId
-      }
+      where: { id: eventId }
     });
 
     res.json({
-      message:"Event deleted successfully"
+      message: "Event deleted successfully"
     });
-  }
 
-  catch(error){
+  } catch (error) {
     console.log(error);
     res.status(500).json({
-      message:"Server error"
+      message: "Server error"
     });
   }
 };

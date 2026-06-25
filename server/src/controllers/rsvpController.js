@@ -1,88 +1,60 @@
 const prisma = require("../config/prisma");
-const createRSVP = async (req,res)=>{
-    try{
+const { createNotification } = require("../services/notificationService");
+const createRSVP = async (req, res) => {
+    try {
         const eventId = Number(req.params.id);
         const userId = req.user.id;
-        const {status} = req.body;
-        if(!status){
+        const { status } = req.body;
+
+        if (!status) {
             return res.status(400).json({
-                message:"Status required"
+                message: "Status required"
             });
         }
+
         const event = await prisma.event.findUnique({
-            where:{
-                id:eventId
-            }
+            where: { id: eventId }
         });
 
-        if(!event){
+        if (!event) {
             return res.status(404).json({
-                message:"Event not found"
+                message: "Event not found"
             });
         }
+
         const existing = await prisma.rSVP.findUnique({
-            where:{
-                userId_eventId:{
-                userId,
-                eventId
-            }
-        }
-    });
-
-    if(existing){
-        return res.status(400).json({
-            message:"RSVP already exists"
-        });
-
-    }
-
-    const rsvp = await prisma.rSVP.create({
-        data:{
-            userId,
-            eventId,
-            status
-        }
-    });
-
-    res.status(201).json(rsvp);
-    }
-
-    catch(error){
-        res.status(500).json({
-            message:error.message
-        });
-    }
-};
-
-const getAttendees = async(req,res)=>{
-    try{
-        const eventId = Number(req.params.id);
-        const attendees = await prisma.rSVP.findMany({
-            where:{
-                eventId
-            },
-            select:{
-                id:true,
-                status:true,
-                user:{
-                    select:{
-                        id:true,
-                        name:true,
-                        email:true
-                    }
+            where: {
+                userId_eventId: {
+                    userId,
+                    eventId
                 }
             }
         });
 
-        res.status(200).json({
-            count:attendees.length,
-            attendees
-        });
-    }
+        if (existing) {
+            return res.status(400).json({
+                message: "RSVP already exists"
+            });
+        }
 
-    catch(error){
-        res.status(500).json({
-            message:error.message
+        const rsvp = await prisma.rSVP.create({
+            data: {
+                userId,
+                eventId,
+                status
+            }
+        });
+
+        await createNotification({
+            userId: event.createdById,
+            message: `Someone responded to your event: ${event.title}`
+        });
+
+        return res.status(201).json(rsvp);
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
         });
     }
 };
@@ -170,6 +142,36 @@ const deleteRSVP = async(req,res)=>{
     catch(error){
         res.status(500).json({
             message:error.message
+        });
+    }
+};
+
+const getAttendees = async (req, res) => {
+    try {
+        const eventId = Number(req.params.id);
+        const attendees = await prisma.rSVP.findMany({
+            where: { eventId },
+            select: {
+                id: true,
+                status: true,
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true
+                    }
+                }
+            }
+        });
+
+        return res.status(200).json({
+            count: attendees.length,
+            attendees
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
         });
     }
 };

@@ -14,7 +14,7 @@ model User {
   email         String         @unique
   password      String
   department    String?
-  role          Role           @default(MEMBER)
+  role          Role           @default(GENERAL_VIEWER)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   eventsCreated Event[]
@@ -58,6 +58,9 @@ model Event {
   club        Club     @relation(fields: [clubId], references: [id])
   creator     User     @relation(fields: [createdById], references: [id])
   rsvps       RSVP[]
+  @@index([clubId])
+  @@index([createdById])
+  @@index([startTime])
 }
 
 model RSVP {
