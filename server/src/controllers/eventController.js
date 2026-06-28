@@ -9,11 +9,26 @@ const createEvent = async (req, res) => {
       clubId: Number(req.body.clubId)
     });
 
+    console.log("========== REQUEST BODY ==========");
+    console.log(req.body);
+
+    console.log("========== VALIDATION ==========");
+    console.log(validation);
+
     if (!validation.success) {
+      console.log("========== VALIDATION FAILED ==========");
+      console.log(
+        JSON.stringify(
+          validation.error.issues,
+          null,
+          2
+        )
+      );
+
       return res.status(400).json({
-        message: validation.error.errors
+          message: validation.error.issues
       });
-    }
+  }
 
     const {
       title,
@@ -35,6 +50,8 @@ const createEvent = async (req, res) => {
       });
     }
 
+    console.log("Searching club with ID:", clubId);
+
     const event = await prisma.event.create({
       data: {
         title,
@@ -46,7 +63,16 @@ const createEvent = async (req, res) => {
         clubId,
         createdById
       }
-  });
+    });
+
+    await createActivity({
+        clubId:event.clubId,
+        userId:req.user.id,
+        action:"EVENT_CREATED",
+        description:`${event.title} was created.`
+    });
+
+    console.log("Club found:", club);
 
     const members = await prisma.membership.findMany({
       where: { clubId },
@@ -249,6 +275,13 @@ const deleteEvent = async (req, res) => {
 
     await prisma.event.delete({
       where: { id: eventId }
+    });
+
+    await createActivity({
+      clubId:event.clubId,
+      userId:req.user.id,
+      action:"EVENT_DELETED",
+      description:`${event.title} was deleted.`
     });
 
     res.json({

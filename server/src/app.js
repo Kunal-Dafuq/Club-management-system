@@ -11,6 +11,7 @@ const announcementRoutes = require("./routes/announcementRoutes");
 const app = express();
 const helmet = require("helmet");
 const apiLimiter = require("./middleware/rateLimit");
+const uploadRoutes = require("./routes/uploadRoutes");
 
 app.use(cors());
 app.use(express.json());
@@ -24,8 +25,10 @@ app.use("/api/notifications" , notificationRoutes);
 app.use("/api/announcements", announcementRoutes);
 app.use(helmet());
 app.use(apiLimiter);
-app.get("/", (req, res) => {
-  res.send("API running");
+app.use("/api/activity",require("./routes/activityRoutes"));
+app.use("/api/upload", uploadRoutes);
+app.get("/", (req, res) => 
+  {res.send("API running");
 });
 
 module.exports = app;

@@ -10,6 +10,7 @@ import CreateEvent from "./pages/CreateEvent";
 import Notifications from "./pages/Notifications";
 import Profile from "./pages/Profile";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ClubProfile from "./pages/ClubProfile";
 
 function App() {
   return (
@@ -45,6 +46,16 @@ function App() {
         <Route
           path="/clubs"
           element={<Clubs />}
+        />
+
+        <Route
+          path="/clubs/:id"
+          element={<ClubDetails/>}
+          />
+
+        <Route
+          path="/clubs/:id"
+          element={<ClubProfile/>}
         />
 
         <Route

@@ -21,25 +21,83 @@ model User {
   memberships   Membership[]
   notifications Notification[]
   rsvps         RSVP[]
+  activities    Activity[]
+  announcements Announcement[]
 }
 
 model Club {
-  id          Int          @id @default(autoincrement())
-  name        String       @unique
-  description String
-  bannerImage String?
-  createdAt   DateTime     @default(now())
-  events      Event[]
-  memberships Membership[]
+  id   Int    @id @default(autoincrement())
+  name String @unique
+  slug String? @unique
+
+  description String?
+  about       String?
+  tagline     String?
+  motto       String?
+
+  logoUrl   String?
+  bannerUrl String?
+
+  primaryColor   String @default("#2563eb")
+  secondaryColor String @default("#1d4ed8")
+  accentColor    String @default("#60a5fa")
+
+  verified   Boolean   @default(false)
+  verifiedAt DateTime?
+
+  website   String?
+  email     String?
+  github    String?
+  instagram String?
+  linkedin  String?
+  youtube   String?
+  discord   String?
+
+  established Int?
+  foundedBy   String?
+  location    String?
+
+  isRecruiting Boolean @default(true)
+
+  category ClubCategory @default(OTHER)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime?
+
+  events        Event[]
+  memberships   Membership[]
+  announcements Announcement[]
+  activities    Activity[]
+
+  tags ClubTagAssignment[]
+}
+
+model ClubTag {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+
+  clubs ClubTagAssignment[]
+}
+
+model ClubTagAssignment {
+  clubId Int
+  tagId  Int
+
+  club Club @relation(fields: [clubId], references: [id])
+  tag  ClubTag @relation(fields: [tagId], references: [id])
+
+  @@id([clubId, tagId])
 }
 
 model Membership {
-  id       Int      @id @default(autoincrement())
+  id       Int              @id @default(autoincrement())
   userId   Int
   clubId   Int
-  joinedAt DateTime @default(now())
-  club     Club     @relation(fields: [clubId], references: [id])
-  user     User     @relation(fields: [userId], references: [id])
+  status   MembershipStatus @default(PENDING)
+  clubRole ClubRole         @default(MEMBER)
+  joinedAt DateTime         @default(now())
+  club     Club             @relation(fields: [clubId], references: [id])
+  user     User             @relation(fields: [userId], references: [id])
 
   @@unique([userId, clubId])
 }
@@ -58,28 +116,22 @@ model Event {
   club        Club     @relation(fields: [clubId], references: [id])
   creator     User     @relation(fields: [createdById], references: [id])
   rsvps       RSVP[]
+
   @@index([clubId])
   @@index([createdById])
   @@index([startTime])
 }
 
 model RSVP {
-
-  id        Int @id @default(autoincrement())
-
+  id        Int        @id @default(autoincrement())
   userId    Int
-
   eventId   Int
-
   status    RSVPStatus
+  createdAt DateTime   @default(now())
+  user      User       @relation(fields: [userId], references: [id])
+  event     Event      @relation(fields: [eventId], references: [id])
 
-  createdAt DateTime @default(now())
-
-  user User @relation(fields:[userId],references:[id])
-
-  event Event @relation(fields:[eventId],references:[id])
-
-  @@unique([userId,eventId])
+  @@unique([userId, eventId])
 }
 
 model Notification {
@@ -91,11 +143,61 @@ model Notification {
   user      User     @relation(fields: [userId], references: [id])
 }
 
+model Announcement {
+  id          Int      @id @default(autoincrement())
+  title       String
+  content     String
+  clubId      Int
+  createdById Int
+  createdAt   DateTime @default(now())
+  club        Club     @relation(fields: [clubId], references: [id])
+  creator     User     @relation(fields: [createdById], references: [id])
+}
+
+model Activity {
+  id          Int      @id @default(autoincrement())
+  action      String
+  description String
+  clubId      Int
+  userId      Int?
+  createdAt   DateTime @default(now())
+  club        Club     @relation(fields: [clubId], references: [id])
+  user        User?    @relation(fields: [userId], references: [id])
+}
+
 enum Role {
   GENERAL_VIEWER
   MEMBER
   COORDINATOR
   SUPER_ADMIN
+}
+
+enum MembershipStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ClubRole {
+  MEMBER
+  LEAD
+  TREASURER
+  SECRETARY
+  PRESIDENT
+}
+
+enum ClubCategory {
+  TECHNOLOGY
+  CULTURAL
+  SPORTS
+  MUSIC
+  ART
+  LITERARY
+  ENTREPRENEURSHIP
+  RESEARCH
+  SOCIAL
+  FINANCE
+  OTHER
 }
 
 enum RSVPStatus {

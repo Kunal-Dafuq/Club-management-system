@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import {useEffect,useState} from "react";
+import {useLocation} from "react-router-dom";
 import Loader from "../components/Loader";
 import EventGrid from "../features/events/EventGrid";
 import { getEvents } from "../services/eventService";
 
 const Events = () => {
+  const location = useLocation();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -62,6 +64,22 @@ const Events = () => {
   if (filteredEvents.length === 0) {
     return (
       <div className="space-y-8">
+        {location.state?.success && (
+          <div
+            className="
+              bg-green-100
+              border
+              border-green-300
+              rounded-lg
+              p-4
+            "
+          >
+            <p className="text-green-700">
+              {location.state.success}
+            </p>
+          </div>
+        )}
+        
         <h1 className="text-4xl font-bold">
           Events
         </h1>

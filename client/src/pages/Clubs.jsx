@@ -1,43 +1,116 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Loader from "../components/Loader";
 import ClubGrid from "../features/clubs/ClubGrid";
-import { getClubs } from "../services/clubService";
 import ClubDetails from "../features/clubs/ClubDetails";
+import { getClubs } from "../services/clubService";
+import {joinClub, leaveClub, getMyClubs} from "../services/membershipService";
 
 const Clubs = () => {
-  const [clubs,setClubs]=useState([]);
-  const [loading,setLoading]=useState(true);
-  const [error,setError]=useState(null);
-  const [search,setSearch]=useState("");
-  const [selectedClub,setSelectedClub] = useState(null);
+  const [clubs, setClubs] = useState([]);
+  const [memberships, setMemberships] = useState([]);
+  const [loadingClubId, setLoadingClubId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [selectedClub, setSelectedClub] = useState(null);
+  const [sortBy, setSortBy] = useState("name");
 
-  useEffect(()=>{
-    const fetchClubs=async()=>{
-      try{
-        const response=
-        await getClubs();
-        setClubs(response.data);
-      }
+  useEffect(() => {
+    const fetchData = async () => {
+        try {
+            const [clubsResponse, myClubsResponse] = await Promise.all([
+                getClubs(),
+                getMyClubs()
+            ]);
 
-      catch(err){
-        setError(err);
-      }
+            setClubs(clubsResponse.data);
 
-      finally{
-        setLoading(false);
-      }
+            setMemberships(myClubsResponse.data.clubs);
+        }
+
+        catch (error) {
+            console.log(error);
+            setError("Failed to load clubs.");
+        }
+
+        finally {
+            setLoading(false);
+        }
     };
 
-    fetchClubs();
+    fetchData();
 
-  },[]);
+  }, []);
 
-  const filteredClubs = clubs.filter(
-    (club) =>
-      club.name?.toLowerCase().includes(
-        search.toLowerCase()
-      )
-  );
+  const getMembership = (clubId) =>
+    memberships.find(
+        membership => membership.club.id === clubId
+    );
+
+  const handleJoinClub = async (clubId) => {
+    try {
+        setLoadingClubId(clubId);
+        const membership = getMembership(clubId);
+        if (
+            membership &&
+            membership.status === "APPROVED"
+        ) {
+
+            await leaveClub(clubId);
+
+            setMemberships(prev =>
+                prev.filter(
+                    m => m.club.id !== clubId
+                )
+            );
+        }
+
+        else {
+            const response =
+                await joinClub(clubId);
+
+            setMemberships(prev => [
+                ...prev,
+                response.data.membership
+            ]);
+        }
+    }
+
+    catch (error) {
+        console.log(error);
+    }
+    finally {
+        setLoadingClubId(null);
+    }
+  };
+
+  const filteredClubs = useMemo(() => {
+      let data = [...clubs];
+      if (search) {
+          data = data.filter(club =>
+              club.name
+                  .toLowerCase()
+                  .includes(search.toLowerCase())
+          );
+
+      }
+
+      switch (sortBy) {
+          case "name":
+              data.sort((a, b) =>
+                  a.name.localeCompare(b.name)
+              );
+
+              break;
+
+          default:
+
+              break;
+      }
+
+      return data;
+
+  }, [clubs, search, sortBy]);
 
   if(loading){
     return <Loader/>;
@@ -77,17 +150,42 @@ const Clubs = () => {
           outline-none"
       />
 
+      <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          className="
+          mt-4
+          rounded-xl
+          bg-zinc-900
+          p-3"
+      >
+          <option value="name">
+
+              Name
+
+          </option>
+
+      </select>
+
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
           <ClubGrid
             clubs={filteredClubs}
             onSelect={setSelectedClub}
+            onJoin={handleJoinClub}
+            memberships={memberships}
+            loadingClubId={loadingClubId}
           />
         </div>
 
         <div>
           <ClubDetails
-            club={selectedClub}
+              club={selectedClub}
+              membership={
+                  selectedClub
+                      ? getMembership(selectedClub.id)
+                      : null
+              }
           />
         </div>
       </div>

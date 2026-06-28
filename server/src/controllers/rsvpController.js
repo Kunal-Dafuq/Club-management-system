@@ -45,6 +45,13 @@ const createRSVP = async (req, res) => {
             }
         });
 
+        await createActivity({
+            clubId:event.clubId,
+            userId:req.user.id,
+            action:"RSVP",
+            description:`RSVP'd ${status} for ${event.title}.`
+        });
+
         await createNotification({
             userId: event.createdById,
             message: `Someone responded to your event: ${event.title}`
