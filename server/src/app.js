@@ -1,34 +1,85 @@
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
 const cookieParser = require("cookie-parser");
+
+const apiLimiter = require("./middleware/rateLimit");
+
 const authRoutes = require("./routes/authRoutes");
-const membershipRoutes = require("./routes/membershipRoutes");
 const clubRoutes = require("./routes/clubRoutes");
+const membershipRoutes = require("./routes/membershipRoutes");
 const eventRoutes = require("./routes/eventRoutes");
 const rsvpRoutes = require("./routes/rsvpRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const announcementRoutes = require("./routes/announcementRoutes");
-const app = express();
-const helmet = require("helmet");
-const apiLimiter = require("./middleware/rateLimit");
 const uploadRoutes = require("./routes/uploadRoutes");
+const committeeRoutes = require("./routes/committeeRoutes");
+const taskRoutes = require("./routes/taskRoutes");
+const taskCommentRoutes = require("./routes/taskCommentRoutes");
+const taskAttachmentRoutes = require("./routes/taskAttachmentRoutes");
+const meetingRoutes = require("./routes/meetingRoutes");
+const activityRoutes = require("./routes/activityRoutes");
+const chatRoutes = require("./routes/chatRoutes");
 
-app.use(cors());
-app.use(express.json());
-app.use(cookieParser());
-app.use("/api/auth", authRoutes);
-app.use("/api/clubs", membershipRoutes);
-app.use("/api/clubs", clubRoutes);
-app.use("/api/events", eventRoutes);
-app.use("/api/events",rsvpRoutes);
-app.use("/api/notifications" , notificationRoutes);
-app.use("/api/announcements", announcementRoutes);
+const app = express();
+
+/*Global Middleware*/
+
 app.use(helmet());
+
+app.use(cors({
+    origin: true,
+    credentials: true
+}));
+
+app.use(express.json());
+
+app.use(express.urlencoded({
+    extended: true
+}));
+
+app.use(cookieParser());
+
 app.use(apiLimiter);
-app.use("/api/activity",require("./routes/activityRoutes"));
+
+/*Static Files*/
+
+app.use(
+    "/uploads",
+    express.static("uploads")
+);
+
+/*API Routes*/
+
+app.use("/api/auth", authRoutes);
+
+app.use("/api/clubs", clubRoutes);
+app.use("/api/clubs", membershipRoutes);
+
+app.use("/api/events", eventRoutes);
+app.use("/api/events", rsvpRoutes);
+
+app.use("/api/announcements", announcementRoutes);
+app.use("/api/notifications", notificationRoutes);
+
 app.use("/api/upload", uploadRoutes);
-app.get("/", (req, res) => 
-  {res.send("API running");
+
+app.use("/api/chat", chatRoutes);
+
+app.use("/api/committees", committeeRoutes);
+
+app.use("/api/tasks", taskRoutes);
+app.use("/api/task-comments", taskCommentRoutes);
+app.use("/api/task-attachments", taskAttachmentRoutes);
+
+app.use("/api/meetings", meetingRoutes);
+
+app.use("/api/activity", activityRoutes);
+
+/*Health Check*/
+
+app.get("/", (req, res) => {
+    res.send("ClubPlanet API Running 🚀");
 });
 
 module.exports = app;

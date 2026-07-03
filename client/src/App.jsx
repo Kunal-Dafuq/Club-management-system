@@ -83,4 +83,18 @@ function App() {
   );
 }
 
+import socket from "../socket/socket";
+
+useEffect(() => {
+
+    if (token) {
+        socket.connect();
+    }
+
+    return () => {
+        socket.disconnect();
+    };
+
+}, [token]);
+
 export default App;

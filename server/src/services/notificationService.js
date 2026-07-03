@@ -1,11 +1,23 @@
 const prisma = require("../config/prisma");
+const {
+    sendRealtimeNotification
+} = require("./realtimeNotificationService");
+
 const createNotification = async ({ userId, message }) => {
-    return await prisma.notification.create({
+
+    const notification = await prisma.notification.create({
         data: {
             userId,
             message
         }
     });
+
+    sendRealtimeNotification(
+        userId,
+        notification
+    );
+
+    return notification;
 };
 
 module.exports = {

@@ -13,10 +13,16 @@ import UpcomingEvents from "../features/clubs/UpcomingEvents";
 import AnnouncementBoard from "../features/clubs/AnnouncementBoard";
 import ActivityTimeline from "../features/clubs/ActivityTimeline";
 
+import ClubChat from "../features/clubs/chat/ClubChat";
+
+import { useAuth } from "../context/AuthContext";
+
 const ClubProfile = () => {
     const { id } = useParams();
     const [club,setClub]=useState(null);
     const [loading,setLoading]=useState(true);
+    const [activeTab, setActiveTab] = useState("overview");
+    const { user, token } = useAuth();
 
     useEffect(()=>{
         const fetchClub=async()=>{
@@ -43,15 +49,76 @@ const ClubProfile = () => {
         return <Loader/>;
     }
 
-    return(
-        <div className="space-y-8">
-            <ClubHero club={club}/>
-            <ClubStats club={club}/>
-            <LeadershipCard club={club}/>
-            <UpcomingEvents club={club}/>
-            <AnnouncementBoard announcements={club.announcements}/>
-            <ActivityTimeline activities={club.activities}/>
-            <MembersList members={club.memberships}/>
+    return (
+        <div className="space-y-6">
+
+            <ClubHero club={club} />
+
+            <div className="flex gap-3 border-b pb-3">
+
+                <button onClick={() => setActiveTab("overview")}>
+                    Overview
+                </button>
+
+                <button onClick={() => setActiveTab("events")}>
+                    Events
+                </button>
+
+                <button onClick={() => setActiveTab("announcements")}>
+                    Announcements
+                </button>
+
+                <button onClick={() => setActiveTab("members")}>
+                    Members
+                </button>
+
+                <button onClick={() => setActiveTab("committees")}>
+                    Committees
+                </button>
+
+                <button onClick={() => setActiveTab("chat")}>
+                    Chat
+                </button>
+
+            </div>
+
+            {activeTab === "overview" && (
+                <>
+                    <ClubStats club={club} />
+                    <LeadershipCard club={club} />
+                    <ActivityTimeline activities={club.activities} />
+                </>
+            )}
+
+            {activeTab === "events" && (
+                <UpcomingEvents club={club} />
+            )}
+
+            {activeTab === "announcements" && (
+                <AnnouncementBoard
+                    announcements={club.announcements}
+                />
+            )}
+
+            {activeTab === "members" && (
+                <MembersList
+                    members={club.memberships}
+                />
+            )}
+
+            {activeTab === "committees" && (
+                <div>
+                    Committees Coming Soon
+                </div>
+            )}
+
+            {activeTab === "chat" && (
+                <ClubChat
+                    clubId={club.id}
+                    token={token}
+                    user={user}
+                />
+            )}
         </div>
     );
 };
