@@ -1,3 +1,6 @@
+import { Pin } from "lucide-react";
+import { Link } from "react-router-dom";
+
 const ClubHero = ({ club }) => {
     return (
         <div className="rounded-3xl overflow-hidden bg-zinc-900">
@@ -61,6 +64,17 @@ const ClubHero = ({ club }) => {
                     className="w-32 h-32 rounded-full border-4 border-white"
                 />
             </div>
+
+            <Link
+                to={`/chat/${roomId}/pins`}
+                className="flex items-center gap-2 hover:text-blue-600"
+            >
+
+                <Pin size={18}/>
+
+                Pinned Messages
+
+            </Link>
         </div>
     );
 };

@@ -11,6 +11,8 @@ import Notifications from "./pages/Notifications";
 import Profile from "./pages/Profile";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ClubProfile from "./pages/ClubProfile";
+import PinnedMessages from "./pages/PinnedMessages";
+import ClubDetails from "./pages/ClubDetails";
 
 function App() {
   return (
@@ -76,6 +78,11 @@ function App() {
         <Route
           path="/profile"
           element={<Profile />}
+        />
+
+        <Route
+          path="/chat/:roomId/pins"
+          element={<PinnedMessages />}
         />
 
       </Route>

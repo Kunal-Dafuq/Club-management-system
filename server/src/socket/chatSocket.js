@@ -1,12 +1,12 @@
 const prisma = require("../config/prisma");
 
-const {sendMessage} = require("../services/chatService");
-const {sendMessage, markDelivered, markRead} = require("../services/chatService");
+const {sendMessage,markDelivered,markRead} = require("../services/chatService");
+
+const pinService = require("../services/pinService");
+
+const {addUser,removeUser,getRoomUsers} = require("../services/presenceService");
 
 const registerChatSocket = (io) => {
-    const messages = await chatService.getMessages(roomId);
-
-    io.to(`room-${roomId}`).emit("reaction-updated",messages);
 
     io.on("connection", (socket) => {
         console.log("Chat Connected:", socket.id);
@@ -25,7 +25,6 @@ const registerChatSocket = (io) => {
                 "online-users",
                 getRoomUsers(roomId)
             );
-
         });
 
         socket.on("leave-room", (roomId) => {
@@ -62,15 +61,9 @@ const registerChatSocket = (io) => {
                 const message=await sendMessage(
                     Number(data.roomId),
                     membership.id,
-                    data.content || null,
-                    data.replyToId || null,
-
-                    {
-                        fileUrl:data.fileUrl,
-                        fileName:data.fileName,
-                        fileType:data.fileType,
-                        fileSize:data.fileSize
-                    }
+                    data.content,
+                    data.replyToId,
+                    data.attachments || []
                 );
 
                 io.to(`room-${data.roomId}`).emit(
@@ -100,27 +93,74 @@ const registerChatSocket = (io) => {
             console.log("Disconnected:", socket.id);
         });
 
-        socket.on(
-            "message-delivered",
-            async(messageId)=>{
-                const updated=
-                    await markDelivered(messageId);
+        socket.on("message-delivered", async (messageId) => {
+            const updated = await markDelivered(messageId);
 
-                io.to(
-                    `room-${updated.clubId}`
-                ).emit(
-                    "message-status",
-                    updated
-                );
-            }
-        );
+            io.to(`room-${updated.roomId}`).emit(
+                "message-status",
+                updated
+            );
+        });
 
         socket.on("message-read", async (messageId) => {
             const message = await markRead(messageId);
-            io.to(`room-${message.clubId}`).emit(
+
+            io.to(`room-${message.roomId}`).emit(
                 "message-status",
                 message
             );
+        });
+
+        socket.on("pin-message", async (data) => {
+            try {
+                const membership = await prisma.membership.findFirst({
+                    where: {
+                        userId: socket.user.id,
+                        clubId: Number(data.roomId),
+                        status: "APPROVED",
+                    },
+                });
+
+                if (!membership) return;
+
+                const pin =
+                    await pinService.pinMessage(
+                        data.messageId,
+                        membership.id
+                    );
+
+                io.to(`room-${data.roomId}`).emit(
+                    "message-pinned",
+                    pin
+                );
+
+            } catch (err) {
+                socket.emit(
+                    "chat-error",
+                    err.message
+                );
+            }
+        });
+
+        socket.on("unpin-message", async (data) => {
+            try {
+                await pinService.unpinMessage(
+                    data.messageId
+                );
+
+                io.to(`room-${data.roomId}`).emit(
+                    "message-unpinned",
+                    {
+                        messageId: data.messageId,
+                    }
+                );
+
+            } catch (err) {
+                socket.emit(
+                    "chat-error",
+                    err.message
+                );
+            }
         });
     });
 };

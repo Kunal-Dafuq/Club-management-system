@@ -60,3 +60,33 @@ export const searchMessages = (
         `/chat/clubs/${clubId}/search?q=${query}`
     );
 };
+
+export const uploadChatFile = (
+    file,
+    onProgress
+) => {
+    const formData = new FormData();
+
+    formData.append("file", file);
+
+    return api.post(
+        "/upload/chat",
+        formData,
+        {
+            headers:{
+                "Content-Type":"multipart/form-data"
+            },
+
+            onUploadProgress:(event)=>{
+                if(!event.total) return;
+
+                const percent=Math.round(
+                    (event.loaded*100)/event.total
+                );
+
+                onProgress?.(percent);
+
+            }
+        }
+    );
+};

@@ -1,4 +1,5 @@
 const service=require("../services/chatService");
+const path = require("path");
 
 const {deleteForMe,deleteForEveryone}=require("../services/chatDeleteService");
 const {editMessage} = require("../services/chatEditService");
@@ -23,7 +24,8 @@ const sendMessage = async (req, res) => {
             Number(req.params.roomId),
             membership.id,
             req.body.content,
-            req.body.replyToId
+            req.body.replyToId,
+            req.body.attachments || []
         );
 
         res.status(201).json(message);
@@ -131,30 +133,33 @@ const editChatMessage = async(req,res)=>{
     }
 };
 
-const updateMessage = async (req, res) => {
-    try {
-        const message = await editMessage(
-            req.user.id,
-            Number(req.params.messageId),
-            req.body.content
-        );
+const uploadChatFile = async (req, res) => {
+    const extension = path.extname(req.file.originalname);
 
-        const io = req.app.get("io");
+    let category = "DOCUMENT";
 
-        io.to(`room-${message.roomId}`).emit(
-            "message-edited",
-            message
-        );
-
-        res.json(message);
-
+    if (req.file.mimetype.startsWith("image/")) {
+        category = "IMAGE";
     }
 
-    catch (err) {
-        res.status(400).json({
-            message: err.message
-        });
+    else if (req.file.mimetype.startsWith("video/")) {
+        category = "VIDEO";
     }
+
+    else if (req.file.mimetype.startsWith("audio/")) {
+        category = "AUDIO";
+    }
+
+    const mime = req.file.mimetype;
+
+    res.json({
+        url: `/uploads/chat/${req.file.filename}`,
+        name: req.file.originalname,
+        type: mime,
+        size: req.file.size,
+        extension: req.file.originalname.split(".").pop(),
+        category: mime.split("/")[0]
+    });
 };
 
 const removeForMe=async(req,res)=>{

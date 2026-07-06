@@ -12,7 +12,14 @@ import ChatInput from "./ChatInput";
 import ReplyPreview from "./elements/ReplyPreview";
 import{ deleteForMe , deleteForEveryone }from "../../../services/chatService";
 import { editMessage } from "../../../services/chatService";
-import {searchMessages} from "../../../services/chatService";
+import { searchMessages } from "../../../services/chatService";
+import { uploadChatFile } from "../../../services/chatService";
+import DropZone from "./components/DropZone";
+import MediaSidebar from "./MediaSidebar";
+
+import { Pin } from "lucide-react";
+import PinnedMessagesDrawer from "./PinnedMessagesDrawer";
+import { getPinnedMessages } from "../../../services/chatService";
 
 export default function ClubChat({
     clubId,
@@ -24,6 +31,8 @@ export default function ClubChat({
     useClubChat(clubId, token);
 
     const bottomRef = useRef(null);
+
+    const messageRefs = useRef({});
 
     const [messages, setMessages] = useState([]);
 
@@ -44,6 +53,18 @@ export default function ClubChat({
     const [search,setSearch]=useState("");
 
     const [searchResults,setSearchResults]=useState([]);
+
+    const [showPins, setShowPins] = useState(false);
+
+    const [pins, setPins] = useState([]);
+
+    const [highlightedMessage, setHighlightedMessage] = useState(null);
+
+    const [attachments, setAttachments] = useState([]);
+
+    const [dragging,setDragging]=useState(false);
+
+    const [showMedia,setShowMedia]=useState(false);
 
     useEffect(() => {
         if (!socket || !clubId) return;
@@ -163,21 +184,73 @@ export default function ClubChat({
         });
     }, [messages]);
 
-    const send = async () => {
-
-        if (!text.trim()) return;
+    const send = async ({ text, attachments }) => {
+        if (!text.trim() && attachments.length === 0) {
+            return;
+        }
 
         setSending(true);
 
-        socket.emit("send-message",{
-            roomId: clubId,
-            content: text,
-            replyToId: replyingTo?.id || null
-        });
+        try {
+            const uploadedFiles=[];
 
-        setText("");
-        setReplyingTo(null);
-        setSending(false);
+            for(const item of attachments){
+                const res=await uploadChatFile(
+                    item.file,
+                    percent=>{
+                        setAttachments(prev=>
+                            prev.map(file=>
+                                file.id===item.id
+                                ?{
+                                    ...file,
+                                    progress:percent,
+                                    status:"uploading"
+                                }
+                                :file
+                            )
+                        );
+                    }
+                );
+
+                setAttachments(prev=>
+                    prev.map(file=>
+                        file.id===item.id
+                        ?{
+                            ...file,
+                            progress:100,
+                            status:"uploaded"
+                        }
+                        :file
+                    )
+                );
+
+                uploadedFiles.push(res);
+
+            }
+
+            socket.emit("send-message", {
+                roomId: clubId,
+                content: text,
+                attachments: uploadedFiles,
+                replyToId: replyingTo?.id || null
+            });
+
+            setText("");
+
+            setTimeout(()=>{
+                setAttachments([]);
+            },400);
+
+            setReplyingTo(null);
+        }
+
+        catch (err) {
+            console.error(err);
+        }
+
+        finally {
+            setSending(false);
+        }
     };
 
     const loadOlder = async () => {
@@ -290,60 +363,163 @@ export default function ClubChat({
 
     };
 
+    const loadPins = async () => {
+        try{
+            const data = await getPinnedMessages(clubId);
+            setPins(data.pins);
+        }
+
+        catch(err){
+            console.error(err);
+        }
+    };
+
+    const openPins = async () => {
+        await loadPins();
+        setShowPins(true);
+    };
+
+    const jumpToMessage = (messageId) => {
+
+        const node = messageRefs.current[messageId];
+
+        if (!node) return;
+
+        node.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+        });
+
+        setHighlightedMessage(messageId);
+
+        setShowPins(false);
+
+        setTimeout(() => {
+            setHighlightedMessage(null);
+        }, 2500);
+    };
+
+    const onDragEnter=(e)=>{
+        e.preventDefault();
+        setDragging(true);
+    };
+
+    const onDragLeave=(e)=>{
+        e.preventDefault();
+        setDragging(false);
+    };
+
+    const onDragOver=(e)=>{
+        e.preventDefault();
+    };
+
+    const onDrop=(e)=>{
+        e.preventDefault();
+        setDragging(false);
+
+        const files=[...e.dataTransfer.files];
+
+        if(files.length===0) return;
+
+        const formatted=files.map(file=>({
+            id:crypto.randomUUID(),
+            file,
+            progress:0,
+            status:"waiting",
+            preview:file.type.startsWith("image/")
+                ?URL.createObjectURL(file)
+                :null
+        }));
+
+        setAttachments(prev=>
+            [...prev,...formatted]
+        );
+    };
+
     return (
         <div className="space-y-3">
-            <ChatHeader
-                onlineUsers={onlineUsers}
-            />
+            <DropZone
 
-            <MessageList
-                messages={
-                    search.trim()
-                        ? searchResults
-                        : messages
-                }
+                dragging={dragging}
 
-                search={search}
-                setSearch={setSearch}
-                handleSearch={handleSearch}
+                onDragEnter={onDragEnter}
+                onDragLeave={onDragLeave}
+                onDragOver={onDragOver}
+                onDrop={onDrop}
 
-                user={user}
-                loadingMore={loadingMore}
-                loadOlder={loadOlder}
-                bottomRef={bottomRef}
-                handleReaction={handleReaction}
-                setReplyingTo={setReplyingTo}
-                handleEditMessage={handleEditMessage}
-                deleteForMe={handleDeleteForMe}
-                deleteForEveryone={handleDeleteForEveryone}
-            />
+            >
 
-            {!hasMore && (
-                <div className="text-center text-gray-400">
+                <ChatHeader
+                    clubName="Club Chat"
+                    onlineUsers={onlineUsers}
+                    onOpenPins={openPins}
+                >
+                    <button
+                        onClick={() => setShowMedia(v => !v)}
+                    >
+                        🖼
+                    </button>
+                </ChatHeader>
 
-                    Beginning of conversation
+                <MessageList
+                    messages={
+                        search.trim()
+                            ? searchResults
+                            : messages
+                    }
 
-                </div>
-            )}
+                    search={search}
+                    setSearch={setSearch}
+                    handleSearch={handleSearch}
 
-            <TypingIndicator
-                typingUser={typingUser}
-            />
+                    user={user}
+                    loadingMore={loadingMore}
+                    loadOlder={loadOlder}
+                    bottomRef={bottomRef}
+                    handleReaction={handleReaction}
+                    setReplyingTo={setReplyingTo}
+                    handleEditMessage={handleEditMessage}
+                    deleteForMe={handleDeleteForMe}
+                    deleteForEveryone={handleDeleteForEveryone}
+                />
 
-            <ReplyPreview
-                replyingTo={replyingTo}
-                clearReply={() => setReplyingTo(null)}
-            />
+                {!hasMore && (
+                    <div className="text-center text-gray-400">
 
-            <ChatInput
-                text={text}
-                setText={setText}
-                send={send}
-                sending={sending}
-                socket={socket}
-                clubId={clubId}
-                user={user}
-            />
+                        Beginning of conversation
+
+                    </div>
+                )}
+
+                <TypingIndicator
+                    typingUser={typingUser}
+                />
+
+                <ReplyPreview
+                    replyingTo={replyingTo}
+                    clearReply={() => setReplyingTo(null)}
+                />
+
+                <ChatInput
+                    text={text}
+                    setText={setText}
+
+                    attachments={attachments}
+                    setAttachments={setAttachments}
+
+                    send={send}
+                    sending={sending}
+
+                    socket={socket}
+                    clubId={clubId}
+                    user={user}
+                />
+
+                <MediaSidebar
+                    open={showMedia}
+                    roomId={clubId}
+                />
+            </DropZone>
         </div>
     );
 }

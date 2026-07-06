@@ -30,4 +30,15 @@ router.post(
     uploadChatFile
 );
 
+const upload = require("../middleware/chatUpload");
+const uploadSizeValidator = require("../middleware/uploadSizeValidator");
+
+router.post(
+    "/chat",
+    authMiddleware,
+    upload.single("file"),
+    uploadSizeValidator,
+    uploadChatFile
+);
+
 module.exports = router;

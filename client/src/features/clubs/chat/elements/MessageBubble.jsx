@@ -1,7 +1,11 @@
 import { useState } from "react";
-import {CheckCheck,Eye} from "lucide-react";
+import {MoreVertical,Pin} from "lucide-react";
+import {CheckCheck,Eye,File} from "lucide-react";
 import ReactionBar from "./ReactionBar";
 import ReactionList from "./ReactionList";
+import { pinMessage } from "../../../services/chatService";
+import { Star } from "lucide-react";
+import { toggleStar } from "../../../services/chatService";
 
 export default function MessageBubble({
     msg,
@@ -10,8 +14,9 @@ export default function MessageBubble({
     setReplyingTo,
     deleteForMe,
     deleteForEveryone,
-    handleEditMessage
-}) {
+    handleEditMessage,
+    refreshMessages
+}){
 
     const [showMenu, setShowMenu] = useState(false);
     const [editing, setEditing] = useState(false);
@@ -42,9 +47,9 @@ export default function MessageBubble({
 
                 <button
                     onClick={() => setShowMenu(!showMenu)}
-                    className="text-lg px-2"
+                    className="p-1 rounded hover:bg-black/10"
                 >
-                    ⋮
+                    <MoreVertical size={18} />
                 </button>
 
                 {showMenu && (
@@ -71,6 +76,44 @@ export default function MessageBubble({
                             }}
                         >
                             ↩ Reply
+                        </button>
+
+                        <button
+                            className="flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-gray-100"
+                            onClick={async () => {
+                                try {
+                                    await pinMessage(msg.id);
+
+                                    refreshMessages?.();
+
+                                    setShowMenu(false);
+
+                                } catch (err) {
+                                    alert(err.response?.data?.message || err.message);
+                                }
+                            }}
+                        >
+                            <Pin size={16} />
+                            Pin Message
+                        </button>
+
+                        <button
+                            className="flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-gray-100"
+                            onClick={async () => {
+                                try {
+                                    await toggleStar(msg.id);
+                                    setShowMenu(false);
+                                } catch (err) {
+
+                                    alert(
+                                        err.response?.data?.message ||
+                                        err.message
+                                    );
+                                }
+                            }}
+                        >
+                            <Star size={16} />
+                            Star Message
                         </button>
 
                         {canEdit && (
@@ -114,10 +157,15 @@ export default function MessageBubble({
             {msg.replyTo && (
                 <div className="mb-2 border-l-4 border-blue-400 bg-gray-100 rounded px-3 py-2">
                     <div className="text-xs font-semibold text-blue-700">
+                        
                         {msg.replyTo.membership.user.name}
+
                     </div>
+
                     <div className="text-sm truncate">
+                        
                         {msg.replyTo.content}
+                    
                     </div>
                 </div>
             )}
@@ -163,8 +211,94 @@ export default function MessageBubble({
             ) : (
 
                 <div>
-                    <div className="mt-1 wrap-break-words">
-                        {msg.content}
+                    <div className="space-y-2">
+
+                        {
+                            msg.content && (
+                                <div className="wrap-break-word">
+                                    <MentionText content={msg.content}/>
+                                </div>
+                            )
+                        }
+
+                        {
+                            msg.fileUrl &&
+                            msg.fileType?.startsWith("image/") && (
+
+                                <img
+                                    src={msg.fileUrl}
+                                    alt={msg.fileName}
+                                    className="
+                                        max-h-80
+                                        rounded-xl
+                                        cursor-pointer
+                                        hover:opacity-95
+                                        transition
+                                    "
+                                />
+
+                            )
+                        }
+
+                        {
+                            msg.fileUrl &&
+                            msg.fileType?.startsWith("video/") && (
+
+                                <video
+                                    controls
+                                    className="
+                                        max-h-96
+                                        rounded-xl
+                                    "
+                                >
+                                    <source
+                                        src={msg.fileUrl}
+                                        type={msg.fileType}
+                                    />
+                                </video>
+
+                            )
+                        }
+
+                        {
+                            msg.fileUrl &&
+                            !msg.fileType?.startsWith("image/") &&
+                            !msg.fileType?.startsWith("video/") && (
+
+                                <a
+                                    href={msg.fileUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="
+                                        flex
+                                        items-center
+                                        gap-3
+                                        rounded-lg
+                                        border
+                                        bg-gray-100
+                                        p-3
+                                        hover:bg-gray-200
+                                    "
+                                >
+                                    <File size={22}/>
+
+                                    <div>
+
+                                        <p className="font-medium">
+
+                                            {msg.fileName}
+
+                                        </p>
+
+                                        <p className="text-xs text-gray-500">
+
+                                            {(msg.fileSize/1024/1024).toFixed(2)} MB
+
+                                        </p>
+                                    </div>
+                                </a>
+                            )
+                        }
                     </div>
 
                     <div className="flex justify-end items-center gap-1 mt-2">

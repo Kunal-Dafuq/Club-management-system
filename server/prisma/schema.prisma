@@ -25,6 +25,7 @@ model User {
   announcements       Announcement[]
   chatMessages        ChatMessage[]
   deletedChatMessages DeletedChatMessage[]
+  mentions            Mention[]
 }
 
 model Club {
@@ -194,7 +195,12 @@ model Membership {
   meetingAttendances   MeetingAttendance[]
   chatMessages         ChatMessage[]
   chatReactions        ChatReaction[]
-  chatReads            ChatRead[]
+  chatReads            ChatRead[]            @relation
+  starredMessages      StarredMessage[]
+  chatThreads          ChatThread[]
+  chatThreadReactions  ChatThreadReaction[]
+  chatPins             ChatPin[]
+  pinnedMessages       PinnedMessage[]
 
   @@unique([userId, clubId])
 }
@@ -358,59 +364,133 @@ model TaskCommentReaction {
 }
 
 model ChatRoom {
-  id   Int          @id @default(autoincrement())
+  id Int @id @default(autoincrement())
+
   name String?
+
   type ChatRoomType
 
-  clubId      Int?
+  clubId Int?
+
   committeeId Int?
 
-  club      Club?      @relation(fields: [clubId], references: [id])
+  createdAt DateTime @default(now())
+
+  club Club? @relation(fields: [clubId], references: [id])
+
   committee Committee? @relation(fields: [committeeId], references: [id])
 
   messages ChatMessage[]
 
-  createdAt DateTime @default(now())
+  @@index([clubId])
+  @@index([committeeId])
 }
 
 model ChatMessage {
   id Int @id @default(autoincrement())
 
   roomId Int
-  room   ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
   membershipId Int
-  membership   Membership @relation(fields: [membershipId], references: [id])
 
   content String?
-
-  fileUrl       String?
-  fileName      String?
-  fileType      String?
-  fileSize      Int?
 
   replyToId Int?
   replyTo   ChatMessage?  @relation("ReplyMessage", fields: [replyToId], references: [id])
   replies   ChatMessage[] @relation("ReplyMessage")
 
-  edited    Boolean   @default(false)
-  editedAt  DateTime?
-  deletedAt DateTime?
+  edited   Boolean   @default(false)
+  editedAt DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  deletedForAll Boolean   @default(false)
+  deletedAt     DateTime?
+
   deliveredAt DateTime?
   readAt      DateTime?
 
-  deletedForAll Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  reactions           ChatReaction[]
-  chatReads           ChatRead[]
-  user                User?                @relation(fields: [userId], references: [id])
-  userId              Int?
-  club                Club?                @relation(fields: [clubId], references: [id])
-  clubId              Int?
-  deletedChatMessages DeletedChatMessage[]
+  room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  reactions     ChatReaction[]
+  reads         ChatRead[]
+  deletedBy     DeletedChatMessage[]
+  mentions      Mention[]
+  threads       ChatThread[]
+  user          User?                @relation(fields: [userId], references: [id])
+  userId        Int?
+  club          Club?                @relation(fields: [clubId], references: [id])
+  clubId        Int?
+  pin           ChatPin?
+  starredBy     StarredMessage[]
+  attachments   ChatAttachment[]
+  pinnedMessage PinnedMessage?
+
+  @@index([roomId])
+  @@index([membershipId])
+  @@index([createdAt])
+}
+
+model ChatAttachment {
+  id Int @id @default(autoincrement())
+
+  messageId Int
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  fileUrl       String
+  fileName      String
+  fileType      String
+  fileExtension String?
+  fileSize      BigInt
+
+  mimeCategory FileCategory
+
+  thumbnailUrl String?
+
+  width  Int?
+  height Int?
+
+  duration Int?
+
+  createdAt  DateTime @default(now())
+  uploadedAt DateTime @default(now())
+
+  @@index([messageId])
+}
+
+model ChatPin {
+  id Int @id @default(autoincrement())
+
+  messageId Int @unique
+
+  pinnedById Int
+
+  reason String?
+
+  createdAt DateTime @default(now())
+
+  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  pinnedBy Membership @relation(fields: [pinnedById], references: [id])
+}
+
+model StarredMessage {
+  id Int @id @default(autoincrement())
+
+  membershipId Int
+  messageId    Int
+
+  createdAt DateTime @default(now())
+
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([membershipId, messageId])
+  @@index([membershipId])
 }
 
 model ChatReaction {
@@ -419,12 +499,14 @@ model ChatReaction {
   emoji String
 
   messageId Int
-  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   membershipId Int
-  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+
+  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, membershipId, emoji])
 }
@@ -438,9 +520,9 @@ model ChatRead {
 
   readAt DateTime @default(now())
 
-  message ChatMessage @relation(fields: [messageId], references: [id])
+  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
-  membership Membership @relation(fields: [membershipId], references: [id])
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, membershipId])
 }
@@ -456,9 +538,95 @@ model DeletedChatMessage {
 
   user User @relation(fields: [userId], references: [id])
 
-  message ChatMessage @relation(fields: [messageId], references: [id])
+  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@unique([userId, messageId])
+}
+
+model ChatThread {
+  id Int @id @default(autoincrement())
+
+  rootMessageId Int
+
+  membershipId Int
+
+  content String?
+
+  fileUrl  String?
+  fileName String?
+  fileType String?
+  fileSize Int?
+
+  parentThreadId Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  edited   Boolean   @default(false)
+  editedAt DateTime?
+
+  deletedForAll Boolean   @default(false)
+  deletedAt     DateTime?
+
+  rootMessage ChatMessage @relation(fields: [rootMessageId], references: [id], onDelete: Cascade)
+
+  membership Membership @relation(fields: [membershipId], references: [id])
+
+  parentThread ChatThread? @relation("ThreadReplies", fields: [parentThreadId], references: [id])
+
+  replies ChatThread[] @relation("ThreadReplies")
+
+  reactions ChatThreadReaction[]
+
+  @@index([rootMessageId])
+}
+
+model ChatThreadReaction {
+  id Int @id @default(autoincrement())
+
+  threadId Int
+
+  membershipId Int
+
+  emoji String
+
+  createdAt DateTime @default(now())
+
+  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  membership Membership @relation(fields: [membershipId], references: [id])
+
+  @@unique([threadId, membershipId, emoji])
+}
+
+model Mention {
+  id Int @id @default(autoincrement())
+
+  messageId Int
+
+  userId Int
+
+  createdAt DateTime @default(now())
+
+  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([messageId])
+}
+
+model PinnedMessage {
+  id Int @id @default(autoincrement())
+
+  messageId Int @unique
+
+  membershipId Int
+
+  pinnedAt DateTime @default(now())
+
+  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  membership Membership @relation(fields: [membershipId], references: [id])
 }
 
 enum ChatRoomType {
@@ -533,4 +701,12 @@ enum MeetingAttendanceStatus {
   GOING
   MAYBE
   NOT_GOING
+}
+
+enum FileCategory {
+  IMAGE
+  VIDEO
+  DOCUMENT
+  AUDIO
+  OTHER
 }

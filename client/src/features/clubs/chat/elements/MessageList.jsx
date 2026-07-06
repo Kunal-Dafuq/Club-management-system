@@ -56,20 +56,36 @@ export default function MessageList({
             </div>
 
             {messages.map(msg => (
-                <MessageBubble
+
+                <div
                     key={msg.id}
-                    msg={msg}
-                    mine={msg.membership.user.id === user.id}
-                    handleReaction={handleReaction}
-                    setReplyingTo={setReplyingTo}
-                    handleEditMessage={handleEditMessage}
-                    deleteForMe={deleteForMe}
-                    deleteForEveryone={deleteForEveryone}
-                />
+                    ref={(el) => {
+                        messageRefs.current[msg.id] = el;
+                    }}
+                    className={`
+                        rounded-xl
+                        transition-all
+                        duration-700
+                        ${
+                            highlightedMessage === msg.id
+                                ? "bg-yellow-100 ring-2 ring-yellow-400 scale-[1.02] shadow-lg p-2"
+                                : ""
+                        }
+                    `}
+                >
+                    <MessageBubble
+                        msg={msg}
+                        mine={msg.membership.user.id === user.id}
+                        handleReaction={handleReaction}
+                        setReplyingTo={setReplyingTo}
+                        deleteForMe={deleteForMe}
+                        deleteForEveryone={deleteForEveryone}
+                        handleEditMessage={handleEditMessage}
+                        refreshMessages={loadMessages}
+                    />
+                </div>
             ))}
-
             <div ref={bottomRef} />
-
         </div>
     );
 }

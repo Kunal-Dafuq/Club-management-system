@@ -17,6 +17,13 @@ const createNotification = async ({ userId, message }) => {
         notification
     );
 
+    await createNotification({
+    userId,
+    type:"MENTION",
+    title:"You were mentioned",
+    body:`${sender.name} mentioned you.`
+});
+
     return notification;
 };
 

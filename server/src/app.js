@@ -20,6 +20,9 @@ const taskAttachmentRoutes = require("./routes/taskAttachmentRoutes");
 const meetingRoutes = require("./routes/meetingRoutes");
 const activityRoutes = require("./routes/activityRoutes");
 const chatRoutes = require("./routes/chatRoutes");
+const pinRoutes = require("./routes/pinRoutes");
+const starRoutes = require("./src/routes/starRoutes");
+const mediaRoutes=require("./src/routes/mediaRoutes");
 
 const app = express();
 
@@ -75,6 +78,12 @@ app.use("/api/task-attachments", taskAttachmentRoutes);
 app.use("/api/meetings", meetingRoutes);
 
 app.use("/api/activity", activityRoutes);
+
+app.use("/api/pins", pinRoutes);
+
+app.use("/api/stars",starRoutes);
+
+app.use("/media",mediaRoutes);
 
 /*Health Check*/
 
