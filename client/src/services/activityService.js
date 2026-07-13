@@ -1,4 +1,7 @@
-import api from "../api/axios";
+import api from "./axios";
 
-export const getClubActivities = (clubId) =>
-  api.get(`/activity/club/${clubId}`);
+export const getTaskActivity = taskId =>
+    api.get(`/activity/task/${taskId}`);
+
+export const getClubActivity = clubId =>
+    api.get(`/activity/club/${clubId}`);

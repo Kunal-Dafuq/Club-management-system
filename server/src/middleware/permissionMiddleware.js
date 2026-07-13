@@ -27,7 +27,7 @@ const canManageCommittee = async (
     }
 
     catch (err) {
-        console.log(err);
+        console.error(err);
         res.status(500).json({
             message: "Permission check failed"
         });

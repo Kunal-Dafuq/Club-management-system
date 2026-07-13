@@ -55,7 +55,7 @@ const createTask = async (
 
         const count = await tx.task.count({
 
-            whee: {
+            where: {
                 committeeId,
                 isArchived: false
             }
@@ -326,10 +326,17 @@ const restoreTask = async (taskId) => {
 };
 
 const deleteTask = async (taskId) => {
-    return prisma.task.delete({
-        where: {
-            id: taskId
+    return prisma.task.update({
+        where:{
+            id:taskId
+        },
+        data:{
+            deletedAt:new Date()
         }
+    });
+
+    await createAuditLog({
+        action:"TASK_DELETED"
     });
 };
 
@@ -366,6 +373,23 @@ const getTaskStatistics = async (committeeId) => {
     };
 };
 
+const reorderTask = async(
+    taskId,
+    status,
+    position
+)=>{
+    return prisma.task.update({
+        where:{
+            id:taskId
+        },
+
+        data:{
+            status,
+            position
+        }
+    });
+};
+
 module.exports = {
     createTask,
     getCommitteeTasks,
@@ -376,5 +400,6 @@ module.exports = {
     archiveTask,
     restoreTask,
     deleteTask,
-    getTaskStatistics
+    getTaskStatistics,
+    reorderTask
 };

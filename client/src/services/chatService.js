@@ -90,3 +90,16 @@ export const uploadChatFile = (
         }
     );
 };
+
+export const markRoomRead = (
+    clubId,
+    roomId,
+    messageId
+) => {
+    return api.post(
+        `/read/clubs/${clubId}/rooms/${roomId}`,
+        {
+            messageId
+        }
+    );
+};

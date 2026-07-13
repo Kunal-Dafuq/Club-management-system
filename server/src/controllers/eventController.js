@@ -1,6 +1,8 @@
 const prisma = require("../config/prisma");
 const { createNotification } = require("../services/notificationService");
+const { createActivity } = require("../services/activityService");
 const { eventSchema, updateEventSchema } = require("../validators/eventValidator");
+const auditLogger = require("../utils/auditLogger");
 const createEvent = async (req, res) => {
   try {
     const createdById = req.user.id;
@@ -65,6 +67,18 @@ const createEvent = async (req, res) => {
       }
     });
 
+    await prisma.club.update({
+      where: {
+          id: event.clubId
+      },
+
+      data: {
+        eventCount: {
+          increment: 1
+        }
+      }
+    });
+
     await createActivity({
         clubId:event.clubId,
         userId:req.user.id,
@@ -88,8 +102,15 @@ const createEvent = async (req, res) => {
       )
     );
 
+    await auditLogger(req,{
+      action:"EVENT_CREATED",
+      entityType:"Event",
+      entityId:event.id,
+      description:`Created event "${event.title}"`,
+      clubId:event.clubId
+    });
+
     return res.status(201).json({
-      message: "Event created",
       event
     });
 
@@ -273,8 +294,36 @@ const deleteEvent = async (req, res) => {
       });
     }
 
-    await prisma.event.delete({
-      where: { id: eventId }
+    await prisma.club.update({
+      where: {
+          id: event.clubId
+      },
+
+      data: {
+        eventCount: {
+          decrement: 1
+        }
+      }
+    });
+
+    prisma.event.update({
+      where:{
+          id
+      },
+
+      data:{
+          deletedAt:new Date()
+      }
+    });
+
+    await createAuditLog({
+      action:"EVENT_DELETED",
+      entityType:"Event",
+      entityId:event.id,
+      performedById:req.user.id,
+      clubId:event.clubId,
+      description:`Deleted ${event.title}`,
+      metadata:event
     });
 
     await createActivity({

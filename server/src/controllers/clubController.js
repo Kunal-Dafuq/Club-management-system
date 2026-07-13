@@ -1,5 +1,6 @@
 const prisma = require("../config/prisma");
 const { generateSlug } = require("../services/clubService");
+const auditLogger = require("../utils/auditLogger");
 const createClub = async (req,res)=>{
   try{
     const {
@@ -47,9 +48,15 @@ const createClub = async (req,res)=>{
         }
     });
 
+    await auditLogger(req, {
+      action: "CLUB_CREATED",
+      entityType: "Club",
+      entityId: club.id,
+      description: `Club "${club.name}" created`,
+      clubId: club.id
+  });
 
     res.status(201).json({
-      message:"Club created",
       club
     });
   }
@@ -337,11 +344,28 @@ const deleteClub = async (req,res)=>{
       });
     }
 
-    await prisma.club.delete({
+    await prisma.club.update({
       where:{
-        id:Number(id)
+          id
+      },
+
+      data:{
+          deletedAt:new Date()
       }
     });
+
+    await createAuditLog({
+      action:"CLUB_DELETED",
+      entityType:"Club",
+      entityId:id,
+      performedById:req.user.id,
+      description:`Deleted club ${club.name}`,
+      metadata:{
+          clubName:club.name
+      },
+      ipAddress:req.ip,
+      userAgent:req.headers["user-agent"]
+  });
 
     res.json({
       message:"Club deleted successfully"

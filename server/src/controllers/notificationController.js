@@ -73,6 +73,9 @@ const deleteNotification = async (req, res) => {
         const notification = await prisma.notification.findUnique({
             where: {
                 id: notificationId
+            },
+            data:{
+                deletedAt:new Date()
             }
         });
 

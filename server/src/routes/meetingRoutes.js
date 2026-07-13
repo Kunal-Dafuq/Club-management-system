@@ -10,7 +10,7 @@ const {
     updateMeeting,
     deleteMeeting,
     markAttendance
-} = require("../controllers/meetingController");
+} = require("../controllers/meetingController"); 
 
 router.post(
     "/committee/:committeeId",
@@ -42,7 +42,7 @@ router.delete(
     deleteMeeting
 );
 
-router.post(
+router.patch(
     "/:id/attendance",
     protect,
     markAttendance

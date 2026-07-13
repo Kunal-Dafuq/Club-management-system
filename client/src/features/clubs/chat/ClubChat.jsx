@@ -12,10 +12,11 @@ import ChatInput from "./ChatInput";
 import ReplyPreview from "./elements/ReplyPreview";
 import{ deleteForMe , deleteForEveryone }from "../../../services/chatService";
 import { editMessage } from "../../../services/chatService";
-import { searchMessages } from "../../../services/chatService";
+import useMessageSearch from "./hooks/useMessageSearch";
 import { uploadChatFile } from "../../../services/chatService";
 import DropZone from "./components/DropZone";
 import MediaSidebar from "./MediaSidebar";
+import { markRoomRead } from "../../../services/chatService";
 
 import { Pin } from "lucide-react";
 import PinnedMessagesDrawer from "./PinnedMessagesDrawer";
@@ -30,11 +31,20 @@ export default function ClubChat({
 
     useClubChat(clubId, token);
 
+    const {
+        search,
+        setSearch,
+        searchResults,
+        handleSearch
+    } = useMessageSearch(clubId);
+
     const bottomRef = useRef(null);
 
     const messageRefs = useRef({});
 
     const [messages, setMessages] = useState([]);
+
+    const [firstUnread,setFirstUnread]=useState(null);
 
     const [text, setText] = useState("");
 
@@ -49,10 +59,6 @@ export default function ClubChat({
     const [hasMore, setHasMore] = useState(true);
 
     const [replyingTo, setReplyingTo] = useState(null);
-
-    const [search,setSearch]=useState("");
-
-    const [searchResults,setSearchResults]=useState([]);
 
     const [showPins, setShowPins] = useState(false);
 
@@ -74,6 +80,16 @@ export default function ClubChat({
                 const res = await getClubMessages(clubId);
 
                 setMessages(res.data);
+
+                const unread=res.data.find(
+                    message=>
+                        !message.readAt &&
+                        message.membership.user.id!==user.id
+                );
+
+                if(unread){
+                    setFirstUnread(unread.id);
+                }
 
                 if (res.data.length < 30) {
                     setHasMore(false);
@@ -145,15 +161,23 @@ export default function ClubChat({
             }, 1200);
         });
 
-        socket.on("message-status", (updated) => {
-            setMessages(prev =>
-                prev.map(msg =>
-                    msg.id === updated.id
-                        ? updated
-                        : msg
-                )
-            );
-        });
+        socket.on(
+            "message-read",
+            data=>{
+                setMessages(prev=>
+                    prev.map(message=>
+                        message.id===data.messageId
+                            ?{
+                                ...message,
+                                reads:data.reads,
+                                readCount:data.reads.length,
+                                delivered:data.reads.length>0
+                            }
+                            :message
+                    )
+                );
+            }
+        );
 
         return ()=>{
             socket.off("new-message");
@@ -168,21 +192,25 @@ export default function ClubChat({
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({
-            behavior: "smooth"
+            behavior:"smooth"
         });
 
-        messages.forEach(msg => {
-            if (
-                msg.membership.user.id !== user.id &&
-                !msg.readAt
-            ) {
-                socket.emit(
-                    "message-read",
-                    msg.id
-                );
-            }
-        });
-    }, [messages]);
+        if(messages.length===0) return;
+
+        const lastMessage=messages[messages.length-1];
+
+        if(
+            lastMessage.membership.user.id!==user.id
+        ){
+            markMessageRead(
+                lastMessage.id
+            ).catch(console.error);
+        }
+    },[
+        messages,
+        clubId,
+        user.id
+    ]);
 
     const send = async ({ text, attachments }) => {
         if (!text.trim() && attachments.length === 0) {
@@ -348,21 +376,6 @@ export default function ClubChat({
         }
     };
 
-    const handleSearch=async()=>{
-        if(!search.trim()){
-            setSearchResults([]);
-            return;
-        }
-
-        const res=await searchMessages(
-            clubId,
-            search
-        );
-
-        setSearchResults(res.data);
-
-    };
-
     const loadPins = async () => {
         try{
             const data = await getPinnedMessages(clubId);
@@ -481,6 +494,9 @@ export default function ClubChat({
                     handleEditMessage={handleEditMessage}
                     deleteForMe={handleDeleteForMe}
                     deleteForEveryone={handleDeleteForEveryone}
+                    firstUnread={firstUnread}
+                    messageRefs={messageRefs}
+                    highlightedMessage={highlightedMessage}
                 />
 
                 {!hasMore && (

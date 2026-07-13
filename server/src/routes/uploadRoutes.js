@@ -1,25 +1,28 @@
 const router = require("express").Router();
 
-const upload = require("../middleware/upload");          // Cloudinary
-const chatUpload = require("../middleware/chatUpload");  // Local disk
+const cloudUpload = require("../middleware/upload");
+const chatUpload = require("../middleware/chatUpload.js");
+const uploadSizeValidator = require("../middleware/uploadSizeValidator.js");
 
-const { protect } = require("../middleware/authMiddleware");
+const { protect } = require("../middleware/authMiddleware.js");
 
-const { uploadClubLogo,uploadBanner } = require("../controllers/uploadController");
-
-const { uploadChatFile } = require("../controllers/chatController");
+const {
+    uploadClubLogo,
+    uploadBanner,
+    uploadChatFile
+} = require("../controllers/uploadController");
 
 router.patch(
     "/club/:id/logo",
     protect,
-    upload.single("image"),
+    cloudUpload.single("image"),
     uploadClubLogo
 );
 
 router.patch(
     "/club/:id/banner",
     protect,
-    upload.single("image"),
+    cloudUpload.single("image"),
     uploadBanner
 );
 
@@ -27,17 +30,6 @@ router.post(
     "/chat",
     protect,
     chatUpload.single("file"),
-    uploadChatFile
-);
-
-const upload = require("../middleware/chatUpload");
-const uploadSizeValidator = require("../middleware/uploadSizeValidator");
-
-router.post(
-    "/chat",
-    authMiddleware,
-    upload.single("file"),
-    uploadSizeValidator,
     uploadChatFile
 );
 

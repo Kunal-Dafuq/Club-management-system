@@ -1,142 +1,107 @@
+const prisma = require("../config/prisma");
+
+const getMembershipId = require("../utils/getMembershipId");
 const service=require("../services/chatService");
-const path = require("path");
-
-const {deleteForMe,deleteForEveryone}=require("../services/chatDeleteService");
+const asyncHandler = require("../middleware/asyncHandler");
 const {editMessage} = require("../services/chatEditService");
+const {deleteForMe,deleteForEveryone}=require("../services/chatDeleteService");
+const auditLogger = require("../utils/auditLogger");
 
-const sendMessage = async (req, res) => {
-    try {
-        const membership = await prisma.membership.findFirst({
-            where: {
-                clubId: Number(req.params.roomId),
-                userId: req.user.id,
-                status: "APPROVED"
-            }
+const sendMessage = asyncHandler(async (req, res) => {
+
+    const roomId = Number(req.params.roomId);
+
+    const membershipId = getMembershipId(req, roomId);
+
+    if (!membershipId) {
+        throw new Error("You are not a member of this room.");
+    }
+
+    const message = await service.sendMessage(
+        roomId,
+        membershipId,
+        req.body.content,
+        req.body.replyToId,
+        req.body.attachments || []
+    );
+
+    req.io?.to(`room-${roomId}`).emit("message:new", message);
+
+    res.status(201).json(message);
+
+});
+
+const getMessages = asyncHandler(async (req, res) => {
+    const roomId = Number(req.params.roomId);
+
+    const membershipId = getMembershipId(req, roomId);
+
+    if (!membershipId) {
+        throw new Error("Not a room member.");
+    }
+
+    const cursor = req.query.cursor
+        ? Number(req.query.cursor)
+        : null;
+
+    const messages = await service.getMessages(
+        roomId,
+        membershipId,
+        req.user.id,
+        cursor
+    );
+
+    res.json(messages.reverse());
+
+});
+
+const toggleReaction = asyncHandler(async (req, res) => {
+    const roomId = Number(req.body.roomId);
+
+    const membershipId = getMembershipId(req, roomId);
+
+    if (!membershipId) {
+        throw new Error("Not authorized.");
+    }
+
+    const reaction = await service.toggleReaction(
+        Number(req.params.messageId),
+        membershipId,
+        req.body.emoji
+    );
+
+    req.io
+        ?.to(`room-${roomId}`)
+        .emit("reaction:update", {
+            messageId: Number(req.params.messageId),
+            emoji: req.body.emoji
         });
 
-        if (!membership) {
-            return res.status(403).json({
-                message: "Not a member of this club."
-            });
-        }
+    res.json(reaction);
 
-        const message = await service.sendMessage(
-            Number(req.params.roomId),
-            membership.id,
-            req.body.content,
-            req.body.replyToId,
-            req.body.attachments || []
-        );
+});
 
-        res.status(201).json(message);
+const editChatMessage = asyncHandler(async (req,res)=>{
 
-    }
+    const message = await editMessage(
+        req.user.id,
+        Number(req.params.messageId),
+        req.body.content
+    );
 
-    catch (err) {
+    req.io?.to(`room-${message.roomId}`)
+        .emit("message:update", message);
 
-        res.status(400).json({
-            message: err.message
-        });
-    }
-};
+    res.json(message);
 
-const getMessages = async (req, res) => {
-    try {
-        const roomId = Number(req.params.roomId);
+});
 
-        const cursor = req.query.cursor
-            ? Number(req.query.cursor)
-            : undefined;
-
-        const messages =
-            await service.getMessages(
-                roomId,
-                cursor
-            );
-
-        res.json(
-            messages.reverse()
-        );
-    }
-
-    catch (err) {
-        res.status(400).json({
-            message: err.message
-        });
-    }
-};
-
-const toggleReaction = async (req, res) => {
-    try {
-        const membership = await prisma.membership.findFirst({
-            where: {
-                clubId: Number(req.body.roomId),
-                userId: req.user.id,
-                status: "APPROVED"
-            }
-        });
-
-        if (!membership) {
-            return res.status(403).json({
-                message: "Forbidden"
-            });
-        }
-
-        const reaction =
-            await service.toggleReaction(
-                Number(req.params.messageId),
-                membership.id,
-                req.body.emoji
-            );
-
-        res.json(reaction);
-
-    }
-
-    catch (err) {
-        res.status(400).json({
-
-            message: err.message
-
-        });
-    }
-};
-
-const editChatMessage = async(req,res)=>{
-    try{
-        const membership=
-        await prisma.membership.findFirst({
-            where:{
-                clubId:Number(req.params.roomId),
-                userId:req.user.id,
-                status:"APPROVED"
-            }
-        });
-
-        const message=
-        await service.editMessage(
-            Number(req.params.messageId),
-            membership.id,
-            req.body.content
-        );
-
-        res.json(message);
-
-    }
-
-    catch(err){
-        res.status(400).json({
-
-            message:err.message
-
-        });
-    }
-};
-
-const uploadChatFile = async (req, res) => {
-    const extension = path.extname(req.file.originalname);
-
+const uploadChatFile = asyncHandler(async (req, res) => {
     let category = "DOCUMENT";
+
+    if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded." });
+    }
 
     if (req.file.mimetype.startsWith("image/")) {
         category = "IMAGE";
@@ -152,97 +117,60 @@ const uploadChatFile = async (req, res) => {
 
     const mime = req.file.mimetype;
 
-    res.json({
+    return res.json({
         url: `/uploads/chat/${req.file.filename}`,
         name: req.file.originalname,
         type: mime,
         size: req.file.size,
         extension: req.file.originalname.split(".").pop(),
-        category: mime.split("/")[0]
+        category
     });
-};
+});
 
-const removeForMe=async(req,res)=>{
+const searchMessages = asyncHandler(async (req, res) => {
+    const roomId = Number(req.params.clubId);
+    const query = req.query.q || "";
+
+    const messages = await service.searchMessages(
+        roomId,
+        query
+    );
+
+    res.json(messages);
+
+});
+
+const removeForMe = asyncHandler(async(req,res)=>{
     await deleteForMe(
         req.user.id,
         Number(req.params.messageId)
     );
+
     res.json({
         success:true
     });
-};
+});
 
-const removeForEveryone = async (req,res)=>{
-    try{
-        const message = await deleteForEveryone(
-            req.user.id,
-            Number(req.params.messageId)
-        );
+const removeForEveryone = asyncHandler(async(req,res)=>{
+    const message = await deleteForEveryone(
+        req.user.id,
+        Number(req.params.messageId)
+    );
 
-        const io = req.app.get("io");
+    req.io
+        ?.to(`room-${message.roomId}`)
+        .emit("message:delete",message);
 
-        io.to(`room-${message.roomId}`).emit(
-            "message-deleted",
-            message
-        );
+    res.json(message);
+});
 
-        res.json(message);
-        
-    }
-
-    catch(err){
-        res.status(400).json({
-            message:err.message
-        });
-    }
-};
-
-const searchMessages = async (req, res) => {
-    const { clubId } = req.params;
-    const { q } = req.query;
-    const messages = await prisma.chatMessage.findMany({
-        where:{
-            clubId:Number(clubId),
-            deletedForAll:false,
-            content:{
-                contains:q,
-                mode:"insensitive"
-            }
-        },
-        include:{
-            membership:{
-                include:{
-                    user:true
-                }
-            },
-            reactions:true,
-            replyTo:true
-        },
-        orderBy:{
-            createdAt:"desc"
-        }
-    });
-
-    res.json(messages);
-
-};
-
-const uploadChatFile = async(req,res)=>{
-    res.json({
-        url:`/uploads/chat/${req.file.filename}`,
-        name:req.file.originalname,
-        type:req.file.mimetype,
-        size:req.file.size
-    });
-};
-
-module.exports={
+module.exports = {
     sendMessage,
     getMessages,
-    updateMessage,
+    editChatMessage,
+    toggleReaction,
     removeForMe,
     removeForEveryone,
-    toggleReaction,
     searchMessages,
     uploadChatFile
 };

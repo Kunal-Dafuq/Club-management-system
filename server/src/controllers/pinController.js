@@ -1,9 +1,30 @@
-const pinService = require("../../services/chat/pinService");
+const pinService = require("../services/pinService");
 
 const pinMessage = async (req, res) => {
     try {
         const { messageId } = req.body;
-        const membershipId = req.user.membershipId;
+        const message=await prisma.chatMessage.findUnique({
+            where:{
+                id:Number(messageId)
+            },
+            select:{
+                room:{
+                    select:{
+                        clubId:true
+                    }
+                }
+            }
+        });
+
+        const membership=await prisma.membership.findFirst({
+            where:{
+                userId:req.user.id,
+                clubId:message.room.clubId,
+                status:"APPROVED"
+            }
+        });
+
+        const membershipId=membership.id;
 
         const pin = await pinService.pinMessage(
             messageId,
@@ -51,12 +72,6 @@ const getPinnedMessages = async (req, res) => {
         });
     }
 };
-
-/*
-|--------------------------------------------------------------------------
-| Get Pin Count
-|--------------------------------------------------------------------------
-*/
 
 const getPinnedCount = async (req, res) => {
     try {

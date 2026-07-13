@@ -1,28 +1,46 @@
+const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
 
-io.use((socket, next) => {
+const registerChatSocket = require("./chatSocket");
+const registerTaskSocket = require("./taskSocket");
 
-    const token = socket.handshake.auth.token;
+module.exports = (server) => {
+    const io = new Server(server, {
+        cors: {
+            origin: process.env.CLIENT_URL || "*",
+            credentials: true
+        },
 
-    if (!token) {
-        return next(
-            new Error("Unauthorized")
-        );
-    }
+        transports: ["websocket", "polling"],
 
-    try {
-        socket.user = jwt.verify(
-            token,
-            process.env.JWT_SECRET
-        );
+        pingTimeout: 60000,
 
-        next();
+        pingInterval: 25000
+    });
 
-    }
+    io.use((socket, next) => {
+        const token = socket.handshake.auth?.token ||
+        socket.handshake.headers?.authorization?.replace("Bearer ", "");
 
-    catch {
-        next(
-            new Error("Invalid token")
-        );
-    }
-});
+        if (!token) {
+            return next(new Error("Unauthorized"));
+        }
+
+        try {
+            socket.user = jwt.verify(
+                token,
+                process.env.JWT_SECRET
+            );
+
+            next();
+
+        } catch {
+            next(new Error("Invalid token"));
+        }
+    });
+
+    registerChatSocket(io);
+    registerTaskSocket(io);
+
+    return io;
+};

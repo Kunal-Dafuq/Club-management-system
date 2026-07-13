@@ -77,10 +77,22 @@ const updateCommittee = async (committeeId, data) => {
 };
 
 const deleteCommittee = async (committeeId) => {
-    return prisma.committee.delete({
-        where: {
-            id: committeeId
+    return prisma.committee.update({
+        where:{
+            id:committeeId
+        },
+        data:{
+            deletedAt:new Date()
         }
+    });
+
+    await createAuditLog({
+        action:"COMMITTEE_DELETED",
+        entityType:"Committee",
+        entityId:committee.id,
+        clubId:committee.clubId,
+        performedById:userId,
+        metadata:committee
     });
 };
 

@@ -2,8 +2,7 @@ const express = require("express");
 
 const router = express.Router();
 
-const authMiddleware =
-    require("../middleware/authMiddleware");
+const { protect } = require("../middleware/authMiddleware");
 
 const {
     toggleStar,
@@ -12,13 +11,13 @@ const {
 
 router.post(
     "/",
-    authMiddleware,
+    protect,
     toggleStar
 );
 
 router.get(
     "/",
-    authMiddleware,
+    protect,
     getStarredMessages
 );
 

@@ -1,15 +1,29 @@
 const prisma = require("../config/prisma");
 const getFileIcon = require("../utils/fileIcon");
+const {createNotification} = require("./notificationService");
 
 const uploadAttachment = async (
     taskId,
     membershipId,
     file
 ) => {
+    const membership = await prisma.membership.findUnique({
+        where:{
+            id: membershipId
+        },
+        include:{
+            user:true
+        }
+    });
+
+    if(!membership){
+        throw new Error("Membership not found");
+    }
+
     await prisma.activity.create({
         data:{
-            clubId:membership.clubId,
-            userId:membership.userId,
+            clubId: membership.clubId,
+            userId: membership.userId,
             action:"TASK_ATTACHMENT",
             description:`Uploaded ${file.originalname}`
         }
@@ -18,11 +32,11 @@ const uploadAttachment = async (
     const attachment = await prisma.taskAttachment.create({
         data:{
             taskId,
-            uploadedById:membership.id,
-            fileName:file.originalname,
-            fileUrl:file.path,
-            fileSize:file.size,
-            mimeType:file.mimetype
+            membershipId: membership.id,
+            fileName: file.originalname,
+            fileUrl: file.path,
+            fileSize: file.size,
+            mimeType: file.mimetype
         }
     });
 
@@ -65,26 +79,19 @@ const uploadAttachment = async (
         );
     }
 
-    const heads = await prisma.committeeMember.findMany({
+    return prisma.taskAttachment.findUnique({
         where:{
-            committeeId:task.committeeId,
-            role:"HEAD"
+            id:attachment.id
         },
-        include:{
-            membership:true
-        }
-    });
 
-    return prisma.taskAttachment.create({
-        data:{
-            taskId,
-            uploadedById:membershipId,
-            fileName:file.originalname,
-            fileUrl:file.path,
-            fileSize:file.size,
-            mimeType:file.mimetype
+        include:{
+            membership:{
+                include:{
+                    user:true
+                }
+            }
         }
-    });
+    });;
 };
 
 const getAttachments = async (taskId) => {
@@ -98,30 +105,19 @@ const getAttachments = async (taskId) => {
                     user: true
                 }
             }
+        },
+        orderBy:{
+        uploadedAt:"desc"
         }
     });
 
     return attachments.map(file => {
-        const extension = file.fileName
-            .split(".")
-            .pop()
-            .toLowerCase();
+        const extension =
+        file.fileName.includes(".")
+        ? file.fileName.split(".").pop().toLowerCase()
+        : "";
 
-        let icon = "📄";
-
-        const extension = file.fileName
-    .split(".")
-    .pop()
-    .toLowerCase();
-
-const icon = getFileIcon(extension);
-
-    const extension = file.fileName
-        .split(".")
-        .pop()
-        .toLowerCase();
-
-    const icon = getFileIcon(extension);
+        const icon = getFileIcon(extension);
 
         return {
             id: file.id,
@@ -131,8 +127,8 @@ const icon = getFileIcon(extension);
             icon,
             size: file.fileSize,
             mime: file.mimeType,
-            uploadedBy: file.uploadedBy.user.name,
-            uploadedAt: file.createdAt
+            uploadedBy: file.membership.user.name,
+            uploadedAt: file.uploadedAt
         };
     });
 };
@@ -141,6 +137,9 @@ const deleteAttachment = async(id)=>{
     return prisma.taskAttachment.delete({
         where:{
             id
+        },
+        data:{
+            deletedAt:new Date()
         }
     });
 };

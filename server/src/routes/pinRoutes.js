@@ -1,36 +1,36 @@
 const express = require("express");
-
 const router = express.Router();
-const authMiddleware = require("../middleware/authMiddleware");
+
+const { protect } = require("../middleware/authMiddleware");
 
 const {
     pinMessage,
     unpinMessage,
     getPinnedMessages,
-    getPinnedCount,
+    getPinnedCount
 } = require("../controllers/pinController");
 
 router.post(
     "/",
-    authMiddleware,
+    protect,
     pinMessage
 );
 
 router.delete(
     "/:messageId",
-    authMiddleware,
+    protect,
     unpinMessage
 );
 
 router.get(
     "/room/:roomId",
-    authMiddleware,
+    protect,
     getPinnedMessages
 );
 
 router.get(
     "/room/:roomId/count",
-    authMiddleware,
+    protect,
     getPinnedCount
 );
 

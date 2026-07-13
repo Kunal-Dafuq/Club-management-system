@@ -4,34 +4,36 @@ const extractMentions=require("../utils/mentionParser");
 
 const createComment = async (taskId, userId, content) => {
     return prisma.$transaction(async (tx) => {
-        const membership = await tx.membership.findFirst({
-            where:{
-                userId,
-                clubId: task.committee.clubId,
-                status:"APPROVED"
-            }
-        });
-
         const task = await tx.task.findUnique({
-            where: { id: taskId },
-            include: {
-                committee: true
+            where:{
+                id:taskId
+            },
+            include:{
+                committee:true,
+                createdBy:{
+                    include:{
+                        user:true
+                    }
+                }
             }
         });
 
-        if (!task) {
+        if(!task){
             throw new Error("Task not found");
         }
 
         const membership = await tx.membership.findFirst({
-            where: {
+            where:{
                 userId,
-                clubId: task.committee.clubId,
-                status: "APPROVED"
+                clubId:task.committee.clubId,
+                status:"APPROVED"
+            },
+            include:{
+                user:true
             }
         });
 
-        if (!membership) {
+        if(!membership){
             throw new Error("Membership not found");
         }
 
@@ -40,12 +42,19 @@ const createComment = async (taskId, userId, content) => {
                 content,
                 taskId,
                 membershipId: membership.id
+            },
+            include:{
+                membership:{
+                    include:{
+                        user:true
+                    }
+                }
             }
         });
 
-        const mentions=extractMentions(content);
+        const mentions = extractMentions(content);
         for(const username of mentions){
-            const user=await prisma.user.findFirst({
+            const user = await tx.user.findFirst({
                 where:{
                     name:username
                 }
@@ -56,9 +65,7 @@ const createComment = async (taskId, userId, content) => {
                     user.id,
                     `${membership.user.name} mentioned you.`
                 );
-
             }
-
         }
 
         await tx.activity.create({
@@ -66,38 +73,27 @@ const createComment = async (taskId, userId, content) => {
                 clubId: membership.clubId,
                 userId: membership.userId,
                 action: "TASK_COMMENT",
-                description: `${comment.membership.user.name} commented on "${task.title}"`
+                description: `${membership.user.name} commented on "${task.title}"`
             }
         });
 
-        if(task.createdById!==userId){
-            await createNotification(
-                task.createdById,
+        const creatorMembership =
+            await tx.membership.findUnique({
+                where:{
+                    id:task.createdById
+                }
+            });
+
+        if (
+            creatorMembership &&
+            creatorMembership.userId !== userId
+        ) {
+            await createNotification(creatorMembership.userId,
                 `${membership.user.name} commented on your task.`
             );
-
         }
 
         return comment;
-
-    });
-};
-
-const getComments = async(taskId)=>{
-    return prisma.taskComment.findMany({
-        where:{
-            taskId
-        },
-        include:{
-            membership:{
-                include:{
-                    user:true
-                }
-            }
-        },
-        orderBy:{
-            createdAt:"asc"
-        }
     });
 };
 
@@ -106,21 +102,16 @@ const replyComment = async (
     userId,
     content
 ) => {
-
-    await prisma.activity.create({
-        data:{
-            clubId:membership.clubId,
-            userId,
-            action:"TASK_REPLY",
-            description:"Replied to a task comment"
-        }
-    });
-
     const parent = await prisma.taskComment.findUnique({
         where:{
             id: parentId
         },
         include:{
+            membership:{
+                include:{
+                    user:true
+                }
+            },
             task:{
                 include:{
                     committee:true
@@ -133,23 +124,37 @@ const replyComment = async (
         throw new Error("Comment not found");
     }
 
+    const membership =
+        await prisma.membership.findFirst({
+            where:{
+                userId,
+                clubId:parent.task.clubId,
+                status:"APPROVED"
+            },
+            include:{
+                user:true
+            }
+        });
+
+    if(!membership){
+        throw new Error("Membership not found");
+    }
+
+    await prisma.activity.create({
+        data:{
+            clubId:membership.clubId,
+            userId,
+            action:"TASK_REPLY",
+            description:
+            `${membership.user.name} replied to a task comment`
+        }
+    });
+
     if(parent.membership.userId!==userId){
         await createNotification(
             parent.membership.userId,
             `${membership.user.name} replied to your comment.`
         );
-    }
-
-    const membership = await prisma.membership.findFirst({
-        where:{
-            userId,
-            clubId: parent.task.clubId,
-            status:"APPROVED"
-        }
-    });
-
-    if(!membership){
-        throw new Error("Membership not found");
     }
 
     return prisma.taskComment.create({
@@ -160,9 +165,10 @@ const replyComment = async (
             content
         },
         include:{
-            membership:{
+            membership:true,
+            task:{
                 include:{
-                    user:true
+                    committee:true
                 }
             }
         }
@@ -179,7 +185,11 @@ const updateComment = async (
             id:commentId
         },
         include:{
-            membership:true,
+            membership:{
+                include:{
+                    user:true
+                }
+            },
             task:{
                 include:{
                     committee:true
@@ -211,7 +221,8 @@ const updateComment = async (
             clubId:comment.task.committee.clubId,
             userId,
             action:"TASK_COMMENT_EDITED",
-            description:"Edited a task comment"
+            description:
+            `${comment.membership.user.name} edited a task comment`
         }
     });
 
@@ -227,6 +238,9 @@ const deleteComment = async (
 
         where:{
             id:commentId
+        },
+        data:{
+            deletedAt:new Date()
         },
         include:{
             membership:true,
@@ -246,12 +260,17 @@ const deleteComment = async (
     const membership = await prisma.membership.findFirst({
         where:{
             userId,
-            clubId:comment.task.committee.clubId
+            clubId:comment.task.committee.clubId,
+            status:"APPROVED"
         },
         include:{
             committeeMemberships:true
         }
     });
+
+    if(!membership){
+        throw new Error("Membership not found");
+    }
 
     let allowed=false;
 
@@ -265,10 +284,9 @@ const deleteComment = async (
         allowed=true;
     }
 
-    const isHead =
-        membership.committeeMemberships.some(
-            member=>member.role==="HEAD"
-        );
+    const isHead = membership.committeeMemberships?.some(
+        m=>m.role==="HEAD"
+    );
 
     if(isHead){
         allowed=true;
@@ -283,7 +301,8 @@ const deleteComment = async (
             clubId:membership.clubId,
             userId,
             action:"TASK_COMMENT_DELETED",
-            description:"Deleted a task comment"
+            description:
+            `${membership.user.name} deleted a task comment`
         }
     });
 

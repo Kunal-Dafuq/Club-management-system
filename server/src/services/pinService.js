@@ -21,6 +21,14 @@ const pinMessage = async (messageId, membershipId) => {
         throw new Error("Message is already pinned.");
     }
 
+    await createAuditLog({
+        action:"PIN_CREATED",
+        entityType:"ChatMessage",
+        entityId:messageId,
+        performedById:
+            membershipId
+    });
+
     return prisma.chatPin.create({
         data: {
             messageId: Number(messageId),
@@ -82,6 +90,7 @@ const unpinMessage = async (messageId) => {
         where: {
             messageId: Number(messageId),
         },
+        action:"PIN_REMOVED"
     });
 
     return {

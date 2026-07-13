@@ -1,4 +1,5 @@
 const committeeService = require("../services/committeeService");
+const auditLogger = require("../utils/auditLogger");
 
 const createCommittee = async (req, res) => {
     try {
@@ -8,12 +9,16 @@ const createCommittee = async (req, res) => {
             req.body
         );
 
+        await auditLogger(req,{
+            action:"COMMITTEE_CREATED",
+            entityType:"Committee",
+            entityId:committee.id,
+            description:`Created committee "${committee.name}"`,
+            clubId:committee.clubId
+        });
+
         res.status(201).json({
-
-            message: "Committee created successfully.",
-
             committee
-
         });
     }
 
@@ -82,9 +87,14 @@ const updateCommittee = async (req, res) => {
             req.body
         );
 
-        res.json({
+        await auditLogger(req,{
+            action:"COMMITTEE_ROLE_CHANGED",
+            entityType:"CommitteeMember",
+            entityId:committeeMember.id,
+            description:`Committee role changed to ${committeeMember.role}`
+        });
 
-            message: "Committee updated successfully.",
+        res.json({
             committee
         });
     }
@@ -207,6 +217,14 @@ const getCommitteeStatistics = async (req, res) => {
         });
     }
 };
+
+await committeeService.restoreCommittee(id);
+
+await auditLogger(req,{
+    action:"COMMITTEE_RESTORED",
+    entityType:"Committee",
+    entityId:id
+});
 
 module.exports = {
     createCommittee,

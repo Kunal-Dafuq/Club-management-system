@@ -1,62 +1,52 @@
-const router=require("express").Router();
+const router = require("express").Router();
 
-const {protect}=require("../middleware/authMiddleware");
+const { protect } = require("../middleware/authMiddleware");
+const upload = require("../middleware/chatUpload");
 
-const{sendMessage, getMessages}=require("../controllers/chatController");
+const {
+    sendMessage,
+    getMessages,
+    editChatMessage,
+    toggleReaction,
+    removeForMe,
+    removeForEveryone,
+    searchMessages,
+    uploadChatFile
+} = require("../controllers/chatController");
 
-router.post(
-    "/room/:roomId",
-    protect,
-    sendMessage
-);
-
-router.get(
-    "/room/:roomId",
-    protect,
-    getMessages
-);
-
-router.post(
-    "/reaction/:messageId",
-    protect,
-    toggleReaction
-);
+router.post("/room/:roomId", protect, sendMessage);
+router.get("/room/:roomId", protect, getMessages);
+router.post("/reaction/:messageId", protect, toggleReaction);
 
 router.put(
     "/room/:roomId/:messageId",
     protect,
-    editMessage
+    editChatMessage
 );
 
 router.delete(
     "/messages/:messageId/me",
-    authenticate,
+    protect,
     removeForMe
 );
 
 router.delete(
     "/messages/:messageId/everyone",
-    authenticate,
+    protect,
     removeForEveryone
-);
-
-router.patch(
-    "/messages/:messageId",
-    authenticate,
-    updateMessage
 );
 
 router.get(
     "/clubs/:clubId/search",
-    authenticate,
+    protect,
     searchMessages
 );
 
 router.post(
     "/upload",
-    authenticate,
+    protect,
     upload.single("file"),
     uploadChatFile
 );
 
-module.exports=router;
+module.exports = router;

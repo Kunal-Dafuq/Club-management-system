@@ -1,7 +1,5 @@
 const router = require("express").Router();
 
-const { protect } = require("../middleware/authMiddleware");
-
 const {
     createTask,
     getCommitteeTasks,
@@ -12,8 +10,18 @@ const {
     archiveTask,
     restoreTask,
     deleteTask,
-    getTaskStatistics
+    getTaskStatistics,
+    reorderTask
 } = require("../controllers/taskController");
+
+const {
+    protect,
+    allowRoles
+} = require("../middleware/authMiddleware");
+
+const {
+    canManageTask
+} = require("../middleware/taskPermissionMiddleware");
 
 const {
     canManageCommittee
@@ -41,12 +49,14 @@ router.get(
 router.patch(
     "/:taskId",
     protect,
+    canManageTask,
     updateTask
 );
 
 router.patch(
     "/:taskId/status",
     protect,
+    canManageTask,
     updateStatus
 );
 
@@ -84,4 +94,23 @@ router.get(
     getTaskStatistics
 );
 
-module.exports = router;
+router.patch(
+    "/:taskId/reorder",
+    protect,
+    canManageTask,
+    reorderTask
+);
+
+module.exports = {
+    createTask,
+    getCommitteeTasks,
+    getTaskById,
+    assignTask,
+    updateStatus,
+    updateTask,
+    archiveTask,
+    restoreTask,
+    deleteTask,
+    getTaskStatistics,
+    reorderTask
+};

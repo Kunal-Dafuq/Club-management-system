@@ -1,5 +1,8 @@
 const prisma = require("../config/prisma");
 
+const formatMessage = require("../utils/chatMessageFormatter");
+const chatInclude = require("../utils/chatInclude");
+
 const sendMessage = async (
     roomId,
     membershipId,
@@ -7,63 +10,64 @@ const sendMessage = async (
     replyToId = null,
     attachments = []
 ) => {
-  return prisma.chatMessage.create({
-    data: {
-      roomId,
-      membershipId,
-      content,
-      replyToId,
-      attachments: {
-        create: attachments.map((file) => ({
-          fileUrl: file.fileUrl,
-          fileName: file.fileName,
-          fileType: file.fileType,
-          fileSize: BigInt(file.fileSize),
-          fileExtension: file.fileExtension || null,
-          mimeCategory: file.mimeCategory || null,
-          thumbnailUrl: file.thumbnailUrl || null,
-        })),
-      },
-    },
-    include:{
-      attachments:true,
+  const trimmedContent = content?.trim() || "";
 
-      membership:{
-          include:{
-              user:true
-          }
-      },
+  if (
+      trimmedContent.length === 0 &&
+      attachments.length === 0
+  ) {
+      throw new Error("Message cannot be empty.");
+  }
 
-      reactions:{
-          include:{
-              membership:{
-                  include:{
-                      user:true
+  return prisma.$transaction(async (tx) => {
+      if (replyToId) {
+          const parent =
+            await tx.chatMessage.findUnique({
+                  where:{
+                      id:replyToId
                   }
-              }
-          }
-      },
+              });
 
-      replyTo:{
-          include:{
-              membership:{
-                  include:{
-                      user:true
-                  }
-              }
+          if(!parent){
+              throw new Error("Reply message not found.");
           }
       }
-    }
+      return tx.chatMessage.create({
+          data: {
+              roomId,
+              membershipId,
+              content: trimmedContent || null,
+              replyToId,
+
+              attachments: {
+                  create: attachments.map(file => ({
+                      fileUrl: file.fileUrl,
+                      fileName: file.fileName,
+                      fileType: file.fileType,
+                      fileSize: file.fileSize
+                          ? BigInt(file.fileSize)
+                          : BigInt(0),
+                      fileExtension: file.fileExtension || null,
+                      mimeCategory: file.mimeCategory || "OTHER",
+                      thumbnailUrl: file.thumbnailUrl || null
+                  }))
+              }
+          },
+
+          include: chatInclude
+
+      });
   });
 };
 
 const getMessages = async (
-  roomId,
-  userId,
-  cursor = null,
-  limit = 30
+    roomId,
+    membershipId,
+    userId,
+    cursor = null,
+    limit = 30
 ) => {
-  return prisma.chatMessage.findMany({
+  const messages = await prisma.chatMessage.findMany({
     where: {
       roomId,
 
@@ -74,35 +78,7 @@ const getMessages = async (
       },
     },
 
-    include: {
-      attachments:true,
-
-      membership: {
-        include: {
-          user: true,
-        },
-      },
-
-      reactions: {
-        include: {
-          membership: {
-            include: {
-              user: true,
-            },
-          },
-        },
-      },
-
-      replyTo: {
-        include: {
-          membership: {
-            include: {
-              user: true,
-            },
-          },
-        },
-      },
-    },
+    include: chatInclude,
 
     orderBy: {
       createdAt: "desc",
@@ -117,77 +93,13 @@ const getMessages = async (
 
     take: limit,
   });
-};
 
-const editMessage = async (
-  messageId,
-  membershipId,
-  content
-) => {
-  const message = await prisma.chatMessage.findUnique({
-    where: {
-      id: messageId,
-    },
-  });
-
-  if (!message) {
-    throw new Error("Message not found");
-  }
-
-  if (message.membershipId !== membershipId) {
-    throw new Error("Unauthorized");
-  }
-
-  const FIFTEEN_MINUTES = 15 * 60 * 1000;
-
-  if (
-    Date.now() - message.createdAt.getTime() >
-    FIFTEEN_MINUTES
-  ) {
-    throw new Error("Edit window expired");
-  }
-
-  return prisma.chatMessage.update({
-    where: {
-      id: messageId,
-    },
-
-    data: {
-      content,
-      edited: true,
-      editedAt: new Date(),
-    },
-
-    include: {
-      attachments:true,
-
-      membership: {
-        include: {
-          user: true,
-        },
-      },
-
-      reactions: {
-        include: {
-          membership: {
-            include: {
-              user: true,
-            },
-          },
-        },
-      },
-
-      replyTo: {
-        include: {
-          membership: {
-            include: {
-              user: true,
-            },
-          },
-        },
-      },
-    },
-  });
+  return messages.map(message =>
+    formatMessage(
+      message,
+      membershipId
+    )
+  );
 };
 
 const toggleReaction = async (
@@ -199,7 +111,7 @@ const toggleReaction = async (
     where: {
       messageId,
       membershipId,
-      emoji,
+      emoji
     },
   });
 
@@ -219,7 +131,7 @@ const toggleReaction = async (
     data: {
       messageId,
       membershipId,
-      emoji,
+      emoji
     },
   });
 
@@ -240,57 +152,6 @@ const markDelivered = async (messageId) => {
   });
 };
 
-const markRead = async (messageId) => {
-  return prisma.chatMessage.update({
-    where: {
-      id: messageId,
-    },
-
-    data: {
-      readAt: new Date(),
-    },
-  });
-};
-
-const deleteForEveryone = async (
-  messageId,
-  membershipId
-) => {
-  const message = await prisma.chatMessage.findUnique({
-    where: {
-      id: messageId,
-    },
-  });
-
-  if (!message) {
-    throw new Error("Message not found");
-  }
-
-  if (message.membershipId !== membershipId) {
-    throw new Error("Unauthorized");
-  }
-
-  const FIFTEEN_MINUTES = 15 * 60 * 1000;
-
-  if (
-    Date.now() - message.createdAt.getTime() >
-    FIFTEEN_MINUTES
-  ) {
-    throw new Error("Delete window expired");
-  }
-
-  return prisma.chatMessage.update({
-    where: {
-      id: messageId,
-    },
-
-    data: {
-      deletedForAll: true,
-      content: "This message was deleted",
-    },
-  });
-};
-
 const searchMessages = async (
   roomId,
   query
@@ -307,14 +168,7 @@ const searchMessages = async (
       deletedForAll: false,
     },
 
-    include: {
-      attachments:true,
-      membership: {
-        include: {
-          user: true,
-        },
-      },
-    },
+    include: chatInclude,
 
     orderBy: {
       createdAt: "desc",
@@ -322,72 +176,10 @@ const searchMessages = async (
   });
 };
 
-const pinMessage = async (messageId) => {
-    const { data } = await axios.post("/pins", {
-        messageId,
-    });
-
-    return data;
-};
-
-const unpinMessage = async (messageId) => {
-    const { data } = await axios.delete(
-        `/pins/${messageId}`
-    );
-
-    return data;
-};
-
-const getPinnedMessages = async (roomId) => {
-    const { data } = await axios.get(
-        `/pins/room/${roomId}`
-    );
-
-    return data;
-};
-
-const getPinnedCount = async (roomId) => {
-    const { data } = await axios.get(
-        `/pins/room/${roomId}/count`
-    );
-
-    return data;
-};
-
-const toggleStar = async (messageId) => {
-    const { data } = await axios.post(
-        "/stars",
-        {
-            messageId
-        }
-    );
-
-    return data;
-
-};
-
-const getStarredMessages = async () => {
-    const { data } = await axios.get(
-        "/stars"
-    );
-
-    return data;
-
-};
-
 module.exports = {
   sendMessage,
   getMessages,
-  editMessage,
   toggleReaction,
   markDelivered,
-  markRead,
-  deleteForEveryone,
-  searchMessages,
-  pinMessage,
-  unpinMessage,
-  getPinnedMessages,
-  getPinnedCount,
-  toggleStar,
-  getStarredMessages
+  searchMessages
 };

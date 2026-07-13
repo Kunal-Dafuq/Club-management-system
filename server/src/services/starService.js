@@ -12,17 +12,16 @@ const toggleStar = async (messageId, membershipId) => {
     });
 
     if (existing) {
-
         await prisma.starredMessage.delete({
             where: {
                 id: existing.id,
             },
+            action:"MESSAGE_UNSTARRED"
         });
 
         return {
             starred: false,
         };
-
     }
 
     await prisma.starredMessage.create({
@@ -30,6 +29,12 @@ const toggleStar = async (messageId, membershipId) => {
             membershipId,
             messageId,
         },
+    });
+
+    await createAuditLog({
+        action:"MESSAGE_STARRED",
+        entityType:"ChatMessage",
+        entityId:messageId
     });
 
     return {

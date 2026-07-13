@@ -5,7 +5,28 @@ const toggleStar = async (req, res) => {
 
         const { messageId } = req.body;
 
-        const membershipId = req.user.membershipId;
+        const message=await prisma.chatMessage.findUnique({
+            where:{
+                id:Number(messageId)
+            },
+            select:{
+                room:{
+                    select:{
+                        clubId:true
+                    }
+                }
+            }
+        });
+
+        const membership=await prisma.membership.findFirst({
+            where:{
+                userId:req.user.id,
+                clubId:message.room.clubId,
+                status:"APPROVED"
+            }
+        });
+
+        const membershipId=membership.id;
 
         const result = await starService.toggleStar(
             Number(messageId),
@@ -15,7 +36,6 @@ const toggleStar = async (req, res) => {
         res.json(result);
 
     } catch (err) {
-
         res.status(400).json({
             message: err.message
         });
@@ -25,8 +45,28 @@ const toggleStar = async (req, res) => {
 
 const getStarredMessages = async (req, res) => {
     try {
+        const message=await prisma.chatMessage.findUnique({
+            where:{
+                id:Number(messageId)
+            },
+            select:{
+                room:{
+                    select:{
+                        clubId:true
+                    }
+                }
+            }
+        });
 
-        const membershipId = req.user.membershipId;
+        const membership=await prisma.membership.findFirst({
+            where:{
+                userId:req.user.id,
+                clubId:message.room.clubId,
+                status:"APPROVED"
+            }
+        });
+
+        const membershipId=membership.id;
 
         const messages =
             await starService.getStarredMessages(

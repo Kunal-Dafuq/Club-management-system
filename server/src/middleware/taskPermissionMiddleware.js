@@ -56,8 +56,7 @@ const canManageTask=async(req,res,next)=>{
             committeeRole &&
             (
                 committeeRole.role==="HEAD" ||
-                committeeRole.role==="COORDINATOR" ||
-                committeeRole.role==="MEMBER"
+                committeeRole.role==="COORDINATOR"
             )
         ){
             req.membership=membership;

@@ -1,5 +1,7 @@
 const prisma = require("../config/prisma");
 
+const chatInclude = require("../utils/chatInclude");
+
 const editMessage = async (
     userId,
     messageId,
@@ -10,9 +12,7 @@ const editMessage = async (
         where: {
             id: messageId
         },
-        include: {
-            membership: true
-        }
+        include: chatInclude
     });
 
     if (!message) {
@@ -36,25 +36,10 @@ const editMessage = async (
         },
         data: {
             content,
-            editedAt: new Date()
+            editedAt: new Date(),
+            edited:true
         },
-        include: {
-            membership: {
-                include: {
-                    user: true
-                }
-            },
-            reactions: true,
-            replyTo: {
-                include: {
-                    membership: {
-                        include: {
-                            user: true
-                        }
-                    }
-                }
-            }
-        }
+        include: chatInclude
     });
 };
 

@@ -1,6 +1,9 @@
 const { createNotification } = require("../services/notificationService");
 const prisma = require("../config/prisma");
 
+const { createActivity } = require("../services/activityService");
+const auditLogger = require("../utils/auditLogger");
+
 const joinClub = async(req,res)=>{
   try{
     const clubId = Number(req.params.id);
@@ -71,7 +74,7 @@ const joinClub = async(req,res)=>{
     );
 
     res.status(201).json({
-      message:"Joined club successfully",
+      message:"Join request submitted successfully",
       membership
     });
   }
@@ -103,6 +106,18 @@ const leaveClub = async(req,res)=>{
       });
     }
 
+    await prisma.club.update({
+      where: {
+          id: clubId
+      },
+
+      data: {
+        memberCount: {
+          decrement: 1
+        }
+      }
+    });
+
     await prisma.membership.delete({
       where:{
         userId_clubId:{
@@ -110,6 +125,22 @@ const leaveClub = async(req,res)=>{
           clubId
         }
       }
+    });
+
+    await createActivity({
+      clubId,
+      userId,
+      action:"LEFT_CLUB",
+      description:`${req.user.name} left the club.`
+    });
+
+    
+
+    await auditLogger(req,{
+      action:"LEFT_CLUB",
+      entityType:"Membership",
+      entityId:membership.id,
+      clubId
     });
 
     res.json({
@@ -145,9 +176,13 @@ const getClubMembers = async(req,res)=>{
         clubId,
         status: "APPROVED"
       },
-      orderBy: {
-        joinedAt: "desc"
+      orderBy:[
+      {
+        clubRole:"asc"
       },
+      {
+        joinedAt:"desc"
+      }],
       include: {
         user: {
           select: {
@@ -185,6 +220,9 @@ const getMyClubs = async(req,res)=>{
       },
       include:{
         club:true
+      },
+      orderBy:{
+        joinedAt:"desc"
       }
     });
 
@@ -221,12 +259,30 @@ const approveMember = async (req, res) => {
       });
     }
 
+    if(membership.status==="APPROVED"){
+      return res.status(400).json({
+        message:"Already approved"
+      });
+    }
+
     await prisma.membership.update({
       where: {
         id: membershipId
       },
       data: {
         status: "APPROVED"
+      }
+    });
+
+    await prisma.club.update({
+      where: {
+        id: membership.clubId
+      },
+
+      data: {
+        memberCount: {
+          increment: 1
+        }
       }
     });
 
@@ -246,12 +302,24 @@ const approveMember = async (req, res) => {
       userId: membership.userId,
     });
 
+    await auditLogger(req,{
+      action:"MEMBER_APPROVED",
+      entityType:"Membership",
+      entityId:membership.id,
+      description:"Membership approved",
+      clubId:membership.clubId
+    });
+
+    return res.status(200).json({
+      message:"Member approved successfully",
+      membership:updatedMembership
+    });
+
   } catch (error) {
     console.log(error);
     res.status(500).json({
        message: "Server error"
     });
-
   }
 };
 
@@ -262,14 +330,21 @@ const rejectMember = async (req, res) => {
       where: {
         id: membershipId
       },
-      include: {
-        club: true
+      include:{
+        club:true,
+        user:true
       }
     });
 
     if (!membership) {
       return res.status(404).json({
         message: "Membership not found"
+      });
+    }
+
+    if(membership.status==="REJECTED"){
+      return res.status(400).json({
+        message:"Already rejected"
       });
     }
 
@@ -292,6 +367,14 @@ const rejectMember = async (req, res) => {
     await createNotification({
       userId: membership.userId,
       message: `Your request to join ${membership.club.name} was rejected.`
+    });
+
+    await auditLogger(req,{
+      action:"MEMBER_REJECTED",
+      entityType:"Membership",
+      entityId:membership.id,
+      description:"Membership rejected",
+      clubId:membership.clubId
     });
 
     res.json({
@@ -343,6 +426,11 @@ const getPendingRequests = async (req, res) => {
 const promoteMember = async (req, res) => {
   try {
     const membershipId = Number(req.params.id);
+
+    if(membership.status!=="APPROVED"){
+      throw new Error("Only approved members can be promoted");
+    }
+
     const { clubRole } = req.body;
     const membership = await prisma.membership.findUnique({
       where: {
@@ -356,12 +444,12 @@ const promoteMember = async (req, res) => {
       });
     }
 
-    const updated = await prisma.membership.update({
-      where: {
-        id: membershipId
+    const updatedMembership = await prisma.membership.update({
+      where:{
+          id:updatedMembershipId
       },
-        data: {
-        clubRole
+      data:{
+        status:"APPROVED"
       }
     });
 
@@ -370,6 +458,14 @@ const promoteMember = async (req, res) => {
         userId: updated.userId,
         action:"PROMOTED",
         description:`Member promoted to ${updated.clubRole}.`
+    });
+
+    await auditLogger(req,{
+      action:"ROLE_CHANGED",
+      entityType:"Membership",
+      entityId:updatedMembership.id,
+      description:`Role changed to ${updated.clubRole}`,
+      clubId:updatedMembership.clubId
     });
 
     res.json(updated);

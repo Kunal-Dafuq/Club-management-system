@@ -47,10 +47,22 @@ const deleteForEveryone=async(
         },
         data:{
             deletedForAll:true,
-            deletedAt:new Date()
+            deletedAt:new Date(),
+            content:"This message was deleted"
         }
     });
 };
+
+await createAuditLog({
+    action:"MESSAGE_DELETED",
+    entityType:"ChatMessage",
+    entityId:message.id,
+    performedById:userId,
+    clubId:message.clubId,
+    metadata:{
+        roomId:message.roomId
+    }
+});
 
 module.exports={
     deleteForMe,

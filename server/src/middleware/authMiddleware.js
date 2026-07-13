@@ -25,39 +25,55 @@ const protect = async (req, res, next) => {
     const user = await prisma.user.findUnique({
       where: {
         id: decoded.id
+      },
+
+      include:{
+        memberships:{
+          select:{
+            id:true,
+            clubId:true,
+            status:true
+          }
+        }
       }
     });
 
     if (!user) {
+        return res.status(401).json({
+            message: "User not found"
+        });
+    }
+
+    const membershipMap = {};
+
+    user.memberships
+        .filter(
+            membership =>
+                membership.status === "APPROVED"
+        )
+        .forEach(membership => {
+            membershipMap[membership.clubId] = membership.id;
+        });
+
+    user.membershipMap = membershipMap;
+
+    req.user = user;
+
+    next();
+
+  } catch(err){
+    if(err.name==="TokenExpiredError"){
       return res.status(401).json({
-        message: "User not found"
+        message:"Token expired"
       });
     }
 
-    req.user = user;
-    next();
-  }
-
-  catch (error) {
     return res.status(401).json({
-      message: "Invalid token"
+      message:"Invalid token"
     });
   }
 };
 
-const allowRoles = (...roles) => {
-  return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({
-        message: "Access denied."
-      });
-    }
-
-    next();
-  };
-};
-
 module.exports = {
-  protect,
-  allowRoles
+  protect
 };

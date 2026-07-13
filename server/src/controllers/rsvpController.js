@@ -1,5 +1,6 @@
 const prisma = require("../config/prisma");
 const { createNotification } = require("../services/notificationService");
+const { createActivity } = require("../services/activityService");
 const createRSVP = async (req, res) => {
     try {
         const eventId = Number(req.params.id);
@@ -138,6 +139,9 @@ const deleteRSVP = async(req,res)=>{
                     userId,
                     eventId
                 }
+            },
+            data:{
+                deletedAt:new Date()
             }
         });
 

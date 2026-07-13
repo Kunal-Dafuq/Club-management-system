@@ -26,6 +26,23 @@ model User {
   chatMessages        ChatMessage[]
   deletedChatMessages DeletedChatMessage[]
   mentions            Mention[]
+
+  avatarUrl String?
+  bio       String?
+  phone     String?
+  lastSeen  DateTime?
+  isOnline  Boolean   @default(false)
+
+  googleAccount GoogleAccount?
+  googleAccessToken String?
+  googleRefreshToken String?
+  googleTokenExpiry DateTime?
+
+  preferences     Json?
+  auditLogs       AuditLog[]
+  searchHistories SearchHistory[]
+  userSessions    UserSession[]
+  loginHistories  LoginHistory[]
 }
 
 model Club {
@@ -59,6 +76,7 @@ model Club {
   established Int?
   foundedBy   String?
   location    String?
+  settings    Json?
 
   isRecruiting Boolean @default(true)
 
@@ -66,6 +84,16 @@ model Club {
 
   createdAt DateTime  @default(now())
   updatedAt DateTime?
+
+  coverVideo String?
+
+  memberCount Int @default(0)
+  eventCount  Int @default(0)
+
+  chatEnabled Boolean @default(true)
+  taskEnabled Boolean @default(true)
+
+  features Json?
 
   events        Event[]
   memberships   Membership[]
@@ -75,6 +103,10 @@ model Club {
   tags          ClubTagAssignment[]
   chatRooms     ChatRoom[]
   chatMessages  ChatMessage[]
+  tasks         Task[]
+  taskLabels    TaskLabel[]
+  deletedAt     DateTime?
+  auditLogs     AuditLog[]
 }
 
 model ClubTag {
@@ -105,10 +137,13 @@ model Committee {
   clubId Int
   club   Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
 
+  order Int @default(0)
+
   members CommitteeMember[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   tasks     Task[]
   meetings  CommitteeMeeting[]
@@ -133,14 +168,104 @@ model CommitteeMember {
   @@index([committeeId])
 }
 
-model MeetingAttendance {
-  id Int @id @default(autoincrement())
+model MeetingSummary{
 
+  id Int @id @default(autoincrement())
   meetingId Int
 
+  transcript String?
+
+  summary String
+
+  actionItems Json?
+
+  decisions Json?
+
+  nextSteps Json?
+
+  generatedByAI Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  meeting CommitteeMeeting @relation(fields:[meetingId],references:[id],onDelete:Cascade)
+
+  @@unique([meetingId])
+
+}
+
+model CommitteeMeeting {
+  id Int @id @default(autoincrement())
+
+  title       String
+  description String?
+  agenda      String?
+
+  startTime DateTime
+  endTime   DateTime?
+
+  status MeetingStatus @default(SCHEDULED)
+
+  isInstant Boolean @default(false)
+
+  meetingProvider MeetingProvider @default(GOOGLE_MEET)
+
+  meetingCode String?
+  onlineLink  String?
+
+  location String?
+
+  calendarEventId String?
+
+  organizerId Int
+
+  committeeId Int
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  committee Committee @relation(fields: [committeeId], references: [id], onDelete: Cascade)
+
+  organizer Membership @relation("MeetingOrganizer", fields: [organizerId], references: [id])
+
+  meetingProvider MeetingProvider @default(GOOGLE_MEET)
+
+  calendarEventId String?
+
+  meetingCode String?
+
+  aiSummaryStatus SummaryStatus @default(PENDING)
+
+  attendees MeetingAttendance[]
+
+  summaries MeetingSummary[]
+
+  recordings MeetingRecording[]
+
+  notes MeetingNote[]
+
+  attachments MeetingAttachment[]
+
+  polls MeetingPoll[]
+
+  @@index([committeeId])
+  @@index([startTime])
+  @@index([status])
+}
+
+model MeetingAttendance {
+  id           Int @id @default(autoincrement())
+  meetingId    Int
   membershipId Int
 
   status MeetingAttendanceStatus @default(PENDING)
+
+  joinedAt DateTime?
+  leftAt   DateTime?
+
+  duration Int?
 
   meeting CommitteeMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
 
@@ -149,31 +274,87 @@ model MeetingAttendance {
   @@unique([meetingId, membershipId])
 }
 
-model CommitteeMeeting {
-  id Int @id @default(autoincrement())
+model MeetingNote {
+  id           Int @id @default(autoincrement())
+  meetingId    Int
+  membershipId Int
 
-  title       String
-  description String?
+  note String
 
-  startTime DateTime
-  endTime   DateTime
+  createdAt DateTime @default(now())
 
-  location String?
+  meeting CommitteeMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
 
-  onlineLink String?
+  membership Membership @relation(fields: [membershipId], references: [id])
+}
 
-  committeeId Int
+model MeetingRecording {
+  id           Int    @id @default(autoincrement())
+  meetingId    Int
+  recordingUrl String
+
+  duration Int?
+
+  createdAt DateTime @default(now())
+
+  meeting CommitteeMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+}
+
+model MeetingAttachment {
+  id           Int @id @default(autoincrement())
+  meetingId    Int
+  uploadedById Int
+
+  fileName String
+  fileUrl  String
+
+  storageProvider String?
+  bucket          String?
+  storagePath     String?
+
+  checksum String?
+
+  mimeType String?
+
+  size Int?
+
+  createdAt DateTime @default(now())
+
+  meeting CommitteeMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  uploader Membership @relation(fields: [uploadedById], references: [id])
+}
+
+model MeetingPoll {
+  id        Int @id @default(autoincrement())
+  meetingId Int
+
+  question String
+
+  multipleChoice Boolean @default(false)
 
   createdById Int
 
+  isClosed Boolean @default(false)
+
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
-  committee Committee @relation(fields: [committeeId], references: [id], onDelete: Cascade)
+  meeting CommitteeMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
 
-  createdBy Membership @relation(fields: [createdById], references: [id])
+  creator Membership @relation(fields: [createdById], references: [id])
 
-  attendees MeetingAttendance[]
+  options MeetingPollOption[]
+}
+
+model MeetingPollOption {
+  id     Int @id @default(autoincrement())
+  pollId Int
+
+  option String
+
+  votes Int @default(0)
+
+  poll MeetingPoll @relation(fields: [pollId], references: [id], onDelete: Cascade)
 }
 
 model Membership {
@@ -183,41 +364,55 @@ model Membership {
   status   MembershipStatus @default(PENDING)
   clubRole ClubRole         @default(MEMBER)
   joinedAt DateTime         @default(now())
+  leftAt   DateTime?
   club     Club             @relation(fields: [clubId], references: [id])
   user     User             @relation(fields: [userId], references: [id])
+
+  nickname          String?
+  muteNotifications Boolean   @default(false)
+  lastVisitedAt     DateTime?
+  joinedById        Int?
 
   committeeMemberships CommitteeMember[]
   createdTasks         Task[]                @relation("TaskCreator")
   taskComments         TaskComment[]
   attachments          TaskAttachment[]
   commentReactions     TaskCommentReaction[]
-  createdMeetings      CommitteeMeeting[]
+  organizedMeetings    CommitteeMeeting[]    @relation("MeetingOrganizer")
   meetingAttendances   MeetingAttendance[]
   chatMessages         ChatMessage[]
   chatReactions        ChatReaction[]
   chatReads            ChatRead[]            @relation
   starredMessages      StarredMessage[]
+  savedMessages        SavedMessage[]
   chatThreads          ChatThread[]
   chatThreadReactions  ChatThreadReaction[]
   chatPins             ChatPin[]
   pinnedMessages       PinnedMessage[]
+  taskActivities       TaskActivity[]
+  watchedTasks         TaskWatcher[]
+  uploadHistories      UploadHistory[]
+  meetingNotes         MeetingNote[]
+  meetingAttachments   MeetingAttachment[]
+  meetingPolls         MeetingPoll[]
 
   @@unique([userId, clubId])
 }
 
 model Event {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   title       String
   description String
   startTime   DateTime
   endTime     DateTime
   location    String
-  visibility  Boolean  @default(true)
+  visibility  Boolean   @default(true)
   clubId      Int
   createdById Int
-  createdAt   DateTime @default(now())
-  club        Club     @relation(fields: [clubId], references: [id])
-  creator     User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
+  club        Club      @relation(fields: [clubId], references: [id])
+  creator     User      @relation(fields: [createdById], references: [id])
   rsvps       RSVP[]
 
   @@index([clubId])
@@ -238,10 +433,35 @@ model RSVP {
 }
 
 model Notification {
-  id        Int      @id @default(autoincrement())
-  message   String
-  isRead    Boolean  @default(false)
-  userId    Int
+  id      Int    @id @default(autoincrement())
+  title   String
+  message String
+
+  type     NotificationType
+  category NotificationCategory
+  priority NotificationPriority @default(NORMAL)
+
+  icon String?
+
+  imageUrl  String?
+  actionUrl String?
+
+  actionText String?
+  entityType String?
+
+  entityId Int?
+  clubId   Int?
+  senderId Int?
+  userId   Int
+
+  isRead Boolean   @default(false)
+  readAt DateTime?
+
+  deliveredAt DateTime?
+  expiresAt   DateTime?
+
+  metadata Json?
+
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
 }
@@ -266,6 +486,12 @@ model Activity {
   createdAt   DateTime @default(now())
   club        Club     @relation(fields: [clubId], references: [id])
   user        User?    @relation(fields: [userId], references: [id])
+  entityType  String?
+  entityId    Int?
+  metadata    Json?
+
+  @@index([clubId])
+  @@index([createdAt])
 }
 
 model Task {
@@ -290,8 +516,9 @@ model Task {
   assignedToId Int?
   createdById  Int
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   committee  Committee        @relation(fields: [committeeId], references: [id])
   assignedTo CommitteeMember? @relation("TaskAssignment", fields: [assignedToId], references: [id])
@@ -299,12 +526,105 @@ model Task {
 
   comments    TaskComment[]
   attachments TaskAttachment[]
+  labels      TaskLabelMap[]
+  checklist   TaskChecklist[]
+  activities  TaskActivity[]
+  watchers    TaskWatcher[]
+
+  club   Club? @relation(fields: [clubId], references: [id])
+  clubId Int?
+
+  completedById Int?
+  startedAt     DateTime?
+  archivedAt    DateTime?
+
+  extra Json?
 
   @@index([committeeId])
   @@index([assignedToId])
   @@index([status])
   @@index([priority])
   @@index([dueDate])
+}
+
+model TaskLabel {
+  id    Int    @id @default(autoincrement())
+  name  String
+  color String
+
+  clubId Int
+  club   Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  tasks TaskLabelMap[]
+
+  @@unique([clubId, name])
+}
+
+model TaskLabelMap {
+  id Int @id @default(autoincrement())
+
+  taskId Int
+
+  labelId Int
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  label TaskLabel @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, labelId])
+}
+
+model TaskChecklist {
+  id Int @id @default(autoincrement())
+
+  taskId Int
+
+  title String
+
+  completed Boolean @default(false)
+
+  position Int @default(0)
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+}
+
+model TaskActivity {
+  id Int @id @default(autoincrement())
+
+  taskId Int
+
+  membershipId Int
+
+  action String
+
+  oldValue String?
+
+  newValue String?
+
+  createdAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  membership Membership @relation(fields: [membershipId], references: [id])
+
+  @@index([taskId])
+}
+
+model TaskWatcher {
+  id Int @id @default(autoincrement())
+
+  taskId Int
+
+  membershipId Int
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  membership Membership @relation(fields: [membershipId], references: [id])
+
+  @@unique([taskId, membershipId])
+  @@index([membershipId])
 }
 
 model TaskComment {
@@ -318,6 +638,7 @@ model TaskComment {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   editedAt  DateTime?
+  deletedAt DateTime?
 
   task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
@@ -325,24 +646,42 @@ model TaskComment {
 
   reactions TaskCommentReaction[]
 
+  parentId Int?
+  parent   TaskComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  TaskComment[] @relation("CommentReplies")
+
   @@index([taskId])
 }
 
 model TaskAttachment {
-  id Int @id @default(autoincrement())
+  id     Int @id @default(autoincrement())
+  taskId Int
 
-  taskId       Int
-  uploadedById Int
+  membershipId Int
 
-  fileName String
   fileUrl  String
-  fileSize Int?
-  mimeType String?
+  fileName String
+  mimeType String
+  size     Int
 
-  createdAt DateTime @default(now())
+  uploadedAt DateTime  @default(now())
+  deletedAt  DateTime?
 
-  task       Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  uploadedBy Membership @relation(fields: [uploadedById], references: [id])
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  membership Membership @relation(fields: [membershipId], references: [id])
+
+  checksum String?
+
+  storagePath String?
+
+  bucket String?
+
+  objectKey String?
+
+  thumbnailUrl String?
+
+  @@index([taskId])
 }
 
 model TaskCommentReaction {
@@ -361,6 +700,7 @@ model TaskCommentReaction {
   membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, membershipId, emoji])
+  @@index([membershipId])
 }
 
 model ChatRoom {
@@ -373,6 +713,11 @@ model ChatRoom {
   clubId Int?
 
   committeeId Int?
+
+  lastMessageId Int?
+  lastActivity  DateTime?
+
+  archived Boolean @default(false)
 
   createdAt DateTime @default(now())
 
@@ -402,32 +747,41 @@ model ChatMessage {
   edited   Boolean   @default(false)
   editedAt DateTime?
 
+  searchVector String?
+
+  editedById Int?
+
+  version Int @default(1)
+
   deletedForAll Boolean   @default(false)
   deletedAt     DateTime?
 
-  deliveredAt DateTime?
-  readAt      DateTime?
+  createdAt      DateTime  @default(now())
+  deliveredAt    DateTime?
+  updatedAt      DateTime  @updatedAt
+  lastEditedById Int?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  isSystem Boolean @default(false)
 
   room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
   membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
 
-  reactions     ChatReaction[]
-  reads         ChatRead[]
-  deletedBy     DeletedChatMessage[]
-  mentions      Mention[]
-  threads       ChatThread[]
-  user          User?                @relation(fields: [userId], references: [id])
-  userId        Int?
-  club          Club?                @relation(fields: [clubId], references: [id])
-  clubId        Int?
-  pin           ChatPin?
-  starredBy     StarredMessage[]
-  attachments   ChatAttachment[]
-  pinnedMessage PinnedMessage?
+  reactions       ChatReaction[]
+  reads           ChatRead[]
+  deletedBy       DeletedChatMessage[]
+  mentions        Mention[]
+  threads         ChatThread[]
+  user            User?                @relation(fields: [userId], references: [id])
+  userId          Int?
+  club            Club?                @relation(fields: [clubId], references: [id])
+  clubId          Int?
+  pin             ChatPin?
+  starredBy       StarredMessage[]
+  savedBy         SavedMessage[]
+  attachments     ChatAttachment[]
+  pinnedMessage   PinnedMessage?
+  messageMetadata Json?
 
   @@index([roomId])
   @@index([membershipId])
@@ -446,9 +800,15 @@ model ChatAttachment {
   fileExtension String?
   fileSize      BigInt
 
+  bucket String?
+
+  objectKey String?
+
   mimeCategory FileCategory
 
   thumbnailUrl String?
+
+  blurHash String?
 
   width  Int?
   height Int?
@@ -457,6 +817,13 @@ model ChatAttachment {
 
   createdAt  DateTime @default(now())
   uploadedAt DateTime @default(now())
+
+  checksum String?
+
+  virusScanned Boolean @default(false)
+
+  storageProvider String?
+  storagePath     String?
 
   @@index([messageId])
 }
@@ -475,6 +842,8 @@ model ChatPin {
   message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   pinnedBy Membership @relation(fields: [pinnedById], references: [id])
+
+  @@index([pinnedById])
 }
 
 model StarredMessage {
@@ -493,6 +862,21 @@ model StarredMessage {
   @@index([membershipId])
 }
 
+model SavedMessage {
+  id Int @id @default(autoincrement())
+
+  membershipId Int
+  messageId    Int
+
+  createdAt DateTime @default(now())
+
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([membershipId, messageId])
+}
+
 model ChatReaction {
   id Int @id @default(autoincrement())
 
@@ -509,6 +893,7 @@ model ChatReaction {
   membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, membershipId, emoji])
+  @@index([membershipId])
 }
 
 model ChatRead {
@@ -574,6 +959,8 @@ model ChatThread {
 
   parentThread ChatThread? @relation("ThreadReplies", fields: [parentThreadId], references: [id])
 
+  replyCount Int @default(0)
+
   replies ChatThread[] @relation("ThreadReplies")
 
   reactions ChatThreadReaction[]
@@ -613,20 +1000,109 @@ model Mention {
   user User @relation(fields: [userId], references: [id])
 
   @@index([messageId])
+  @@index([userId])
 }
 
 model PinnedMessage {
-  id Int @id @default(autoincrement())
-
-  messageId Int @unique
-
+  id           Int @id @default(autoincrement())
+  messageId    Int @unique
   membershipId Int
 
   pinnedAt DateTime @default(now())
 
-  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  message    ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  membership Membership  @relation(fields: [membershipId], references: [id])
+}
+
+model AuditLog {
+  id Int @id @default(autoincrement())
+
+  action String
+
+  entityType String?
+  entityId Int?
+
+  description String?
+  clubId Int?
+
+  performedById Int?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([action])
+  @@index([clubId])
+  @@index([performedById])
+}
+
+model SearchHistory {
+  id     Int    @id @default(autoincrement())
+  userId Int
+  query  String
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model UserSession {
+  id     Int    @id @default(autoincrement())
+  userId Int
+  token  String
+
+  ip      String?
+  browser String?
+  os      String?
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model LoginHistory {
+  id     Int @id @default(autoincrement())
+  userId Int
+
+  ip      String?
+  browser String?
+  success Boolean
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model UploadHistory {
+  id           Int @id @default(autoincrement())
+  membershipId Int
+
+  fileName String
+  fileUrl  String
+  fileSize BigInt
+
+  createdAt DateTime @default(now())
 
   membership Membership @relation(fields: [membershipId], references: [id])
+}
+
+model GoogleAccount {
+  id     Int @id @default(autoincrement())
+  userId Int @unique
+
+  googleEmail String
+
+  accessToken  String  @db.Text
+  refreshToken String  @db.Text
+  expiryDate   BigInt?
+
+  scope String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 enum ChatRoomType {
@@ -646,6 +1122,32 @@ enum MembershipStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum NotificationType {
+  GENERAL
+  CLUB
+  EVENT
+  RSVP
+  ANNOUNCEMENT
+  TASK
+  MEETING
+  CHAT
+  SYSTEM
+}
+
+enum NotificationCategory {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
 }
 
 enum ClubRole {
@@ -696,17 +1198,40 @@ enum TaskPriority {
   CRITICAL
 }
 
-enum MeetingAttendanceStatus {
-  PENDING
-  GOING
-  MAYBE
-  NOT_GOING
-}
-
 enum FileCategory {
   IMAGE
   VIDEO
   DOCUMENT
   AUDIO
   OTHER
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+  CANCELLED
+}
+
+enum MeetingProvider {
+  GOOGLE_MEET
+  ZOOM
+  MICROSOFT_TEAMS
+  JITSI
+  CUSTOM
+}
+
+enum MeetingAttendanceStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  ATTENDED
+  MISSED
+}
+
+enum SummaryStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
 }

@@ -1,32 +1,22 @@
-const prisma = require("../config/prisma");
-const {
-    sendRealtimeNotification
-} = require("./realtimeNotificationService");
+const prisma=require("../config/prisma");
 
-const createNotification = async ({ userId, message }) => {
+const createNotification=async({
+    userId,
+    title="Notification",
+    message,
+    type="GENERAL"
+})=>{
 
-    const notification = await prisma.notification.create({
-        data: {
+    return prisma.notification.create({
+        data:{
             userId,
-            message
+            title,
+            message,
+            type
         }
     });
-
-    sendRealtimeNotification(
-        userId,
-        notification
-    );
-
-    await createNotification({
-    userId,
-    type:"MENTION",
-    title:"You were mentioned",
-    body:`${sender.name} mentioned you.`
-});
-
-    return notification;
 };
 
-module.exports = {
+module.exports={
     createNotification
 };

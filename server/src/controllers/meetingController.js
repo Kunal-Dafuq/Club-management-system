@@ -1,20 +1,29 @@
 const meetingService = require("../services/meetingService");
+const auditLogger = require("../utils/auditLogger");
 
-const createMeeting = async (req, res) => {
+const createMeeting = async (
+    req,
+    res
+) => {
     try {
-        const meeting = await meetingService.createMeeting(
-            Number(req.params.committeeId),
-            Number(req.body.createdById),
-            req.body
-        );
+        const meeting =
+            await meetingService.createMeeting(
+                Number(
+                    req.params.committeeId
+                ),
+                req.user.membershipId,
+                req.body
+            );
 
-        res.status(201).json(meeting);
-
+        res.status(201).json({
+            success: true,
+            meeting
+        });
     }
 
     catch (err) {
-
         res.status(400).json({
+            success: false,
             message: err.message
         });
     }
@@ -113,6 +122,14 @@ const markAttendance = async (req, res) => {
         });
     }
 };
+
+await meetingService.restoreMeeting(id);
+
+await auditLogger(req,{
+    action:"MEETING_RESTORED",
+    entityType:"Meeting",
+    entityId:id
+});
 
 module.exports = {
     createMeeting,

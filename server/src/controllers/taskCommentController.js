@@ -5,9 +5,10 @@ const createComment = async (req, res) => {
         const taskId = Number(req.params.taskId);
         const userId = req.user.id;
         const { content } = req.body;
-        const comment = await service.createComment(
+        const comment =
+        await service.createComment(
             taskId,
-            membershipId,
+            userId,
             content
         );
 
@@ -50,8 +51,9 @@ const updateComment = async (req, res) => {
     try {
         const comment = await service.updateComment(
             Number(req.params.id),
+            req.user.id,
             req.body.content
-        );
+        )
 
         res.json(comment);
 
@@ -67,7 +69,8 @@ const updateComment = async (req, res) => {
 const deleteComment = async (req, res) => {
     try {
         await service.deleteComment(
-            Number(req.params.id)
+            Number(req.params.id),
+            req.user.id
         );
 
         res.json({

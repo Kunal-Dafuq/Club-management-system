@@ -43,6 +43,13 @@ const upload = multer({
             "image/svg+xml",
         ];
 
+        const audioTypes=[
+            "audio/mpeg",
+            "audio/mp3",
+            "audio/wav",
+            "audio/ogg"
+        ];
+
         const videoTypes = [
             "video/mp4",
             "video/webm",
@@ -66,6 +73,7 @@ const upload = multer({
 
         if (
             imageTypes.includes(file.mimetype) ||
+            audioTypes.includes(file.mimetype) ||
             videoTypes.includes(file.mimetype) ||
             documentTypes.includes(file.mimetype)
         ) {

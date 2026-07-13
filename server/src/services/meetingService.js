@@ -5,26 +5,86 @@ const createMeeting = async (
     createdById,
     data
 ) => {
-    const committee = await prisma.committee.findUnique({
-        where: {
-            id: committeeId
-        }
-    });
+    const committee =
+        await prisma.committee.findUnique({
+            where: {
+                id: committeeId
+            }
+        });
 
     if (!committee) {
         throw new Error("Committee not found");
     }
 
-    return prisma.meeting.create({
+    const creator =
+        await prisma.membership.findUnique({
+            where: {
+                id: createdById
+            },
+            include: {
+                user: true
+            }
+        });
+
+    if (!creator) {
+        throw new Error("Creator not found");
+    }
+
+    if(data.isInstant){
+        const startTime=
+            new Date();
+
+        const endTime=
+            new Date(
+                Date.now()
+                +
+                60*60*1000
+            );
+    }
+
+    let meetingLink = null;
+    let calendarEventId = null;
+
+    if (
+        data.meetingProvider === "GOOGLE_MEET"
+    ) {
+
+        const event =
+            await createMeetEvent({
+                accessToken:data.accessToken,
+                title:data.title,
+                description:data.description,
+                startTime:new Date(data.startTime).toISOString(),
+                endTime:new Date(data.endTime).toISOString(),
+                attendees: []
+            });
+
+        meetingLink = event.hangoutLink;
+        calendarEventId = event.id;
+    }
+
+    return prisma.committeeMeeting.create({
         data: {
-            title: data.title,
-            agenda: data.agenda,
-            location: data.location,
-            meetingLink: data.meetingLink,
-            startTime: new Date(data.startTime),
-            endTime: new Date(data.endTime),
+            title:data.title,
+            description:data.description,
+            agenda:data.agenda,
+            startTime:new Date(data.startTime),
+            endTime:new Date(data.endTime),
+            meetingProvider:data.meetingProvider,
+            isInstant:data.isInstant || false,
+            onlineLink:meetingLink,
+            calendarEventId,
             committeeId,
-            createdById
+            organizerId:createdById
+        },
+
+        include: {
+            committee: true,
+            organizer: {
+                include: {
+                    user: true
+                }
+            }
         }
     });
 };
@@ -92,10 +152,17 @@ const updateMeeting = async (
 };
 
 const deleteMeeting = async (meetingId) => {
-    return prisma.meeting.delete({
-        where: {
-            id: meetingId
+    return prisma.committeeMeeting.update({
+        where:{
+            id:meetingId
+        },
+        data:{
+            deletedAt:new Date()
         }
+    });
+
+    await createAuditLog({
+        action:"MEETING_DELETED"
     });
 };
 

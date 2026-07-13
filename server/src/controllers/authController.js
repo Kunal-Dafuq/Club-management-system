@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const prisma = require("../config/prisma");
 const generateToken = require("../utils/generateToken");
+const auditLogger = require("../utils/auditLogger");
 const register = async (req, res) => {
   try {
     const {
@@ -128,6 +129,13 @@ const login = async (req, res) => {
   }
 };
 
+await auditLogger(req,{
+    action:"USER_LOGIN",
+    entityType:"User",
+    entityId:user.id,
+    description:`${user.name} logged in`
+});
+
 const promoteUser = async (req,res)=>{
   try{
     const {
@@ -182,13 +190,25 @@ const promoteUser = async (req,res)=>{
       message:"Server error"
 
     });
-
   }
+};
 
+const logout=async(req,res)=>{
+    await auditLogger(req,{
+        action:"USER_LOGOUT",
+        entityType:"User",
+        entityId:req.user.id,
+        description:"User logged out"
+    });
+
+    res.json({
+        message:"Logged out"
+    });
 };
 
 module.exports = {
   register,
   login ,
-  promoteUser
+  promoteUser,
+  logout
 };

@@ -1,5 +1,6 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import {Paperclip,Send,X,File,Video} from "lucide-react";
+import { uploadChatFiles } from "../../../api/uploadApi";
 
 export default function ChatInput({
     text,
@@ -45,18 +46,53 @@ export default function ChatInput({
 
     };
 
-    const removeAttachment = (index) => {
-
+    const removeAttachment = (id) => {
         setAttachments(prev =>
-            prev.filter((_, i) => i !== index)
+            prev.filter(file => file.id !== id)
         );
     };
 
     const handleSend = async () => {
+        let uploadedFiles = [];
+
+        if (attachments.length) {
+            setAttachments(prev =>
+                prev.map(file => ({
+                    ...file,
+                    status: "uploading"
+                }))
+            );
+
+            const response = await uploadChatFiles(
+                attachments.map(a => a.file),
+
+                (progressEvent) => {
+                    const progress = Math.round(
+                        (progressEvent.loaded * 100) /
+                        progressEvent.total
+                    );
+
+                    setAttachments(prev =>
+                        prev.map(file => ({
+                            ...file,
+                            progress,
+                            status:
+                                progress === 100
+                                    ? "uploaded"
+                                    : "uploading"
+                        }))
+                    );
+                }
+            );
+
+            uploadedFiles = response.data.files;
+        }
+
         await send({
             text,
-            attachments
+            attachments: uploadedFiles
         });
+
         setAttachments([]);
     };
 
@@ -68,7 +104,7 @@ export default function ChatInput({
                         {
                             attachments.map((item, index) => (
                                 <div
-                                    key={index}
+                                    key={item.id}
                                     className="
                                         relative
                                         w-28
@@ -168,7 +204,7 @@ export default function ChatInput({
                                     item.status !== "uploading" && (
 
                                     <button
-                                        onClick={() => removeAttachment(index)}
+                                        onClick={() => removeAttachment(item.id)}
                                         className="
                                             absolute
                                             -right-2
@@ -242,9 +278,11 @@ export default function ChatInput({
                 <button
                     onClick={handleSend}
                     disabled={
-                        sending &&
-                        attachments.length === 0 &&
-                        !text.trim()
+                        sending ||
+                        (
+                            attachments.length === 0 &&
+                            !text.trim()
+                        )
                     }
                     className="
                         flex

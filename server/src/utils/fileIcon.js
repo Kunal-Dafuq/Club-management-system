@@ -33,5 +33,36 @@ module.exports = (extension) => {
 
         default:
             return "📄";
+
+        case "gif":
+            return "🖼";
+
+        case "webp":
+            return "🖼";
+
+        case "svg":
+            return "🖼";
+
+        case "txt":
+            return "📄";
+
+        case "csv":
+            return "📊";
+
+        case "rar":
+            return "🗜";
+
+        case "7z":
+            return "🗜";
+
+        case "mov":
+        case "avi":
+        case "mkv":
+            return "🎥";
+
+        case "mp3":
+        case "wav":
+        case "ogg":
+            return "🎵";
     }
 };

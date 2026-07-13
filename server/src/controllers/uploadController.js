@@ -1,4 +1,3 @@
-const prisma = require("../config/prisma");
 const path = require("path");
 
 const uploadClubLogo = async (req, res) => {
@@ -76,10 +75,11 @@ const uploadChatFile = async (req, res) => {
         category = "DOCUMENT";
 
     res.json({
-        fileUrl: `/uploads/chat/${req.file.filename}`,
+        success:true,
+        fileUrl: `${req.protocol}://${req.get("host")}/uploads/chat/${req.file.filename}`,
         fileName: req.file.originalname,
         fileType: mime,
-        fileExtension: path.extname(req.file.originalname),
+        fileExtension: path.extname(req.file.originalname).replace(".",""),
         fileSize: req.file.size,
         mimeCategory: category,
         thumbnailUrl: null
