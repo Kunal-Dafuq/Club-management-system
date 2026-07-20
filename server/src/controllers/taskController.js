@@ -1,18 +1,29 @@
-const prisma = require("../config/prisma");
 const taskService = require("../services/taskService");
 const auditLogger = require("../utils/auditLogger");
+const asyncHandler=require("../middleware/asyncHandler");
+const ApiError=require("../utils/ApiError");
 const { createActivity } = require("../services/activityService");
 
-const createTask = async (req, res) => {
-    try {
+const createTask = asyncHandler(async (req,res)=>{
         const task = await taskService.createTask(
             Number(req.params.committeeId),
             req.membership.id,
             req.body
         );
 
-        req.io.to(`committee-${req.params.committeeId}`)
-            .emit("task-created", task);
+        if(
+            !req.membership ||
+            !allowed.includes(req.membership.role)
+        ){
+            throw new ApiError(
+                403,
+                "Only committee leads can create tasks."
+            );
+        }
+
+        req.io
+        ?.to(`committee-${task.committeeId}`)
+        .emit("task-created", task);
 
         await auditLogger(req,{
             action:"TASK_CREATED",
@@ -23,202 +34,237 @@ const createTask = async (req, res) => {
         });
 
         res.status(201).json(task);
-    }
+});
 
-    catch (err) {
-        res.status(400).json({
-            message: err.message
-        });
-    }
-};
-
-const getCommitteeTasks = async (req, res) => {
-    try {
+const getCommitteeTasks = asyncHandler(async (req,res)=>{
         const tasks = await taskService.getCommitteeTasks(
             Number(req.params.committeeId)
         );
 
-        res.json(tasks);
+        res.json({
+        success:true,
+        tasks
+    });
+});
 
-    } catch (err) {
-
-        res.status(400).json({
-            message: err.message
-        });
-    }
-};
-
-const getTaskById = async (req, res) => {
-    try {
+const getTaskById = asyncHandler(async (req,res)=>{
         const task = await taskService.getTaskById(
             Number(req.params.taskId)
         );
 
-        res.json(task);
+        res.json({
+        success:true,
+        task
+    });
+});
 
-    } catch (err) {
-
-        res.status(400).json({
-            message: err.message
-        });
-    }
-};
-
-const assignTask = async (req, res) => {
-    try {
+const assignTask = asyncHandler(async (req,res)=>{
         const task = await taskService.assignTask(
             Number(req.params.taskId),
             Number(req.body.committeeMemberId)
         );
 
-        req.io.to(`committee-${task.committeeId}`)
-            .emit("task-updated", task);
-
-        res.json(task);
-
-    } catch (err) {
-
-        res.status(400).json({
-            message: err.message
+        await createActivity({
+            clubId:
+                task.committee.clubId,
+            userId:
+                req.user.id,
+            action:
+                "TASK_ASSIGNED",
+            description:
+                `Assigned "${task.title}"`
         });
 
-    }
-};
+        req.io
+        ?.to(`committee-${task.committeeId}`)
+        .emit("task-updated", task);
 
-const updateStatus = async (req, res) => {
-    try {
+        await auditLogger(req,{
+            action:"TASK_ASSIGNED",
+            entityType:"Task",
+            entityId:task.id
+        });
+
+        res.json({
+        success:true,
+        task
+    });
+});
+
+const updateStatus = asyncHandler(async (req,res)=>{
         const task = await taskService.updateStatus(
             Number(req.params.taskId),
             req.body.status
         );
 
-        req.io.to(`committee-${task.committeeId}`)
-            .emit("task-updated", task);
+        req.io
+        ?.to(`committee-${task.committeeId}`)
+        .emit("task-updated", task);
 
-        res.json(task);
-
-    } catch (err) {
-
-        res.status(400).json({
-            message: err.message
+        await createActivity({
+            clubId:task.committee.clubId,
+            userId:req.user.id,
+            action:"TASK_STATUS_UPDATED",
+            description:
+            `${task.title} moved to ${task.status}`
         });
 
-    }
-};
+        await auditLogger(req,{
+            action:"TASK_STATUS_UPDATED",
+            entityType:"Task",
+            entityId:task.id,
+            metadata:{
+                status:task.status
+            }
+        });
 
-const updateTask = async (req, res) => {
-    try {
+        res.json({
+        success:true,
+        task
+    });
+});
+
+const updateTask = asyncHandler(async (req,res)=>{
         const task = await taskService.updateTask(
             Number(req.params.taskId),
             req.body
         );
 
-        req.io.to(`committee-${task.committeeId}`)
-            .emit("task-updated", task);
+        req.io
+        ?.to(`committee-${task.committeeId}`)
+        .emit("task-updated", task);
 
-        res.json(task);
-
-    } catch (err) {
-
-        res.status(400).json({
-            message: err.message
+        await auditLogger(req,{
+            action:"TASK_UPDATED",
+            entityType:"Task",
+            entityId:task.id
         });
 
-    }
-};
+        res.json({
+        success:true,
+        task
+    });;
+});
 
-const archiveTask = async (req, res) => {
-    try {
+const archiveTask = asyncHandler(async (req,res)=>{
         const task = await taskService.archiveTask(
             Number(req.params.taskId)
         );
 
-        res.json(task);
-
-    } catch (err) {
-
-        res.status(400).json({
-            message: err.message
+        req.io
+        ?.to(`committee-${task.committeeId}`)
+        .emit("task-updated", task);
+        await auditLogger(req,{
+            action:"TASK_ARCHIVED",
+            entityType:"Task",
+            entityId:task.id
         });
-    }
-};
 
-const restoreTask = async (req, res) => {
-    await taskService.restoreTask(taskId);
+        res.json({
+        success:true,
+        task
+    });;
+});
 
-    await auditLogger(req,{
-        action:"TASK_RESTORED",
-        entityType:"Task",
-        entityId:taskId,
-        description:"Task restored"
+const restoreTask = asyncHandler(async (req, res) => {
+    const task = await taskService.restoreTask(
+        Number(req.params.taskId)
+    );
+
+    req.io
+        ?.to(`committee-${task.committeeId}`)
+        .emit("task-updated", task);
+
+    await auditLogger(req, {
+        action: "TASK_RESTORED",
+        entityType: "Task",
+        entityId: task.id,
+        clubId: task.committee?.clubId
     });
 
     res.json({
-        message:"Task restored"
+        success: true,
+        task
+    });
+});
+
+const deleteTask = asyncHandler(async (req,res)=>{
+    const taskId = Number(req.params.taskId);
+
+    const task = await taskService.deleteTask(
+        taskId,
+        req.user.id
+    );
+
+    if(
+        task.createdById!==req.membership.id &&
+        req.membership.role!=="PRESIDENT"
+    ){
+        throw new ApiError(
+            403,
+            "Not allowed."
+        );
+    }
+
+    req.io
+    ?.to(`committee-${task.committeeId}`)
+    .emit(
+        "task-deleted",
+        task.id
+    );
+
+    await auditLogger(req,{
+        action:"TASK_DELETED",
+        entityType:"Task",
+        entityId:task.id
     });
 
-    try {
-        const task = await taskService.restoreTask(
-            Number(req.params.taskId)
+    res.json({
+        success:true,
+        message:"Task deleted."
+    });
+});
+
+const reorderTask = asyncHandler(async (req,res)=>{
+        const task = await taskService.reorderTask(
+            Number(req.params.taskId),
+            req.body.status,
+            req.body.position
         );
 
-        res.json(task);
+        req.io
+        ?.to(`committee-${task.committeeId}`)
+        .emit("task-updated",task);
 
-    } catch (err) {
-
-        res.status(400).json({
-            message: err.message
+        await auditLogger(req,{
+            action:"TASK_REORDERED",
+            entityType:"Task",
+            entityId:task.id,
+            metadata:{
+                status:task.status,
+                position:task.position
+            }
         });
-    }
-};
-
-const deleteTask = async (req, res) => {
-    try {
-        await taskService.deleteTask(
-            Number(req.params.taskId)
-        );
 
         res.json({
-            success: true
-        });
+        success:true,
+        task
+    });;
+});
 
-    } catch (err) {
-
-        res.status(400).json({
-            message: err.message
-        });
-    }
-};
-
-const getTaskStatistics = async (req, res) => {
-    try {
+const getTaskStatistics = asyncHandler(async (req,res)=>{
         const stats =
             await taskService.getTaskStatistics(
                 Number(req.params.committeeId)
             );
 
-        res.json(stats);
-
-    } catch (err) {
-
-        res.status(400).json({
-            message: err.message
+        res.json({
+        success:true,
+        stats
         });
-    }
-};
+});
 
-const reorderTask = async(req,res)=>{
-    const task=await taskService.reorderTask(
-        Number(req.params.taskId),
-        req.body.status,
-        req.body.position
-    );
-
-    res.json(task);
-
-};
-
-module.exports = {
+module.exports={
     createTask,
     getCommitteeTasks,
     getTaskById,
@@ -228,6 +274,6 @@ module.exports = {
     archiveTask,
     restoreTask,
     deleteTask,
-    getTaskStatistics,
-    reorderTask
+    reorderTask,
+    getTaskStatistics
 };

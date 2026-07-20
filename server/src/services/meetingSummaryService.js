@@ -1,77 +1,89 @@
-const prisma = require("../config/prisma");
+const { Ollama } = require("ollama");
+const config = require("../config/ai");
 
-const {summarizeMeeting} = require("./openAIService");
+const client = new Ollama({
+    host: config.host
+});
 
-const generateSummary = async (
-    meetingId,
-    transcript
-) => {
-    const meeting =
-        await prisma.committeeMeeting.findUnique({
-            where: {
-                id: meetingId
-            }
-        });
+const MODEL =
+    process.env.OLLAMA_MODEL ||
+    "qwen2.5:3b";
 
-    if (!meeting) {
-        throw new Error("Meeting not found");
+const cleanJson = (text) => {
+    if (!text) {
+        throw new Error("Empty AI response.");
     }
 
-    const ai =
-        await summarizeMeeting(
-            transcript
-        );
-
-    if (
-        Array.isArray(ai.actionItems)
-    ) {
-        for (const item of ai.actionItems) {
-            await prisma.task.create({
-                data: {
-                    title:
-                        typeof item === "string"
-                            ? item
-                            : item.title,
-                    description:
-                        typeof item === "string"
-                            ? null
-                            : item.description || null,
-                    committeeId:
-                        meeting.committeeId,
-                    createdById:
-                        meeting.organizerId
-                }
-            });
-        }
-    }
-
-    return prisma.meetingSummary.create({
-        data: {
-            meetingId,
-            transcript,
-            summary:
-                ai.summary,
-            actionItems:
-                ai.actionItems,
-            decisions:
-                ai.decisions,
-            nextSteps:
-                ai.nextSteps
-        }
-    });
+    return text
+        .replace(/```json/g, "")
+        .replace(/```/g, "")
+        .trim();
 };
 
-const getSummary = async (
-    meetingId
+const generateMeetingSummary = async (
+    transcript
 ) => {
-    return prisma.meetingSummary.findFirst({
-        where: {
-            meetingId
+    if (!transcript?.trim()) {
+        throw new Error(
+            "Transcript cannot be empty."
+        );
+    }
+
+    const prompt = `You are an expert meeting assistant.
+
+    Return ONLY valid JSON.
+
+    Schema:
+
+    {
+        "summary":"",
+        "discussionPoints":[],
+        "decisions":[],
+        "actionItems":[
+            {
+                "task":"",
+                "owner":"",
+                "deadline":""
+            }
+        ],
+        "nextSteps":[]
+    }
+
+    Meeting Transcript:
+
+    ${transcript}
+    `;
+
+    const response = await client.chat({
+        model: config.model,
+
+        messages: [
+            {
+                role: "user",
+                content: prompt
+            }
+        ],
+
+        options: {
+            temperature: config.temperature,
+            num_ctx: config.contextWindow
         }
     });
+
+    try{
+        return JSON.parse(
+            cleanJson(
+                response.message.content
+            )
+        );
+
+    }catch{
+        throw new Error(
+            "Invalid JSON returned from Ollama."
+        );
+    }
 };
 
 module.exports = {
-    generateSummary,
-    getSummary
+    generateMeetingSummary
 };

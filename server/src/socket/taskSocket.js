@@ -1,85 +1,73 @@
-import { getSocket } from "./socket";
+const { getIO } = require("./socket");
 
-const prisma = require("../config/prisma");
+const registerTaskSocket = (io) => {
+    io.on("connection", (socket) => {
+        socket.on("join-committee", (committeeId) => {
+            socket.join(`committee-${committeeId}`);
+        });
 
-module.exports = io => {
-    io.on("connection", socket => {
-        socket.on(
-            "join-committee",
-            committeeId => {
-                socket.join(
-                    `committee-${committeeId}`
-                );
-            }
-        );
+        socket.on("leave-committee", (committeeId) => {
+            socket.leave(`committee-${committeeId}`);
+        });
 
-        socket.on(
-            "leave-committee",
-            committeeId => {
-                socket.leave(
-                    `committee-${committeeId}`
-                );
-            }
-        );
+        socket.on("task-open", ({ taskId, user }) => {
+            socket.join(`task-${taskId}`);
 
-        socket.on(
-            "task-created",
-            data => {
-                io.to(
-                    `committee-${data.committeeId}`
+            socket.to(`task-${taskId}`).emit(
+                "presence-joined",
+                user
+            );
+        });
 
-                ).emit(
-                    "task-created",
-                    data
-                );
-            }
-        );
+        socket.on("task-close", ({ taskId, user }) => {
+            socket.leave(`task-${taskId}`);
 
-        socket.on(
-            "task-updated",
+            socket.to(`task-${taskId}`).emit(
+                "presence-left",
+                user.id
+            );
+        });
 
-            data => {
-                io.to(
-                    `committee-${data.committeeId}`
-                ).emit(
-                    "task-updated",
-                    data
-                );
-            }
-        );
+        socket.on("comment-added", (data) => {
+            io.to(`task-${data.taskId}`).emit(
+                "comment-added",
+                data
+            );
+        });
 
-        socket.on(
-            "task-deleted",
-
-            data => {
-                io.to(
-                    `committee-${data.committeeId}`
-                ).emit(
-                    "task-deleted",
-                    data.id
-                );
-            }
-        );
+        socket.on("typing-comment", (data) => {
+            socket.to(`task-${data.taskId}`).emit(
+                "typing-comment",
+                data
+            );
+        });
     });
 };
 
-export const emitTaskCreated = task => {
-    getSocket().emit(
-        "task-created",
-        task
-    );
+const emitTaskCreated = (task) => {
+    getIO()
+        .to(`committee-${task.committeeId}`)
+        .emit("task-created", task);
+
 };
 
-export const emitTaskUpdated = task => {
-    getSocket().emit(
-        "task-updated",
-        task
-    );
+const emitTaskUpdated = (task) => {
+    getIO()
+        .to(`committee-${task.committeeId}`)
+        .emit("task-updated", task);
+
 };
 
-export const emitTaskDeleted = task => {
-    getSocket().emit(
-        "task-deleted",
-        task
-    );
+const emitTaskDeleted = (task) => {
+    getIO()
+        .to(`committee-${task.committeeId}`)
+        .emit("task-deleted", task.id);
+
+};
+
+module.exports = {
+    registerTaskSocket,
+    emitTaskCreated,
+    emitTaskUpdated,
+    emitTaskDeleted
 };

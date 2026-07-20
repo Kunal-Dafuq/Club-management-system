@@ -1,89 +1,54 @@
 const service = require("../services/taskAttachmentService");
+const asyncHandler = require("../middleware/asyncHandler");
+const ApiError = require("../utils/ApiError");
 
-const uploadAttachment = async(req,res)=>{
-    try{
-        const taskId=Number(req.params.taskId);
-        const file=req.file;
+const uploadAttachment = asyncHandler(async (req, res) => {
+    const taskId = Number(req.params.taskId);
 
-        if(!file){
-            return res.status(400).json({
-
-                message:"No file uploaded"
-
-            });
-        }
-
-        const attachment=await service.uploadAttachment(
-            taskId,
-            req.user.id,
-            file
+    if (!req.body.storage) {
+        throw new ApiError(
+            400,
+            "Storage metadata is required."
         );
-
-        res.status(201).json({
-            success:true,
-            message:"Attachment uploaded successfully",
-            attachment,
-            uploadedBy:req.user.name,
-            uploadedAt:new Date()
-        });
     }
 
-    catch(err){
-        console.log(err);
-        res.status(500).json({
+    const attachment = await service.uploadAttachment(
+        taskId,
+        req.user.id,
+        req.body.storage
+    );
 
-            message:err.message
+    res.status(201).json({
+        success: true,
+        attachment
+    });
+});
 
-        });
-    }
-};
+const getAttachments = asyncHandler(async (req, res) => {
+    const attachments = await service.getAttachments(
+        Number(req.params.taskId)
+    );
 
-const getAttachments = async(req,res)=>{
-    try{
-        const attachments=await service.getAttachments(
-            Number(req.params.taskId)
-        );
+    res.json({
+        success: true,
+        count: attachments.length,
+        attachments
+    });
+});
 
-        res.json({
-            count:attachments.length,
-            attachments
-        });
+const deleteAttachment = asyncHandler(async (req, res) => {
+    await service.deleteAttachment(
+        Number(req.params.id),
+        req.user.id
+    );
 
-    }
+    res.json({
+        success: true,
+        message: "Attachment deleted."
+    });
+});
 
-    catch(err){
-        res.status(500).json({
-
-            message:err.message
-
-        });
-    }
-};
-
-const deleteAttachment = async(req,res)=>{
-    try{
-        await service.deleteAttachment(
-            Number(req.params.id),
-            req.user.id
-        );
-
-        res.json({
-
-            message:"Attachment deleted"
-
-        });
-    }
-
-    catch(err){
-        res.status(500).json({
-
-            message:err.message
-
-        });
-    }
-};
-
-module.exports={
+module.exports = {
     uploadAttachment,
     getAttachments,
     deleteAttachment

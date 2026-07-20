@@ -1,20 +1,18 @@
-const router =
-require("express").Router();
+const router = require("express").Router();
 
-const {protect}=require("../middleware/authMiddleware");
+const upload = require("../middleware/upload");
 
 const controller = require("../controllers/meetingSummaryController");
 
 router.post(
     "/:id",
-    protect,
+    upload.single("audio"),
     controller.generateSummary
 );
 
 router.get(
     "/:id",
-    protect,
     controller.getSummary
 );
 
-module.exports=router;
+module.exports = router;

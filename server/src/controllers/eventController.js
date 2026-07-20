@@ -1,129 +1,87 @@
 const prisma = require("../config/prisma");
+
+const asyncHandler = require("../middleware/asyncHandler");
+const ApiError = require("../utils/ApiError");
+const auditLogger = require("../utils/auditLogger");
+
 const { createNotification } = require("../services/notificationService");
 const { createActivity } = require("../services/activityService");
-const { eventSchema, updateEventSchema } = require("../validators/eventValidator");
-const auditLogger = require("../utils/auditLogger");
-const createEvent = async (req, res) => {
-  try {
-    const createdById = req.user.id;
-    const validation = eventSchema.safeParse({
-      ...req.body,
-      clubId: Number(req.body.clubId)
-    });
 
-    console.log("========== REQUEST BODY ==========");
-    console.log(req.body);
+const {eventSchema,updateEventSchema} = require("../validators/eventValidator");
 
-    console.log("========== VALIDATION ==========");
-    console.log(validation);
-
-    if (!validation.success) {
-      console.log("========== VALIDATION FAILED ==========");
-      console.log(
-        JSON.stringify(
-          validation.error.issues,
-          null,
-          2
-        )
-      );
-
-      return res.status(400).json({
-          message: validation.error.issues
-      });
-  }
-
-    const {
-      title,
-      description,
-      startTime,
-      endTime,
-      location,
-      visibility,
-      clubId
-    } = validation.data;
-
-    const club = await prisma.club.findUnique({
-      where: { id: clubId }
-    });
-
-    if (!club) {
-      return res.status(404).json({
-        message: "Club not found"
-      });
-    }
-
-    console.log("Searching club with ID:", clubId);
-
-    const event = await prisma.event.create({
-      data: {
-        title,
-        description,
-        startTime,
-        endTime,
-        location,
-        visibility,
-        clubId,
-        createdById
-      }
-    });
-
-    await prisma.club.update({
+const createEvent = asyncHandler(async(req,res)=>{
+  const club = await prisma.club.findUnique({
       where: {
-          id: event.clubId
-      },
-
-      data: {
-        eventCount: {
-          increment: 1
-        }
+          id: clubId
       }
-    });
+  });
 
-    await createActivity({
-        clubId:event.clubId,
-        userId:req.user.id,
-        action:"EVENT_CREATED",
-        description:`${event.title} was created.`
-    });
-
-    console.log("Club found:", club);
-
-    const members = await prisma.membership.findMany({
-      where: { clubId },
-      select: { userId: true }
-    });
-
-    await Promise.all(
-      members.map(member =>
-        createNotification({
-          userId: member.userId,
-          message: `New event created: ${event.title}`
-        })
-      )
-    );
-
-    await auditLogger(req,{
-      action:"EVENT_CREATED",
-      entityType:"Event",
-      entityId:event.id,
-      description:`Created event "${event.title}"`,
-      clubId:event.clubId
-    });
-
-    return res.status(201).json({
-      event
-    });
-
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      message: "Server error"
-    });
+  if (!club) {
+      throw new ApiError(
+          404,
+          "Club not found."
+      );
   }
-};
 
-const getEvents = async (req, res) => {
-  try {
+  const result = await prisma.$transaction(async(tx)=>{
+      const event = await tx.event.create({
+          data:{
+              title,
+              description,
+              startTime,
+              endTime,
+              location,
+              visibility,
+              clubId,
+              createdById
+          }
+      });
+
+      if (req.body.createGoogleMeet === true) {
+          const {createMeet} = require("../services/googleMeetService");
+
+          await createMeet(
+              result.id,
+              req.user.id
+          );
+      }
+
+      await tx.club.update({
+          where:{
+              id:clubId
+          },
+          data:{
+              eventCount:{
+                  increment:1
+              }
+          }
+      });
+
+      return event ;
+  });
+
+  await createActivity({
+    clubId,
+    userId:req.user.id,
+    action:"EVENT_CREATED",
+    description:`${result.title} was created.`
+  });
+
+  await auditLogger(req,{
+    action:"EVENT_CREATED",
+    entityType:"Event",
+    entityId:result.id,
+    clubId
+  });
+
+  res.status(201).json({
+    success:true,
+    message:"Event created successfully.",
+    event:result
+  });
+});
+
+const getEvents = asyncHandler(async(req,res)=>{
     const { clubId, visibility } = req.query;
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
@@ -165,17 +123,9 @@ const getEvents = async (req, res) => {
       total,
       events
     });
+});
 
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      message: "Server error"
-    });
-  }
-};
-
-const getEventById = async (req, res) => {
-  try {
+const getEventById = asyncHandler(async(req,res)=>{
     const eventId = Number(req.params.id);
 
     const event = await prisma.event.findUnique({
@@ -193,40 +143,35 @@ const getEventById = async (req, res) => {
     });
 
     if (!event) {
-      return res.status(404).json({
-        message: "Event not found"
-      });
+      throw new ApiError(
+        404,
+        "Event not found"
+      );
     }
 
     res.json({
       event
     });
+});
 
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      message: "Server error"
-    });
-  }
-};
-
-const updateEvent = async (req, res) => {
-  try {
+const updateEvent = asyncHandler(async (req,res)=>{
     const eventId = Number(req.params.id);
     const validation = updateEventSchema.safeParse(req.body);
 
     if (!validation.success) {
-      return res.status(400).json({
-        message: validation.error.errors
-      });
+      throw new ApiError(
+        400,
+        "validation.error.errors"
+      );
     }
 
     const data = validation.data;
 
     if (!data || Object.keys(data).length === 0) {
-      return res.status(400).json({
-        message: "No fields provided"
-      });
+      throw new ApiError(
+        400,
+        "No fields provided"
+      );
     }
 
     const existingEvent = await prisma.event.findUnique({
@@ -234,17 +179,19 @@ const updateEvent = async (req, res) => {
     });
 
     if (!existingEvent) {
-      return res.status(404).json({
-        message: "Event not found"
-      });
+      throw new ApiError(
+        404,
+        "Event not found"
+      );
     }
 
     if (existingEvent.createdById !== req.user.id &&
       req.user.role !== "SUPER_ADMIN"
     ) {
-      return res.status(403).json({
-        message: "Not allowed"
-      });
+      throw new ApiError(
+        403,
+        "Not allowed"
+      );
     }
 
     const updatedEvent = await prisma.event.update({
@@ -259,91 +206,92 @@ const updateEvent = async (req, res) => {
       }
     });
 
-    return res.json({
-      message: "Event updated",
-      event: updatedEvent
+    await createActivity({
+        clubId:updatedEvent.clubId,
+        userId:req.user.id,
+        action:"EVENT_UPDATED",
+        description:`${updatedEvent.title} updated.`
     });
 
-  } catch (error) {
-      console.log(error);
-      return res.status(500).json({
-        message: "Server error"
-      });
-    }
-};
-
-const deleteEvent = async (req, res) => {
-  try {
-    const eventId = Number(req.params.id);
-
-    const existingEvent = await prisma.event.findUnique({
-      where: { id: eventId }
+    await auditLogger(req,{
+        action:"EVENT_UPDATED",
+        entityType:"Event",
+        entityId:updatedEvent.id,
+        clubId:updatedEvent.clubId
     });
 
-    if (!existingEvent) {
-      return res.status(404).json({
-        message: "Event not found"
-      });
-    }
+    req.io
+    ?.to(`club-${updatedEvent.clubId}`)
+    .emit("event-updated",updatedEvent);
 
-    if (existingEvent.createdById !== req.user.id &&
-      req.user.role !== "SUPER_ADMIN"
-    ) {
-      return res.status(403).json({
-        message: "Not allowed"
-      });
-    }
+    res.json({
+        success:true,
+        message:"Event updated.",
+        event:updatedEvent
+    });
+});
 
-    await prisma.club.update({
-      where: {
-          id: event.clubId
-      },
+const deleteEvent = asyncHandler(async(req,res)=>{
+    const eventId=Number(req.params.id);
 
-      data: {
-        eventCount: {
-          decrement: 1
+    const event=await prisma.event.findUnique({
+        where:{
+            id:eventId
         }
-      }
     });
 
-    prisma.event.update({
-      where:{
-          id
-      },
+    if(!event){
+        throw new ApiError(
+            404,
+            "Event not found."
+        );
+    }
 
-      data:{
-          deletedAt:new Date()
-      }
-    });
+    await prisma.$transaction(async(tx)=>{
+        await tx.event.update({
+            where:{
+                id:eventId
+            },
+            data:{
+                deletedAt:new Date()
+            }
+        });
 
-    await createAuditLog({
-      action:"EVENT_DELETED",
-      entityType:"Event",
-      entityId:event.id,
-      performedById:req.user.id,
-      clubId:event.clubId,
-      description:`Deleted ${event.title}`,
-      metadata:event
+        await tx.club.update({
+            where:{
+                id:event.clubId
+            },
+            data:{
+                eventCount:{
+                    decrement:1
+                }
+            }
+        });
     });
 
     await createActivity({
-      clubId:event.clubId,
-      userId:req.user.id,
-      action:"EVENT_DELETED",
-      description:`${event.title} was deleted.`
+        clubId:event.clubId,
+        userId:req.user.id,
+        action:"EVENT_DELETED",
+        description:`${event.title} deleted.`
     });
+
+    await auditLogger(req,{
+        action:"EVENT_DELETED",
+        entityType:"Event",
+        entityId:event.id,
+        clubId:event.clubId
+    });
+
+    req.io
+    ?.to(`club-${event.clubId}`)
+    .emit("event-deleted",event.id);
 
     res.json({
-      message: "Event deleted successfully"
+        success:true,
+        message:"Event deleted."
     });
-
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      message: "Server error"
-    });
-  }
-};
+});
 
 module.exports = {
   createEvent ,

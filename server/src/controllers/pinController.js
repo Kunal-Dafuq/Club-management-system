@@ -1,95 +1,88 @@
+const asyncHandler = require("../middleware/asyncHandler");
+const ApiError = require("../utils/ApiError");
+
 const pinService = require("../services/pinService");
+const { success } = require("zod");
 
-const pinMessage = async (req, res) => {
-    try {
-        const { messageId } = req.body;
-        const message=await prisma.chatMessage.findUnique({
-            where:{
-                id:Number(messageId)
-            },
-            select:{
-                room:{
-                    select:{
-                        clubId:true
-                    }
-                }
-            }
-        });
+const pinMessage = asyncHandler(async (req, res) => {
+    const roomId = Number(req.body.roomId);
 
-        const membership=await prisma.membership.findFirst({
-            where:{
-                userId:req.user.id,
-                clubId:message.room.clubId,
-                status:"APPROVED"
-            }
-        });
+    const membershipId = getMembershipId(req, roomId);
 
-        const membershipId=membership.id;
-
-        const pin = await pinService.pinMessage(
-            messageId,
-            membershipId
+    if (!membershipId) {
+        throw new ApiError(
+            403,
+            "Not a room member."
         );
-
-        res.status(201).json(pin);
-
-    } catch (error) {
-        res.status(400).json({
-            message: error.message,
-        });
     }
-};
 
-const unpinMessage = async (req, res) => {
-    try {
-        const { messageId } = req.params;
+    const message = await pinService.pinMessage(
+        Number(req.params.messageId),
+        membershipId
+    );
 
-        await pinService.unpinMessage(messageId);
+    req.io
+        ?.to(`room-${roomId}`)
+        .emit("message:pinned", message);
 
-        res.json({
-            message: "Message unpinned successfully.",
-        });
+    res.json({
+        success: true,
+        message: "Message pinned.",
+        data: message
+    });
+});
 
-    } catch (error) {
-        res.status(400).json({
-            message: error.message,
-        });
+const unpinMessage = asyncHandler(async (req, res) => {
+    const roomId = Number(req.body.roomId);
+
+    const membershipId = getMembershipId(req, roomId);
+
+    if (!membershipId) {
+        throw new ApiError(
+            403,
+            "Not a room member."
+        );
     }
-};
 
-const getPinnedMessages = async (req, res) => {
-    try {
+    await pinService.unpinMessage(
+        Number(req.params.messageId),
+        membershipId
+    );
+
+    req.io
+        ?.to(`room-${roomId}`)
+        .emit("message:unpinned", {
+            messageId: Number(req.params.messageId)
+        });
+
+    res.json({
+        success: true,
+        message: "Message unpinned."
+    });
+});
+
+const getPinnedMessages = asyncHandler(async (req, res) => {
+    const roomId = Number(req.params.roomId);
+
+    const messages = await pinService.getPinnedMessages(roomId);
+
+    res.json({
+        success: true,
+        total: messages.length,
+        messages
+    });
+});
+
+const getPinnedCount = asyncHandler(async (req, res) => {
         const { roomId } = req.params;
 
-        const messages =
-            await pinService.getPinnedMessages(roomId);
-
-        res.json(messages);
-
-    } catch (error) {
-        res.status(500).json({
-            message: error.message,
-        });
-    }
-};
-
-const getPinnedCount = async (req, res) => {
-    try {
-        const { roomId } = req.params;
-
-        const count =
-            await pinService.getPinnedCount(roomId);
+        const count = await pinService.getPinnedCount(roomId);
 
         res.json({
-            count,
+            success:true,
+            count
         });
-
-    } catch (error) {
-        res.status(500).json({
-            message: error.message,
-        });
-    }
-};
+});
 
 module.exports = {
     pinMessage,

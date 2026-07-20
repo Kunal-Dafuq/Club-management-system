@@ -1,56 +1,25 @@
-const oauth2Client = require("../config/googleOAuth");
+const asyncHandler = require("../middleware/asyncHandler");
+const { getGoogleAuthUrl, exchangeCode } = require("../services/googleAuthService");
 
-const getGoogleURL = async (req, res) => {
-    const url = oauth2Client.generateAuthUrl({
-        access_type: "offline",
-        scope: [
-            "openid",
-            "email",
-            "profile",
-            "https://www.googleapis.com/auth/calendar"
-        ],
-
-        prompt: "consent"
-    });
+const getGoogleURL = asyncHandler(async (req, res) => {
+    const url = getGoogleAuthUrl();
 
     res.json({
+        success: true,
         url
     });
-};
+});
 
-const googleCallback = async (req, res) => {
-    try {
-        const { code } = req.query;
+const googleCallback = asyncHandler(async (req, res) => {
+    const { code, state } = req.query;
 
-        const { tokens } = await oauth2Client.getToken(code);
+    await exchangeCode(code, state);
 
-        await prisma.user.update({
-            where:{
-                id:req.user.id
-            },
-            data:{
-                googleAccessToken:
-                    tokens.access_token,
-
-                googleRefreshToken:
-                    tokens.refresh_token,
-
-                googleTokenExpiry:
-                    new Date(
-                        tokens.expiry_date
-                    )
-            }
-        });
-
-        res.json(tokens);
-    }
-
-    catch (err) {
-        res.status(500).json({
-            message: err.message
-        });
-    }
-};
+    res.json({
+        success: true,
+        message: "Google authentication successful."
+    });
+});
 
 module.exports = {
     getGoogleURL,

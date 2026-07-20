@@ -1,41 +1,23 @@
-const prisma = require("../config/prisma");
+const asyncHandler = require("../middleware/asyncHandler");
+const activityService = require("../services/activityService");
+const ApiError = require("../utils/ApiError");
 
-const getClubActivities = async (req, res) => {
-  try {
+const getClubActivities = asyncHandler(async (req, res) => {
     const clubId = Number(req.params.id);
-    const activities = await prisma.activity.findMany({
-      where: {
-        clubId
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: "desc"
-      },
-      take: 30
+
+    if (Number.isNaN(clubId)) {
+        throw new ApiError(400, "Invalid club ID.");
+    }
+
+    const activities = await activityService.getRecentActivities(clubId);
+
+    res.status(200).json({
+        success: true,
+        count: activities.length,
+        activities,
     });
-
-    res.json(activities);
-
-  }
-
-  catch (error) {
-
-    console.log(error);
-
-    res.status(500).json({
-      message: "Server error"
-    });
-
-  }
-};
+});
 
 module.exports = {
-  getClubActivities
+    getClubActivities,
 };

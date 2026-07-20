@@ -2,8 +2,10 @@ const bcrypt = require("bcryptjs");
 const prisma = require("../config/prisma");
 const generateToken = require("../utils/generateToken");
 const auditLogger = require("../utils/auditLogger");
-const register = async (req, res) => {
-  try {
+const asyncHandler = require("../middleware/asyncHandler");
+const ApiError = require("../utils/ApiError");
+
+const register = asyncHandler(async (req, res) => {
     const {
       name,
       email,
@@ -11,32 +13,32 @@ const register = async (req, res) => {
       department
     } = req.body;
 
-    //Validation
-    if (!name || !email || !password) {
-      return res.status(400).json({
-        message: "Name, email and password are required"
-      });
+    if (!name?.trim() || !email?.trim() || !password
+    ) {
+      throw new ApiError(
+        400,
+        "Name, email and password are required."
+      );
     }
 
-    // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: {
         email
       }
     });
+
     if (existingUser) {
-      return res.status(400).json({
-        message: "User already exists"
-      });
+      throw new ApiError(
+        409,
+        "User already exists."
+      );
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(
       password,
       10
     );
 
-    // Create user
     const user = await prisma.user.create({
       data: {
         name,
@@ -47,29 +49,27 @@ const register = async (req, res) => {
       }
     });
 
-    // Send safe response
+    await auditLogger(req,{
+        action:"USER_REGISTERED",
+        entityType:"User",
+        entityId:user.id,
+        description:`${user.name} registered`
+    });
+
     res.status(201).json({
-      message: "User created successfully",
+      success: true,
+      message: "User registered successfully.",
       user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        department: user.department,
-        role: user.role
-      }
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          department: user.department,
+          role: user.role
+        }
     });
-  }
+});
 
-  catch (error) {
-    console.log(error);
-    res.status(500).json({
-      message: "Server error"
-    });
-  }
-};
-
-const login = async (req, res) => {
-  try {
+const login = asyncHandler(async (req, res) => {
     const {
       email,
       password
@@ -88,9 +88,10 @@ const login = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({
-        message: "Invalid credentials"
-      });
+      throw new ApiError(
+        401,
+        "Invalid email or password."
+      );
     }
 
     const isPasswordCorrect = await bcrypt.compare(
@@ -99,14 +100,22 @@ const login = async (req, res) => {
     );
 
     if (!isPasswordCorrect) {
-      return res.status(400).json({
-        message: "Invalid credentials"
-      });
+      throw new ApiError(
+        401,
+        "Invalid email or password."
+      );
     }
 
     const token = generateToken(
       user.id
     );
+
+    await auditLogger(req,{
+        action:"USER_LOGIN",
+        entityType:"User",
+        entityId:user.id,
+        description:`${user.name} logged in`
+    });
 
     res.status(200).json({
       message: "Login successful",
@@ -119,25 +128,9 @@ const login = async (req, res) => {
         role: user.role
       }
     });
-  }
-
-  catch (error) {
-    console.log(error);
-    res.status(500).json({
-      message: "Server error"
-    });
-  }
-};
-
-await auditLogger(req,{
-    action:"USER_LOGIN",
-    entityType:"User",
-    entityId:user.id,
-    description:`${user.name} logged in`
 });
 
-const promoteUser = async (req,res)=>{
-  try{
+const promoteUser = asyncHandler(async (req, res) => {
     const {
       email,
       role
@@ -157,17 +150,24 @@ const promoteUser = async (req,res)=>{
       "SUPER_ADMIN"
     ];
 
-    if(
-      !allowedRoles.includes(role)
-    ){
+    if(!allowedRoles.includes(role)){
       return res.status(400).json({
         message:"Invalid role"
       });
     }
 
-    const user = await prisma.user.update({
-      where:{email},
-      data:{role}
+    if(!existingUser){
+      throw new ApiError(
+        404,
+        "User not found."
+      );
+    }
+
+    await auditLogger(req,{
+        action:"USER_PROMOTION",
+        entityType:"User",
+        entityId:user.id,
+        description:`${user.name} has been promoted`
     });
 
     res.json({
@@ -179,21 +179,9 @@ const promoteUser = async (req,res)=>{
         role:user.role
       }
     });
-  }
+});
 
-  catch(error){
-
-    console.log(error);
-
-    res.status(500).json({
-
-      message:"Server error"
-
-    });
-  }
-};
-
-const logout=async(req,res)=>{
+const logout = asyncHandler(async (req, res) => {
     await auditLogger(req,{
         action:"USER_LOGOUT",
         entityType:"User",
@@ -204,7 +192,7 @@ const logout=async(req,res)=>{
     res.json({
         message:"Logged out"
     });
-};
+});
 
 module.exports = {
   register,

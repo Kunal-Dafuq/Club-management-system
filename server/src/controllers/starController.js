@@ -1,88 +1,41 @@
+const asyncHandler = require("../middleware/asyncHandler");
+const ApiError = require("../utils/ApiError");
+
 const starService = require("../services/starService");
 
-const toggleStar = async (req, res) => {
-    try {
+const toggleStar = asyncHandler(async (req, res) => {
+    const { messageId } = req.body;
 
-        const { messageId } = req.body;
-
-        const message=await prisma.chatMessage.findUnique({
-            where:{
-                id:Number(messageId)
-            },
-            select:{
-                room:{
-                    select:{
-                        clubId:true
-                    }
-                }
-            }
-        });
-
-        const membership=await prisma.membership.findFirst({
-            where:{
-                userId:req.user.id,
-                clubId:message.room.clubId,
-                status:"APPROVED"
-            }
-        });
-
-        const membershipId=membership.id;
-
-        const result = await starService.toggleStar(
-            Number(messageId),
-            membershipId
+    if (!messageId) {
+        throw new ApiError(
+            400,
+            "Message id required."
         );
-
-        res.json(result);
-
-    } catch (err) {
-        res.status(400).json({
-            message: err.message
-        });
-
     }
-};
 
-const getStarredMessages = async (req, res) => {
-    try {
-        const message=await prisma.chatMessage.findUnique({
-            where:{
-                id:Number(messageId)
-            },
-            select:{
-                room:{
-                    select:{
-                        clubId:true
-                    }
-                }
-            }
-        });
+    const star = await starService.toggleStar(
+        Number(messageId),
+        req.membership.id
+    );
 
-        const membership=await prisma.membership.findFirst({
-            where:{
-                userId:req.user.id,
-                clubId:message.room.clubId,
-                status:"APPROVED"
-            }
-        });
+    res.json({
+        success: true,
+        star
+    });
+});
 
-        const membershipId=membership.id;
+const getStarredMessages = asyncHandler(async (req, res) => {
+    const starred = await starService.getStarredMessages(
+        Number(req.params.roomId),
+        req.membership.id
+    );
 
-        const messages =
-            await starService.getStarredMessages(
-                membershipId
-            );
-
-        res.json(messages);
-
-    } catch (err) {
-
-        res.status(500).json({
-            message: err.message
-        });
-
-    }
-};
+    res.json({
+        success: true,
+        total: starred.length,
+        starred
+    });
+});
 
 module.exports = {
     toggleStar,

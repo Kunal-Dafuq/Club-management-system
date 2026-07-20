@@ -1,134 +1,176 @@
 const meetingService = require("../services/meetingService");
+
+const asyncHandler = require("../middleware/asyncHandler");
+const ApiError = require("../utils/ApiError");
+
 const auditLogger = require("../utils/auditLogger");
+const { createActivity } = require("../services/activityService");
 
-const createMeeting = async (
-    req,
-    res
-) => {
-    try {
-        const meeting =
-            await meetingService.createMeeting(
-                Number(
-                    req.params.committeeId
-                ),
-                req.user.membershipId,
-                req.body
-            );
+const createMeeting = asyncHandler(async (req, res) => {
+    const meeting = await meetingService.createMeeting(
+        Number(req.params.committeeId),
+        req.user.membershipId,
+        req.body
+    );
 
-        res.status(201).json({
-            success: true,
-            meeting
-        });
+    if (
+        meeting.organizerId !== req.user.membershipId &&
+        req.user.role !== "PRESIDENT"
+    ) {
+        throw new ApiError(403, "Not allowed.");
     }
 
-    catch (err) {
-        res.status(400).json({
-            success: false,
-            message: err.message
-        });
-    }
-};
+    await createActivity({
+        clubId: meeting.committee.clubId,
+        userId: req.user.id,
+        action: "MEETING_CREATED",
+        description: `${meeting.title} created`
+    });
 
-const getCommitteeMeetings = async (req, res) => {
-    try {
-        const meetings = await meetingService.getCommitteeMeetings(
+    await auditLogger(req,{
+        action:"MEETING_CREATED",
+        entityType:"Meeting",
+        entityId:meeting.id,
+        clubId:meeting.committee.clubId
+    });
+
+    req.io
+        ?.to(`committee-${meeting.committeeId}`)
+        .emit("meeting-created",meeting);
+
+    res.status(201).json({
+        success:true,
+        meeting
+    });
+});
+
+const getCommitteeMeetings = asyncHandler(async(req,res)=>{
+    const meetings =
+        await meetingService.getCommitteeMeetings(
             Number(req.params.committeeId)
         );
 
-        res.json(meetings);
+    res.json({
+        success:true,
+        meetings
+    });
+});
 
-    }
-
-    catch (err) {
-
-        res.status(400).json({
-            message: err.message
-        });
-    }
-};
-
-const getMeeting = async (req, res) => {
-    try {
-        const meeting = await meetingService.getMeeting(
+const getMeeting = asyncHandler(async(req,res)=>{
+    const meeting =
+        await meetingService.getMeeting(
             Number(req.params.id)
         );
 
-        res.json(meeting);
-
+    if(!meeting){
+        throw new ApiError(
+            404,
+            "Meeting not found."
+        );
     }
 
-    catch (err) {
+    res.json({
+        success:true,
+        meeting
+    });
+});
 
-        res.status(400).json({
-            message: err.message
-        });
-    }
-};
-
-const updateMeeting = async (req, res) => {
-    try {
-        const meeting = await meetingService.updateMeeting(
+const updateMeeting = asyncHandler(async(req,res)=>{
+    const meeting =
+        await meetingService.updateMeeting(
             Number(req.params.id),
             req.body
         );
 
-        res.json(meeting);
+    await auditLogger(req,{
+        action:"MEETING_UPDATED",
+        entityType:"Meeting",
+        entityId:meeting.id
+    });
 
+    req.io
+        ?.to(`committee-${meeting.committeeId}`)
+        .emit("meeting-updated",meeting);
+
+    res.json({
+        success:true,
+        meeting
+    });
+});
+
+const deleteMeeting = asyncHandler(async(req,res)=>{
+    const meeting =await meetingService.deleteMeeting(
+        Number(req.params.id)
+    );
+
+    if(
+        meeting.organizerId!==req.user.membershipId &&
+        req.user.role!=="PRESIDENT"
+    ){
+        throw new ApiError(
+            403,
+            "Not allowed."
+        );
     }
 
-    catch (err) {
+    await auditLogger(req,{
+        action:"MEETING_DELETED",
+        entityType:"Meeting",
+        entityId:meeting.id
+    });
 
-        res.status(400).json({
-            message: err.message
-        });
-    }
-};
+    req.io
+        ?.to(`committee-${meeting.committeeId}`)
+        .emit("meeting-deleted",meeting.id);
 
-const deleteMeeting = async (req, res) => {
-    try {
-        await meetingService.deleteMeeting(
-            Number(req.params.id)
+    res.json({
+        success:true,
+        message:"Meeting deleted."
+    });
+});
+
+const markAttendance = asyncHandler(async(req,res)=>{
+    const attendance =
+        await meetingService.markAttendance(
+            Number(req.params.id),
+            Number(req.body.membershipId),
+            req.body.status
         );
 
-        res.json({
-            message: "Meeting deleted"
+    await auditLogger(req,{
+        action:"MEETING_ATTENDANCE",
+        entityType:"MeetingAttendance",
+        entityId:attendance.id
+    });
+
+    res.json({
+        success:true,
+        attendance
+    });
+});
+
+const restoreMeeting = asyncHandler(async(req,res)=>{
+        const id = Number(req.params.id);
+
+        const meeting = await meetingService.restoreMeeting(id);
+
+        await auditLogger(req,{
+            action:"MEETING_RESTORED",
+            entityType:"Meeting",
+            entityId:id
         });
-    }
+        res.json(meeting);
+});
 
-    catch (err) {
+const getMeetingStatistics = asyncHandler(async (req,res) => {
+    const stats = await meetingService.getMeetingStatistics(
+        Number(req.params.id)
+    );
 
-        res.status(400).json({
-            message: err.message
-        });
-    }
-};
-
-const markAttendance = async (req, res) => {
-    try {
-        const attendance =
-            await meetingService.markAttendance(
-                Number(req.params.id),
-                Number(req.body.membershipId),
-                req.body.status
-            );
-
-        res.json(attendance);
-
-    }
-
-    catch (err) {
-        res.status(400).json({
-            message: err.message
-        });
-    }
-};
-
-await meetingService.restoreMeeting(id);
-
-await auditLogger(req,{
-    action:"MEETING_RESTORED",
-    entityType:"Meeting",
-    entityId:id
+    res.json({
+        success: true,
+        statistics: stats
+    });
 });
 
 module.exports = {
@@ -137,5 +179,7 @@ module.exports = {
     getMeeting,
     updateMeeting,
     deleteMeeting,
-    markAttendance
+    restoreMeeting,
+    markAttendance,
+    getMeetingStatistics,
 };

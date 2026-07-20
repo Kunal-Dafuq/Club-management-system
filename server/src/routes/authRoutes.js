@@ -8,14 +8,17 @@ const {
 } = require("../controllers/authController");
 
 const { protect } = require("../middleware/authMiddleware");
+const authLimiter = require("../middleware/authLimiter");
 
 router.post(
     "/register",
+    authLimiter,
     register
 );
 
 router.post(
     "/login",
+    authLimiter,
     login
 );
 

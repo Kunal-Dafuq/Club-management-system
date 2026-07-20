@@ -1,8 +1,10 @@
 const prisma = require("../config/prisma");
 const { generateSlug } = require("../services/clubService");
 const auditLogger = require("../utils/auditLogger");
-const createClub = async (req,res)=>{
-  try{
+const asyncHandler = require("../middleware/asyncHandler");
+const ApiError = require("../utils/ApiError");
+
+const createClub = asyncHandler(async (req, res) => {
     const {
         name,
         description,
@@ -27,12 +29,26 @@ const createClub = async (req,res)=>{
     });
 
     if(existingClub){
-      return res.status(400).json({
-        message:"Club already exists"
-      });
+      throw new ApiError(
+        401,
+        "Club already exists"
+      );
     }
 
     const slug = await generateSlug(name);
+
+    const duplicateSlug = await prisma.club.findUnique({
+        where: {
+            slug
+        }
+    });
+
+    if (duplicateSlug) {
+        throw new ApiError(
+            409,
+            "Club slug already exists."
+        );
+    }
 
     const club = await prisma.club.create({
         data: {
@@ -59,18 +75,9 @@ const createClub = async (req,res)=>{
     res.status(201).json({
       club
     });
-  }
+});
 
-  catch(error){
-    console.log(error);
-    res.status(500).json({
-      message:"Server error"
-    });
-  }
-};
-
-const getClubs = async (req, res) => {
-  try {
+const getClubs = asyncHandler(async (req, res) => {
 
     const clubs = await prisma.club.findMany({
 
@@ -114,22 +121,9 @@ const getClubs = async (req, res) => {
     });
 
     res.json(clubs);
+});
 
-  }
-
-  catch (error) {
-
-    console.log(error);
-
-    res.status(500).json({
-      message: "Server error"
-    });
-
-  }
-};
-
-const getClubById = async (req, res) => {
-  try {
+const getClubById = asyncHandler(async (req, res) => {
     const clubId = Number(req.params.id);
     const club = await prisma.club.findUnique({
 
@@ -206,40 +200,28 @@ const getClubById = async (req, res) => {
 
     res.json({
 
-  ...club,
+      ...club,
 
-  stats: {
+      stats: {
 
-    totalMembers: club.memberships.filter(
-      m => m.status === "APPROVED"
-    ).length,
+        totalMembers: club.memberships.filter(
+          m => m.status === "APPROVED"
+        ).length,
 
-    pendingRequests: club.memberships.filter(
-      m => m.status === "PENDING"
-    ).length,
+        pendingRequests: club.memberships.filter(
+          m => m.status === "PENDING"
+        ).length,
 
-    totalEvents: club.events.length,
+        totalEvents: club.events.length,
 
-    upcomingEvents: club.events.filter(
-      event => new Date(event.startTime) > new Date()
-    ).length
-  }
-
+        upcomingEvents: club.events.filter(
+          event => new Date(event.startTime) > new Date()
+        ).length
+      }
+    });
 });
 
-  }
-
-  catch (error) {
-    console.log(error);
-
-    res.status(500).json({
-      message: "Server error"
-    });
-  }
-};
-
-const getClubBySlug = async (req, res) => {
-    try {
+const getClubBySlug = asyncHandler(async (req, res) => {
         const club = await prisma.club.findUnique({
             where: {
                 slug: req.params.slug
@@ -261,20 +243,9 @@ const getClubBySlug = async (req, res) => {
             });
         }
         res.json(club);
-    }
+});
 
-    catch (error) {
-        console.log(error);
-        res.status(500).json({
-
-            message: "Server error"
-
-        });
-    }
-};
-
-const updateClub = async (req,res)=>{
-  try{
+const updateClub = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const {
         name,
@@ -319,18 +290,9 @@ const updateClub = async (req,res)=>{
       message:"Club updated",
       club:updatedClub
     });
-  }
+});
 
-  catch(error){
-    console.log(error);
-    res.status(500).json({
-      message:"Server error"
-    });
-  }
-};
-
-const deleteClub = async (req,res)=>{
-  try{
+const deleteClub = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const existingClub = await prisma.club.findUnique({
       where:{
@@ -346,9 +308,8 @@ const deleteClub = async (req,res)=>{
 
     await prisma.club.update({
       where:{
-          id
+          id:Number(id)
       },
-
       data:{
           deletedAt:new Date()
       }
@@ -359,7 +320,7 @@ const deleteClub = async (req,res)=>{
       entityType:"Club",
       entityId:id,
       performedById:req.user.id,
-      description:`Deleted club ${club.name}`,
+      description:`Deleted club ${existingClub.name}`,
       metadata:{
           clubName:club.name
       },
@@ -370,18 +331,9 @@ const deleteClub = async (req,res)=>{
     res.json({
       message:"Club deleted successfully"
     });
-  }
+});
 
-  catch(error){
-    console.log(error);
-    res.status(500).json({
-      message:"Server error"
-    });
-  }
-};
-
-const updateBranding = async (req, res) => {
-    try {
+const updateBranding = asyncHandler(async (req, res) => {
         const {
             primaryColor,
             secondaryColor,
@@ -405,21 +357,9 @@ const updateBranding = async (req, res) => {
         });
 
         res.json(club);
+});
 
-    }
-
-    catch (error) {
-        console.log(error);
-        res.status(500).json({
-
-            message: "Server error"
-
-        });
-    }
-};
-
-const updateSocialLinks = async (req, res) => {
-    try {
+const updateSocialLinks = asyncHandler(async (req, res) => {
         const club = await prisma.club.update({
             where: {
                 id: Number(req.params.id)
@@ -437,18 +377,7 @@ const updateSocialLinks = async (req, res) => {
         });
 
         res.json(club);
-
-    }
-
-    catch (error) {
-        console.log(error);
-        res.status(500).json({
-
-            message: "Server error"
-            
-        });
-    }
-};
+});
 
 module.exports = {
     createClub,

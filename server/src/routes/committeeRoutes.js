@@ -1,7 +1,7 @@
 const router = require("express").Router();
 
 const { protect } = require("../middleware/authMiddleware");
-
+const {canManageCommittee} = require("../middleware/permissionMiddleware");
 const {
     createCommittee,
     getClubCommittees,
@@ -11,7 +11,8 @@ const {
     addCommitteeMember,
     removeCommitteeMember,
     updateCommitteeMemberRole,
-    getCommitteeStatistics
+    getCommitteeStatistics,
+    restoreCommittee
 } = require("../controllers/committeeController");
 
 router.post(
@@ -68,44 +69,11 @@ router.get(
     getCommitteeStatistics
 );
 
-const {
-    canManageCommittee,
-    canDeleteCommittee
-} = require("../middleware/permissionMiddleware");
-
 router.patch(
-    "/:id",
+    "/:id/restore",
     protect,
     canManageCommittee,
-    updateCommittee
-);
-
-router.delete(
-    "/:id",
-    protect,
-    canDeleteCommittee,
-    deleteCommittee
-);
-
-router.post(
-    "/:committeeId/members",
-    protect,
-    canManageCommittee,
-    addCommitteeMember
-);
-
-router.delete(
-    "/:committeeId/members/:membershipId",
-    protect,
-    canManageCommittee,
-    removeCommitteeMember
-);
-
-router.patch(
-    "/members/:id/role",
-    protect,
-    canManageCommittee,
-    updateCommitteeMemberRole
+    restoreCommittee
 );
 
 module.exports = router;

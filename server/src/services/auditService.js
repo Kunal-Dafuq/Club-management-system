@@ -1,31 +1,31 @@
-const prisma=require("../config/prisma");
+const prisma = require("../config/prisma");
 
-const createAuditLog=async({
+const createAuditLog = async ({
     action,
     entityType,
     entityId,
     performedById,
-    clubId,
-    description,
-    metadata,
-    ipAddress,
-    userAgent
-})=>{
+    clubId = null,
+    description = null,
+    metadata = null,
+    ipAddress = null,
+    userAgent = null
+}) => {
     return prisma.auditLog.create({
-        data:{
+        data: {
             action,
             entityType,
             entityId,
             performedById,
             clubId,
             description,
-            metadata,
+            metadata: metadata || {},
             ipAddress,
             userAgent
         }
     });
 };
 
-module.exports={
+module.exports = {
     createAuditLog
 };

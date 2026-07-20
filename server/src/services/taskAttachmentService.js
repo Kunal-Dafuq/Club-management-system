@@ -1,20 +1,23 @@
 const prisma = require("../config/prisma");
 const getFileIcon = require("../utils/fileIcon");
-const {createNotification} = require("./notificationService");
+const { createNotification } = require("./notificationService");
+const { buildStorageInfo } = require("./storageService");
 
 const uploadAttachment = async (
     taskId,
     membershipId,
-    file
+    storage
 ) => {
     const membership = await prisma.membership.findUnique({
-        where:{
-            id: membershipId
-        },
-        include:{
-            user:true
-        }
-    });
+
+            where:{
+                id:membershipId
+            },
+
+            include:{
+                user:true
+            }
+        });
 
     if(!membership){
         throw new Error("Membership not found");
@@ -22,64 +25,84 @@ const uploadAttachment = async (
 
     await prisma.activity.create({
         data:{
-            clubId: membership.clubId,
-            userId: membership.userId,
+            clubId:membership.clubId,
+            userId:membership.userId,
             action:"TASK_ATTACHMENT",
-            description:`Uploaded ${file.originalname}`
+            description:`Uploaded ${storage.fileName}`
         }
     });
 
-    const attachment = await prisma.taskAttachment.create({
-        data:{
-            taskId,
-            membershipId: membership.id,
-            fileName: file.originalname,
-            fileUrl: file.path,
-            fileSize: file.size,
-            mimeType: file.mimetype
-        }
-    });
+    const attachment =
+        await prisma.taskAttachment.create({
+            data:{
+                taskId,
+                membershipId:membership.id,
+                fileName:storage.fileName,
+                fileUrl:storage.fileUrl,
+                mimeType:storage.mimeType,
+                size:storage.size,
+                checksum:storage.checksum,
+                bucket:storage.bucket,
+                storagePath:storage.storagePath
+            }
+        });
 
-    const task = await prisma.task.findUnique({
-        where:{
-            id:taskId
-        },
-        include:{
-            committee:true,
-            createdBy:{
-                include:{
-                    user:true
-                }
+    const task =
+        await prisma.task.findUnique({
+            where:{
+                id:taskId
             },
-            assignedTo:{
-                include:{
-                    membership:{
-                        include:{
-                            user:true
+
+            include:{
+                createdBy:{
+                    include:{
+                        user:true
+                    }
+                },
+
+                assignedTo:{
+                    include:{
+                        membership:{
+                            include:{
+                                user:true
+                            }
                         }
                     }
                 }
             }
-        }
-    });
+        });
 
-    if(task.createdBy.userId !== membership.userId){
-        await createNotification(
-            task.createdBy.userId,
-            `${membership.user.name} uploaded "${file.originalname}" on your task.`
-        );
+    if(
+        task.createdBy.userId !==
+        membership.userId
+    ){
+        await createNotification({
+            userId:
+                task.createdBy.userId,
+            title:"Task Attachment",
+            message:
+                `${membership.user.name} uploaded "${storage.fileName}"`,
+            type:"TASK"
+        });
     }
 
     if(
-        task.assignedTo && task.assignedTo.membership.userId !== membership.userId
+        task.assignedTo &&
+        task.assignedTo.membership.userId !==
+        membership.userId
     ){
-        await createNotification(
-            task.assignedTo.membership.userId,
-            `${membership.user.name} uploaded a file for your task.`
-        );
+        await createNotification({
+            userId:
+                task.assignedTo.membership.userId,
+            title:"Task Attachment",
+            message:
+                `${membership.user.name} uploaded a file for your task.`,
+            type:"TASK"
+        });
     }
 
     return prisma.taskAttachment.findUnique({
+
         where:{
             id:attachment.id
         },
@@ -91,50 +114,52 @@ const uploadAttachment = async (
                 }
             }
         }
-    });;
+    });
 };
 
-const getAttachments = async (taskId) => {
-    const attachments = await prisma.taskAttachment.findMany({
-        where: {
-            taskId
-        },
-        include: {
-            uploadedBy: {
-                include: {
-                    user: true
+const getAttachments = async (taskId)=>{
+    const attachments =
+        await prisma.taskAttachment.findMany({
+            where:{
+                taskId,
+                deletedAt:null
+            },
+
+            include:{
+                membership:{
+                    include:{
+                        user:true
+                    }
                 }
+            },
+
+            orderBy:{
+               uploadedAt:"desc"
             }
-        },
-        orderBy:{
-        uploadedAt:"desc"
-        }
-    });
+        });
 
-    return attachments.map(file => {
+    return attachments.map(file=>{
         const extension =
-        file.fileName.includes(".")
-        ? file.fileName.split(".").pop().toLowerCase()
-        : "";
+            file.fileName.includes(".")
+            ? file.fileName.split(".").pop().toLowerCase()
+            : "";
 
-        const icon = getFileIcon(extension);
-
-        return {
-            id: file.id,
-            fileName: file.fileName,
-            url: file.fileUrl,
+        return{
+            id:file.id,
+            fileName:file.fileName,
+            url:file.fileUrl,
             extension,
-            icon,
-            size: file.fileSize,
-            mime: file.mimeType,
-            uploadedBy: file.membership.user.name,
-            uploadedAt: file.uploadedAt
+            icon:getFileIcon(extension),
+            size:file.size,
+            mime:file.mimeType,
+            uploadedBy:file.membership.user.name,
+            uploadedAt:file.uploadedAt
         };
     });
 };
 
 const deleteAttachment = async(id)=>{
-    return prisma.taskAttachment.delete({
+    return prisma.taskAttachment.update({
         where:{
             id
         },

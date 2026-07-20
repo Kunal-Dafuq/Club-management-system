@@ -17,137 +17,113 @@ model User {
   role                Role                 @default(GENERAL_VIEWER)
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
-  eventsCreated       Event[]
-  memberships         Membership[]
-  notifications       Notification[]
-  rsvps               RSVP[]
+  avatarUrl           String?
+  bio                 String?
+  isOnline            Boolean              @default(false)
+  lastSeen            DateTime?
+  phone               String?
+  preferences         Json?
+  googleAccessToken   String?
+  googleRefreshToken  String?
+  googleTokenExpiry   DateTime?
   activities          Activity[]
   announcements       Announcement[]
+  auditLogs           AuditLog[]
   chatMessages        ChatMessage[]
   deletedChatMessages DeletedChatMessage[]
+  eventsCreated       Event[]
+  googleAccount       GoogleAccount?
+  loginHistories      LoginHistory[]
+  memberships         Membership[]
   mentions            Mention[]
-
-  avatarUrl String?
-  bio       String?
-  phone     String?
-  lastSeen  DateTime?
-  isOnline  Boolean   @default(false)
-
-  googleAccount GoogleAccount?
-  googleAccessToken String?
-  googleRefreshToken String?
-  googleTokenExpiry DateTime?
-
-  preferences     Json?
-  auditLogs       AuditLog[]
-  searchHistories SearchHistory[]
-  userSessions    UserSession[]
-  loginHistories  LoginHistory[]
+  notifications       Notification[]
+  rsvps               RSVP[]
+  searchHistories     SearchHistory[]
+  userSessions        UserSession[]
 }
 
 model Club {
-  id   Int     @id @default(autoincrement())
-  name String  @unique
-  slug String? @unique
-
-  description String?
-  about       String?
-  tagline     String?
-  motto       String?
-
-  logoUrl   String?
-  bannerUrl String?
-
-  primaryColor   String @default("#2563eb")
-  secondaryColor String @default("#1d4ed8")
-  accentColor    String @default("#60a5fa")
-
-  verified   Boolean   @default(false)
-  verifiedAt DateTime?
-
-  website   String?
-  email     String?
-  github    String?
-  instagram String?
-  linkedin  String?
-  youtube   String?
-  discord   String?
-
-  established Int?
-  foundedBy   String?
-  location    String?
-  settings    Json?
-
-  isRecruiting Boolean @default(true)
-
-  category ClubCategory @default(OTHER)
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime?
-
-  coverVideo String?
-
-  memberCount Int @default(0)
-  eventCount  Int @default(0)
-
-  chatEnabled Boolean @default(true)
-  taskEnabled Boolean @default(true)
-
-  features Json?
-
-  events        Event[]
-  memberships   Membership[]
-  announcements Announcement[]
-  activities    Activity[]
-  committees    Committee[]
-  tags          ClubTagAssignment[]
-  chatRooms     ChatRoom[]
-  chatMessages  ChatMessage[]
-  tasks         Task[]
-  taskLabels    TaskLabel[]
-  deletedAt     DateTime?
-  auditLogs     AuditLog[]
+  id             Int                 @id @default(autoincrement())
+  name           String              @unique
+  description    String?
+  createdAt      DateTime            @default(now())
+  about          String?
+  accentColor    String              @default("#60a5fa")
+  bannerUrl      String?
+  category       ClubCategory        @default(OTHER)
+  discord        String?
+  email          String?
+  established    Int?
+  foundedBy      String?
+  github         String?
+  instagram      String?
+  isRecruiting   Boolean             @default(true)
+  linkedin       String?
+  location       String?
+  logoUrl        String?
+  motto          String?
+  primaryColor   String              @default("#2563eb")
+  secondaryColor String              @default("#1d4ed8")
+  slug           String?             @unique
+  tagline        String?
+  updatedAt      DateTime?
+  verified       Boolean             @default(false)
+  verifiedAt     DateTime?
+  website        String?
+  youtube        String?
+  chatEnabled    Boolean             @default(true)
+  coverVideo     String?
+  deletedAt      DateTime?
+  eventCount     Int                 @default(0)
+  features       Json?
+  memberCount    Int                 @default(0)
+  settings       Json?
+  taskEnabled    Boolean             @default(true)
+  activities     Activity[]
+  announcements  Announcement[]
+  auditLogs      AuditLog[]
+  chatMessages   ChatMessage[]
+  chatRooms      ChatRoom[]
+  tags           ClubTagAssignment[]
+  committees     Committee[]
+  events         Event[]
+  memberships    Membership[]
+  tasks          Task[]
+  taskLabels     TaskLabel[]
 }
 
 model ClubTag {
-  id   Int    @id @default(autoincrement())
-  name String @unique
-
+  id    Int                 @id @default(autoincrement())
+  name  String              @unique
   clubs ClubTagAssignment[]
 }
 
 model ClubTagAssignment {
   clubId Int
   tagId  Int
-
-  club Club    @relation(fields: [clubId], references: [id])
-  tag  ClubTag @relation(fields: [tagId], references: [id])
+  club   Club    @relation(fields: [clubId], references: [id])
+  tag    ClubTag @relation(fields: [tagId], references: [id])
 
   @@id([clubId, tagId])
 }
 
 model Committee {
-  id          Int     @id @default(autoincrement())
+  id          Int                @id @default(autoincrement())
   name        String
   description String?
-  color       String? @default("#2563eb")
+  color       String?            @default("#2563eb")
   icon        String?
-  isCore      Boolean @default(false)
-
-  clubId Int
-  club   Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
-
-  order Int @default(0)
-
-  members CommitteeMember[]
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-
-  tasks     Task[]
-  meetings  CommitteeMeeting[]
-  chatRooms ChatRoom[]
+  isCore      Boolean            @default(false)
+  clubId      Int
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  deletedAt   DateTime?
+  order       Int                @default(0)
+  chatRooms   ChatRoom[]
+  club        Club               @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  meetings    CommitteeMeeting[]
+  members     CommitteeMember[]
+  tasks       Task[]
 
   @@unique([clubId, name])
   @@index([clubId])
@@ -168,87 +144,48 @@ model CommitteeMember {
   @@index([committeeId])
 }
 
-model MeetingSummary{
-
-  id Int @id @default(autoincrement())
-  meetingId Int
-
-  transcript String?
-
-  summary String
-
-  actionItems Json?
-
-  decisions Json?
-
-  nextSteps Json?
-
-  generatedByAI Boolean @default(true)
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  meeting CommitteeMeeting @relation(fields:[meetingId],references:[id],onDelete:Cascade)
-
-  @@unique([meetingId])
-
+model MeetingSummary {
+  id            Int              @id @default(autoincrement())
+  meetingId     Int              @unique
+  summary       String
+  transcript    String?
+  actionItems   Json?
+  decisions     Json?
+  createdAt     DateTime         @default(now())
+  generatedByAI Boolean          @default(true)
+  nextSteps     Json?
+  updatedAt     DateTime         @updatedAt
+  meeting       CommitteeMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
 }
 
 model CommitteeMeeting {
-  id Int @id @default(autoincrement())
-
-  title       String
-  description String?
-  agenda      String?
-
-  startTime DateTime
-  endTime   DateTime?
-
-  status MeetingStatus @default(SCHEDULED)
-
-  isInstant Boolean @default(false)
-
-  meetingProvider MeetingProvider @default(GOOGLE_MEET)
-
-  meetingCode String?
-  onlineLink  String?
-
-  location String?
-
+  id              Int                 @id @default(autoincrement())
+  title           String
+  description     String?
+  startTime       DateTime
+  endTime         DateTime?
+  location        String?
+  onlineLink      String?
+  committeeId     Int
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  deletedAt       DateTime?
+  agenda          String?
   calendarEventId String?
-
-  organizerId Int
-
-  committeeId Int
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-
-  committee Committee @relation(fields: [committeeId], references: [id], onDelete: Cascade)
-
-  organizer Membership @relation("MeetingOrganizer", fields: [organizerId], references: [id])
-
-  meetingProvider MeetingProvider @default(GOOGLE_MEET)
-
-  calendarEventId String?
-
-  meetingCode String?
-
-  aiSummaryStatus SummaryStatus @default(PENDING)
-
-  attendees MeetingAttendance[]
-
-  summaries MeetingSummary[]
-
-  recordings MeetingRecording[]
-
-  notes MeetingNote[]
-
-  attachments MeetingAttachment[]
-
-  polls MeetingPoll[]
+  isInstant       Boolean             @default(false)
+  meetingCode     String?
+  meetingProvider MeetingProvider     @default(GOOGLE_MEET)
+  organizerId     Int
+  status          MeetingStatus       @default(SCHEDULED)
+  aiSummaryStatus SummaryStatus       @default(PENDING)
+  committee       Committee           @relation(fields: [committeeId], references: [id], onDelete: Cascade)
+  organizer       Membership          @relation("MeetingOrganizer", fields: [organizerId], references: [id])
+  attachments     MeetingAttachment[]
+  attendees       MeetingAttendance[]
+  notes           MeetingNote[]
+  polls           MeetingPoll[]
+  recordings      MeetingRecording[]
+  summaries       MeetingSummary?
 
   @@index([committeeId])
   @@index([startTime])
@@ -256,145 +193,119 @@ model CommitteeMeeting {
 }
 
 model MeetingAttendance {
-  id           Int @id @default(autoincrement())
+  id           Int                     @id @default(autoincrement())
   meetingId    Int
   membershipId Int
-
-  status MeetingAttendanceStatus @default(PENDING)
-
-  joinedAt DateTime?
-  leftAt   DateTime?
-
-  duration Int?
-
-  meeting CommitteeMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-
-  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  status       MeetingAttendanceStatus @default(PENDING)
+  duration     Int?
+  joinedAt     DateTime?
+  leftAt       DateTime?
+  meeting      CommitteeMeeting        @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  membership   Membership              @relation(fields: [membershipId], references: [id], onDelete: Cascade)
 
   @@unique([meetingId, membershipId])
 }
 
 model MeetingNote {
-  id           Int @id @default(autoincrement())
+  id           Int              @id @default(autoincrement())
   meetingId    Int
   membershipId Int
-
-  note String
-
-  createdAt DateTime @default(now())
-
-  meeting CommitteeMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-
-  membership Membership @relation(fields: [membershipId], references: [id])
+  note         String
+  createdAt    DateTime         @default(now())
+  meeting      CommitteeMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  membership   Membership       @relation(fields: [membershipId], references: [id])
 }
 
 model MeetingRecording {
-  id           Int    @id @default(autoincrement())
+  id           Int              @id @default(autoincrement())
   meetingId    Int
   recordingUrl String
-
+  bucket String?
+  objectKey String?
+  fileSize Int?
+  mimeType String?
   duration Int?
-
-  createdAt DateTime @default(now())
-
-  meeting CommitteeMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  checksum String?
+  uploadedAt DateTime @default(now())
+  duration     Int?
+  createdAt    DateTime         @default(now())
+  meeting      CommitteeMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
 }
 
 model MeetingAttachment {
-  id           Int @id @default(autoincrement())
-  meetingId    Int
-  uploadedById Int
-
-  fileName String
-  fileUrl  String
-
+  id              Int              @id @default(autoincrement())
+  meetingId       Int
+  uploadedById    Int
+  fileName        String
+  fileUrl         String
   storageProvider String?
   bucket          String?
   storagePath     String?
-
-  checksum String?
-
-  mimeType String?
-
-  size Int?
-
-  createdAt DateTime @default(now())
-
-  meeting CommitteeMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-
-  uploader Membership @relation(fields: [uploadedById], references: [id])
+  checksum        String?
+  mimeType        String?
+  size            Int?
+  createdAt       DateTime         @default(now())
+  meeting         CommitteeMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  uploader        Membership       @relation(fields: [uploadedById], references: [id])
 }
 
 model MeetingPoll {
-  id        Int @id @default(autoincrement())
-  meetingId Int
-
-  question String
-
-  multipleChoice Boolean @default(false)
-
-  createdById Int
-
-  isClosed Boolean @default(false)
-
-  createdAt DateTime @default(now())
-
-  meeting CommitteeMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-
-  creator Membership @relation(fields: [createdById], references: [id])
-
-  options MeetingPollOption[]
+  id             Int                 @id @default(autoincrement())
+  meetingId      Int
+  question       String
+  multipleChoice Boolean             @default(false)
+  createdById    Int
+  isClosed       Boolean             @default(false)
+  createdAt      DateTime            @default(now())
+  creator        Membership          @relation(fields: [createdById], references: [id])
+  meeting        CommitteeMeeting    @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  options        MeetingPollOption[]
 }
 
 model MeetingPollOption {
-  id     Int @id @default(autoincrement())
+  id     Int         @id @default(autoincrement())
   pollId Int
-
   option String
-
-  votes Int @default(0)
-
-  poll MeetingPoll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes  Int         @default(0)
+  poll   MeetingPoll @relation(fields: [pollId], references: [id], onDelete: Cascade)
 }
 
 model Membership {
-  id       Int              @id @default(autoincrement())
-  userId   Int
-  clubId   Int
-  status   MembershipStatus @default(PENDING)
-  clubRole ClubRole         @default(MEMBER)
-  joinedAt DateTime         @default(now())
-  leftAt   DateTime?
-  club     Club             @relation(fields: [clubId], references: [id])
-  user     User             @relation(fields: [userId], references: [id])
-
-  nickname          String?
-  muteNotifications Boolean   @default(false)
-  lastVisitedAt     DateTime?
-  joinedById        Int?
-
-  committeeMemberships CommitteeMember[]
-  createdTasks         Task[]                @relation("TaskCreator")
-  taskComments         TaskComment[]
-  attachments          TaskAttachment[]
-  commentReactions     TaskCommentReaction[]
-  organizedMeetings    CommitteeMeeting[]    @relation("MeetingOrganizer")
-  meetingAttendances   MeetingAttendance[]
+  id                   Int                   @id @default(autoincrement())
+  userId               Int
+  clubId               Int
+  joinedAt             DateTime              @default(now())
+  clubRole             ClubRole              @default(MEMBER)
+  status               MembershipStatus      @default(PENDING)
+  joinedById           Int?
+  lastVisitedAt        DateTime?
+  muteNotifications    Boolean               @default(false)
+  nickname             String?
+  leftAt               DateTime?
   chatMessages         ChatMessage[]
+  chatPins             ChatPin[]
   chatReactions        ChatReaction[]
-  chatReads            ChatRead[]            @relation
-  starredMessages      StarredMessage[]
-  savedMessages        SavedMessage[]
+  chatReads            ChatRead[]
   chatThreads          ChatThread[]
   chatThreadReactions  ChatThreadReaction[]
-  chatPins             ChatPin[]
+  organizedMeetings    CommitteeMeeting[]    @relation("MeetingOrganizer")
+  committeeMemberships CommitteeMember[]
+  meetingAttachments   MeetingAttachment[]
+  meetingAttendances   MeetingAttendance[]
+  meetingNotes         MeetingNote[]
+  meetingPolls         MeetingPoll[]
+  club                 Club                  @relation(fields: [clubId], references: [id])
+  user                 User                  @relation(fields: [userId], references: [id])
   pinnedMessages       PinnedMessage[]
+  savedMessages        SavedMessage[]
+  starredMessages      StarredMessage[]
+  createdTasks         Task[]                @relation("TaskCreator")
   taskActivities       TaskActivity[]
+  attachments          TaskAttachment[]
+  taskComments         TaskComment[]
+  commentReactions     TaskCommentReaction[]
   watchedTasks         TaskWatcher[]
   uploadHistories      UploadHistory[]
-  meetingNotes         MeetingNote[]
-  meetingAttachments   MeetingAttachment[]
-  meetingPolls         MeetingPoll[]
 
   @@unique([userId, clubId])
 }
@@ -426,44 +337,35 @@ model RSVP {
   eventId   Int
   status    RSVPStatus
   createdAt DateTime   @default(now())
-  user      User       @relation(fields: [userId], references: [id])
   event     Event      @relation(fields: [eventId], references: [id])
+  user      User       @relation(fields: [userId], references: [id])
 
   @@unique([userId, eventId])
 }
 
 model Notification {
-  id      Int    @id @default(autoincrement())
-  title   String
-  message String
-
-  type     NotificationType
-  category NotificationCategory
-  priority NotificationPriority @default(NORMAL)
-
-  icon String?
-
-  imageUrl  String?
-  actionUrl String?
-
-  actionText String?
-  entityType String?
-
-  entityId Int?
-  clubId   Int?
-  senderId Int?
-  userId   Int
-
-  isRead Boolean   @default(false)
-  readAt DateTime?
-
+  id          Int                  @id @default(autoincrement())
+  message     String
+  userId      Int
+  createdAt   DateTime             @default(now())
+  icon        String?
+  metadata    Json?
+  title       String
+  actionText  String?
+  actionUrl   String?
+  category    NotificationCategory
+  clubId      Int?
   deliveredAt DateTime?
+  entityId    Int?
+  entityType  String?
   expiresAt   DateTime?
-
-  metadata Json?
-
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
+  imageUrl    String?
+  isRead      Boolean              @default(false)
+  priority    NotificationPriority @default(NORMAL)
+  readAt      DateTime?
+  senderId    Int?
+  type        NotificationType
+  user        User                 @relation(fields: [userId], references: [id])
 }
 
 model Announcement {
@@ -484,61 +386,48 @@ model Activity {
   clubId      Int
   userId      Int?
   createdAt   DateTime @default(now())
+  entityId    Int?
+  entityType  String?
+  metadata    Json?
   club        Club     @relation(fields: [clubId], references: [id])
   user        User?    @relation(fields: [userId], references: [id])
-  entityType  String?
-  entityId    Int?
-  metadata    Json?
 
   @@index([clubId])
   @@index([createdAt])
 }
 
 model Task {
-  id Int @id @default(autoincrement())
-
-  title       String
-  description String?
-
-  status   TaskStatus   @default(TODO)
-  priority TaskPriority @default(MEDIUM)
-
-  dueDate     DateTime?
-  completedAt DateTime?
-
+  id             Int              @id @default(autoincrement())
+  title          String
+  description    String?
+  status         TaskStatus       @default(TODO)
+  priority       TaskPriority     @default(MEDIUM)
+  dueDate        DateTime?
+  completedAt    DateTime?
   estimatedHours Float?
-
-  position Int @default(0)
-
-  isArchived Boolean @default(false)
-
-  committeeId  Int
-  assignedToId Int?
-  createdById  Int
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-
-  committee  Committee        @relation(fields: [committeeId], references: [id])
-  assignedTo CommitteeMember? @relation("TaskAssignment", fields: [assignedToId], references: [id])
-  createdBy  Membership       @relation("TaskCreator", fields: [createdById], references: [id])
-
-  comments    TaskComment[]
-  attachments TaskAttachment[]
-  labels      TaskLabelMap[]
-  checklist   TaskChecklist[]
-  activities  TaskActivity[]
-  watchers    TaskWatcher[]
-
-  club   Club? @relation(fields: [clubId], references: [id])
-  clubId Int?
-
-  completedById Int?
-  startedAt     DateTime?
-  archivedAt    DateTime?
-
-  extra Json?
+  position       Int              @default(0)
+  isArchived     Boolean          @default(false)
+  committeeId    Int
+  assignedToId   Int?
+  createdById    Int
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  clubId         Int?
+  archivedAt     DateTime?
+  completedById  Int?
+  deletedAt      DateTime?
+  extra          Json?
+  startedAt      DateTime?
+  assignedTo     CommitteeMember? @relation("TaskAssignment", fields: [assignedToId], references: [id])
+  club           Club?            @relation(fields: [clubId], references: [id])
+  committee      Committee        @relation(fields: [committeeId], references: [id])
+  createdBy      Membership       @relation("TaskCreator", fields: [createdById], references: [id])
+  activities     TaskActivity[]
+  attachments    TaskAttachment[]
+  checklist      TaskChecklist[]
+  comments       TaskComment[]
+  labels         TaskLabelMap[]
+  watchers       TaskWatcher[]
 
   @@index([committeeId])
   @@index([assignedToId])
@@ -548,240 +437,170 @@ model Task {
 }
 
 model TaskLabel {
-  id    Int    @id @default(autoincrement())
-  name  String
-  color String
-
+  id     Int            @id @default(autoincrement())
+  name   String
+  color  String
   clubId Int
-  club   Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
-
-  tasks TaskLabelMap[]
+  club   Club           @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  tasks  TaskLabelMap[]
 
   @@unique([clubId, name])
 }
 
 model TaskLabelMap {
-  id Int @id @default(autoincrement())
-
-  taskId Int
-
+  id      Int       @id @default(autoincrement())
+  taskId  Int
   labelId Int
-
-  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
-
-  label TaskLabel @relation(fields: [labelId], references: [id], onDelete: Cascade)
+  label   TaskLabel @relation(fields: [labelId], references: [id], onDelete: Cascade)
+  task    Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@unique([taskId, labelId])
 }
 
 model TaskChecklist {
-  id Int @id @default(autoincrement())
-
-  taskId Int
-
-  title String
-
+  id        Int     @id @default(autoincrement())
+  taskId    Int
+  title     String
   completed Boolean @default(false)
-
-  position Int @default(0)
-
-  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  position  Int     @default(0)
+  task      Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@index([taskId])
 }
 
 model TaskActivity {
-  id Int @id @default(autoincrement())
-
-  taskId Int
-
+  id           Int        @id @default(autoincrement())
+  taskId       Int
   membershipId Int
-
-  action String
-
-  oldValue String?
-
-  newValue String?
-
-  createdAt DateTime @default(now())
-
-  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
-
-  membership Membership @relation(fields: [membershipId], references: [id])
+  action       String
+  oldValue     String?
+  newValue     String?
+  createdAt    DateTime   @default(now())
+  membership   Membership @relation(fields: [membershipId], references: [id])
+  task         Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@index([taskId])
 }
 
 model TaskWatcher {
-  id Int @id @default(autoincrement())
-
-  taskId Int
-
+  id           Int        @id @default(autoincrement())
+  taskId       Int
   membershipId Int
-
-  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
-
-  membership Membership @relation(fields: [membershipId], references: [id])
+  membership   Membership @relation(fields: [membershipId], references: [id])
+  task         Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@unique([taskId, membershipId])
   @@index([membershipId])
 }
 
 model TaskComment {
-  id Int @id @default(autoincrement())
-
-  content String
-
+  id           Int                   @id @default(autoincrement())
+  content      String
   taskId       Int
   membershipId Int
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  editedAt  DateTime?
-  deletedAt DateTime?
-
-  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
-
-  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
-
-  reactions TaskCommentReaction[]
-
-  parentId Int?
-  parent   TaskComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies  TaskComment[] @relation("CommentReplies")
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  editedAt     DateTime?
+  parentId     Int?
+  deletedAt    DateTime?
+  membership   Membership            @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  parent       TaskComment?          @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies      TaskComment[]         @relation("CommentReplies")
+  task         Task                  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  reactions    TaskCommentReaction[]
 
   @@index([taskId])
 }
 
 model TaskAttachment {
-  id     Int @id @default(autoincrement())
-  taskId Int
-
+  id           Int        @id @default(autoincrement())
+  fileName     String
+  fileUrl      String
+  taskId       Int
   membershipId Int
-
-  fileUrl  String
-  fileName String
-  mimeType String
-  size     Int
-
-  uploadedAt DateTime  @default(now())
-  deletedAt  DateTime?
-
-  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
-
-  membership Membership @relation(fields: [membershipId], references: [id])
-
-  checksum String?
-
-  storagePath String?
-
-  bucket String?
-
-  objectKey String?
-
+  uploadedAt   DateTime   @default(now())
+  mimeType     String
+  size         Int
+  checksum     String?
+  storagePath  String?
   thumbnailUrl String?
+  bucket       String?
+  deletedAt    DateTime?
+  objectKey    String?
+  membership   Membership @relation(fields: [membershipId], references: [id])
+  task         Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@index([taskId])
 }
 
 model TaskCommentReaction {
-  id Int @id @default(autoincrement())
-
-  emoji String
-
-  commentId Int
-
+  id           Int         @id @default(autoincrement())
+  emoji        String
+  commentId    Int
   membershipId Int
-
-  createdAt DateTime @default(now())
-
-  comment TaskComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-
-  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  createdAt    DateTime    @default(now())
+  comment      TaskComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  membership   Membership  @relation(fields: [membershipId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, membershipId, emoji])
   @@index([membershipId])
 }
 
 model ChatRoom {
-  id Int @id @default(autoincrement())
-
-  name String?
-
-  type ChatRoomType
-
-  clubId Int?
-
-  committeeId Int?
-
-  lastMessageId Int?
+  id            Int           @id @default(autoincrement())
+  name          String?
+  type          ChatRoomType
+  clubId        Int?
+  committeeId   Int?
+  createdAt     DateTime      @default(now())
+  archived      Boolean       @default(false)
   lastActivity  DateTime?
-
-  archived Boolean @default(false)
-
-  createdAt DateTime @default(now())
-
-  club Club? @relation(fields: [clubId], references: [id])
-
-  committee Committee? @relation(fields: [committeeId], references: [id])
-
-  messages ChatMessage[]
+  lastMessageId Int?
+  messages      ChatMessage[]
+  club          Club?         @relation(fields: [clubId], references: [id])
+  committee     Committee?    @relation(fields: [committeeId], references: [id])
 
   @@index([clubId])
   @@index([committeeId])
 }
 
 model ChatMessage {
-  id Int @id @default(autoincrement())
-
-  roomId Int
-
-  membershipId Int
-
-  content String?
-
-  replyToId Int?
-  replyTo   ChatMessage?  @relation("ReplyMessage", fields: [replyToId], references: [id])
-  replies   ChatMessage[] @relation("ReplyMessage")
-
-  edited   Boolean   @default(false)
-  editedAt DateTime?
-
-  searchVector String?
-
-  editedById Int?
-
-  version Int @default(1)
-
-  deletedForAll Boolean   @default(false)
-  deletedAt     DateTime?
-
-  createdAt      DateTime  @default(now())
-  deliveredAt    DateTime?
-  updatedAt      DateTime  @updatedAt
-  lastEditedById Int?
-
-  isSystem Boolean @default(false)
-
-  room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
-
-  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
-
+  id              Int                  @id @default(autoincrement())
+  roomId          Int
+  membershipId    Int
+  content         String?
+  replyToId       Int?
+  editedAt        DateTime?
+  createdAt       DateTime             @default(now())
+  clubId          Int?
+  userId          Int?
+  edited          Boolean              @default(false)
+  updatedAt       DateTime             @updatedAt
+  deletedForAll   Boolean              @default(false)
+  deletedAt       DateTime?
+  deliveredAt     DateTime?
+  isSystem        Boolean              @default(false)
+  lastEditedById  Int?
+  editedById      Int?
+  messageMetadata Json?
+  searchVector    String?
+  version         Int                  @default(1)
+  attachments     ChatAttachment[]
+  club            Club?                @relation(fields: [clubId], references: [id])
+  membership      Membership           @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  replyTo         ChatMessage?         @relation("ReplyMessage", fields: [replyToId], references: [id])
+  replies         ChatMessage[]        @relation("ReplyMessage")
+  room            ChatRoom             @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user            User?                @relation(fields: [userId], references: [id])
+  pin             ChatPin?
   reactions       ChatReaction[]
   reads           ChatRead[]
+  threads         ChatThread[]
   deletedBy       DeletedChatMessage[]
   mentions        Mention[]
-  threads         ChatThread[]
-  user            User?                @relation(fields: [userId], references: [id])
-  userId          Int?
-  club            Club?                @relation(fields: [clubId], references: [id])
-  clubId          Int?
-  pin             ChatPin?
-  starredBy       StarredMessage[]
-  savedBy         SavedMessage[]
-  attachments     ChatAttachment[]
   pinnedMessage   PinnedMessage?
-  messageMetadata Json?
+  savedBy         SavedMessage[]
+  starredBy       StarredMessage[]
 
   @@index([roomId])
   @@index([membershipId])
@@ -789,247 +608,174 @@ model ChatMessage {
 }
 
 model ChatAttachment {
-  id Int @id @default(autoincrement())
-
-  messageId Int
-  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
-
-  fileUrl       String
-  fileName      String
-  fileType      String
-  fileExtension String?
-  fileSize      BigInt
-
-  bucket String?
-
-  objectKey String?
-
-  mimeCategory FileCategory
-
-  thumbnailUrl String?
-
-  blurHash String?
-
-  width  Int?
-  height Int?
-
-  duration Int?
-
-  createdAt  DateTime @default(now())
-  uploadedAt DateTime @default(now())
-
-  checksum String?
-
-  virusScanned Boolean @default(false)
-
-  storageProvider String?
+  id              Int          @id @default(autoincrement())
+  messageId       Int
+  fileUrl         String
+  fileName        String
+  fileType        String
+  fileExtension   String?
+  fileSize        BigInt
+  mimeCategory    FileCategory
+  thumbnailUrl    String?
+  uploadedAt      DateTime     @default(now())
+  createdAt       DateTime     @default(now())
+  duration        Int?
+  height          Int?
+  width           Int?
+  blurHash        String?
+  checksum        String?
   storagePath     String?
+  storageProvider String?
+  virusScanned    Boolean      @default(false)
+  bucket          String?
+  objectKey       String?
+  message         ChatMessage  @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@index([messageId])
 }
 
 model ChatPin {
-  id Int @id @default(autoincrement())
-
-  messageId Int @unique
-
+  id         Int         @id @default(autoincrement())
+  messageId  Int         @unique
   pinnedById Int
-
-  reason String?
-
-  createdAt DateTime @default(now())
-
-  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
-
-  pinnedBy Membership @relation(fields: [pinnedById], references: [id])
+  reason     String?
+  createdAt  DateTime    @default(now())
+  message    ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  pinnedBy   Membership  @relation(fields: [pinnedById], references: [id])
 
   @@index([pinnedById])
 }
 
 model StarredMessage {
-  id Int @id @default(autoincrement())
-
+  id           Int         @id @default(autoincrement())
   membershipId Int
   messageId    Int
-
-  createdAt DateTime @default(now())
-
-  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
-
-  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  createdAt    DateTime    @default(now())
+  membership   Membership  @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  message      ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@unique([membershipId, messageId])
   @@index([membershipId])
 }
 
 model SavedMessage {
-  id Int @id @default(autoincrement())
-
+  id           Int         @id @default(autoincrement())
   membershipId Int
   messageId    Int
-
-  createdAt DateTime @default(now())
-
-  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
-
-  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  createdAt    DateTime    @default(now())
+  membership   Membership  @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  message      ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@unique([membershipId, messageId])
 }
 
 model ChatReaction {
-  id Int @id @default(autoincrement())
-
-  emoji String
-
-  messageId Int
-
+  id           Int         @id @default(autoincrement())
+  messageId    Int
   membershipId Int
-
-  createdAt DateTime @default(now())
-
-  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
-
-  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  emoji        String
+  createdAt    DateTime    @default(now())
+  membership   Membership  @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  message      ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, membershipId, emoji])
   @@index([membershipId])
 }
 
 model ChatRead {
-  id Int @id @default(autoincrement())
-
-  messageId Int
-
+  id           Int         @id @default(autoincrement())
+  messageId    Int
   membershipId Int
-
-  readAt DateTime @default(now())
-
-  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
-
-  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  readAt       DateTime    @default(now())
+  membership   Membership  @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  message      ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, membershipId])
 }
 
 model DeletedChatMessage {
-  id Int @id @default(autoincrement())
-
-  userId Int
-
+  id        Int         @id @default(autoincrement())
+  userId    Int
   messageId Int
-
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id])
-
-  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id])
 
   @@unique([userId, messageId])
 }
 
 model ChatThread {
-  id Int @id @default(autoincrement())
-
-  rootMessageId Int
-
-  membershipId Int
-
-  content String?
-
-  fileUrl  String?
-  fileName String?
-  fileType String?
-  fileSize Int?
-
+  id             Int                  @id @default(autoincrement())
+  rootMessageId  Int
+  membershipId   Int
+  content        String?
+  fileUrl        String?
+  fileName       String?
+  fileType       String?
+  fileSize       Int?
   parentThreadId Int?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  edited   Boolean   @default(false)
-  editedAt DateTime?
-
-  deletedForAll Boolean   @default(false)
-  deletedAt     DateTime?
-
-  rootMessage ChatMessage @relation(fields: [rootMessageId], references: [id], onDelete: Cascade)
-
-  membership Membership @relation(fields: [membershipId], references: [id])
-
-  parentThread ChatThread? @relation("ThreadReplies", fields: [parentThreadId], references: [id])
-
-  replyCount Int @default(0)
-
-  replies ChatThread[] @relation("ThreadReplies")
-
-  reactions ChatThreadReaction[]
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  edited         Boolean              @default(false)
+  editedAt       DateTime?
+  deletedForAll  Boolean              @default(false)
+  deletedAt      DateTime?
+  replyCount     Int                  @default(0)
+  membership     Membership           @relation(fields: [membershipId], references: [id])
+  parentThread   ChatThread?          @relation("ThreadReplies", fields: [parentThreadId], references: [id])
+  replies        ChatThread[]         @relation("ThreadReplies")
+  rootMessage    ChatMessage          @relation(fields: [rootMessageId], references: [id], onDelete: Cascade)
+  reactions      ChatThreadReaction[]
 
   @@index([rootMessageId])
 }
 
 model ChatThreadReaction {
-  id Int @id @default(autoincrement())
-
-  threadId Int
-
+  id           Int        @id @default(autoincrement())
+  threadId     Int
   membershipId Int
-
-  emoji String
-
-  createdAt DateTime @default(now())
-
-  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
-
-  membership Membership @relation(fields: [membershipId], references: [id])
+  emoji        String
+  createdAt    DateTime   @default(now())
+  membership   Membership @relation(fields: [membershipId], references: [id])
+  thread       ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
 
   @@unique([threadId, membershipId, emoji])
 }
 
 model Mention {
-  id Int @id @default(autoincrement())
-
+  id        Int         @id @default(autoincrement())
   messageId Int
-
-  userId Int
-
-  createdAt DateTime @default(now())
-
-  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
-
-  user User @relation(fields: [userId], references: [id])
+  userId    Int
+  createdAt DateTime    @default(now())
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id])
 
   @@index([messageId])
   @@index([userId])
 }
 
 model PinnedMessage {
-  id           Int @id @default(autoincrement())
-  messageId    Int @unique
+  id           Int         @id @default(autoincrement())
+  messageId    Int         @unique
   membershipId Int
-
-  pinnedAt DateTime @default(now())
-
-  message    ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  membership Membership  @relation(fields: [membershipId], references: [id])
+  pinnedAt     DateTime    @default(now())
+  membership   Membership  @relation(fields: [membershipId], references: [id])
+  message      ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
 }
 
 model AuditLog {
-  id Int @id @default(autoincrement())
-
-  action String
-
-  entityType String?
-  entityId Int?
-
-  description String?
-  clubId Int?
-
+  id            Int      @id @default(autoincrement())
+  userId        Int?
+  clubId        Int?
+  action        String
+  entityId      Int?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  description   String?
+  entityType    String?
   performedById Int?
-
-  metadata Json?
-
-  createdAt DateTime @default(now())
+  club          Club?    @relation(fields: [clubId], references: [id])
+  user          User?    @relation(fields: [userId], references: [id])
 
   @@index([action])
   @@index([clubId])
@@ -1037,72 +783,56 @@ model AuditLog {
 }
 
 model SearchHistory {
-  id     Int    @id @default(autoincrement())
-  userId Int
-  query  String
-
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  query     String
   createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model UserSession {
-  id     Int    @id @default(autoincrement())
-  userId Int
-  token  String
-
-  ip      String?
-  browser String?
-  os      String?
-
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String
+  ip        String?
+  browser   String?
+  os        String?
   expiresAt DateTime
   createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model LoginHistory {
-  id     Int @id @default(autoincrement())
-  userId Int
-
-  ip      String?
-  browser String?
-  success Boolean
-
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  ip        String?
+  browser   String?
+  success   Boolean
   createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model UploadHistory {
-  id           Int @id @default(autoincrement())
+  id           Int        @id @default(autoincrement())
   membershipId Int
-
-  fileName String
-  fileUrl  String
-  fileSize BigInt
-
-  createdAt DateTime @default(now())
-
-  membership Membership @relation(fields: [membershipId], references: [id])
+  fileName     String
+  fileUrl      String
+  fileSize     BigInt
+  createdAt    DateTime   @default(now())
+  membership   Membership @relation(fields: [membershipId], references: [id])
 }
 
 model GoogleAccount {
-  id     Int @id @default(autoincrement())
-  userId Int @unique
-
-  googleEmail String
-
-  accessToken  String  @db.Text
-  refreshToken String  @db.Text
+  id           Int      @id @default(autoincrement())
+  userId       Int      @unique
+  googleEmail  String
+  accessToken  String
+  refreshToken String
   expiryDate   BigInt?
-
-  scope String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scope        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 enum ChatRoomType {

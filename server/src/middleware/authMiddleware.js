@@ -32,7 +32,8 @@ const protect = async (req, res, next) => {
           select:{
             id:true,
             clubId:true,
-            status:true
+            status:true,
+            role: true
           }
         }
       }
@@ -58,6 +59,20 @@ const protect = async (req, res, next) => {
     user.membershipMap = membershipMap;
 
     req.user = user;
+
+    const activeClubId = Number(req.headers["x-club-id"]);
+
+    if(activeClubId){
+      const membership =
+        user.memberships.find(
+          m=>
+              m.clubId===activeClubId &&
+              m.status==="APPROVED"
+        );
+
+      req.membership=
+        membership || null;
+    }
 
     next();
 

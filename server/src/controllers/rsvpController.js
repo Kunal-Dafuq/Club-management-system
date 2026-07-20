@@ -1,161 +1,68 @@
 const prisma = require("../config/prisma");
 const { createNotification } = require("../services/notificationService");
 const { createActivity } = require("../services/activityService");
-const createRSVP = async (req, res) => {
-    try {
-        const eventId = Number(req.params.id);
-        const userId = req.user.id;
-        const { status } = req.body;
 
-        if (!status) {
-            return res.status(400).json({
-                message: "Status required"
-            });
-        }
+const asyncHandler = require("../middleware/asyncHandler");
+const ApiError = require("../utils/ApiError");
 
-        const event = await prisma.event.findUnique({
-            where: { id: eventId }
-        });
+const createRSVP = asyncHandler(async (req, res) => {
+    const eventId = Number(req.params.eventId);
 
-        if (!event) {
-            return res.status(404).json({
-                message: "Event not found"
-            });
-        }
-
-        const existing = await prisma.rSVP.findUnique({
-            where: {
-                userId_eventId: {
-                    userId,
-                    eventId
-                }
-            }
-        });
-
-        if (existing) {
-            return res.status(400).json({
-                message: "RSVP already exists"
-            });
-        }
-
-        const rsvp = await prisma.rSVP.create({
-            data: {
-                userId,
-                eventId,
-                status
-            }
-        });
-
-        await createActivity({
-            clubId:event.clubId,
-            userId:req.user.id,
-            action:"RSVP",
-            description:`RSVP'd ${status} for ${event.title}.`
-        });
-
-        await createNotification({
-            userId: event.createdById,
-            message: `Someone responded to your event: ${event.title}`
-        });
-
-        return res.status(201).json(rsvp);
-
-    } catch (error) {
-        return res.status(500).json({
-            message: error.message
-        });
-    }
-};
-
-const updateRSVP = async(req,res)=>{
-    try{
-        const eventId = Number(req.params.id);
-        const userId = req.user.id;
-        const {status} = req.body;
-        if(!status){
-            return res.status(400).json({
-                message:"Status required"
-            });
-        }
-
-        const existing = await prisma.rSVP.findUnique({
-            where:{
-                userId_eventId:{
-                    userId,
-                    eventId
-                }
-            }
-        });
-
-        if(!existing){
-            return res.status(404).json({
-                message:"RSVP not found"
-            });
-        }
-
-        const updated = await prisma.rSVP.update({
-            where:{
-                userId_eventId:{
-                    userId,
-                    eventId
-                }
-            },
-            data:{
-                status
-            }
-        });
-
-        res.status(200).json(updated);
+    if (Number.isNaN(eventId)) {
+        throw new ApiError(
+            400,
+            "Invalid event."
+        );
     }
 
-    catch(error){
-        res.status(500).json({
-            message:error.message
-        });
-    }
-};
+    const rsvp = await rsvpService.createRSVP(
+        eventId,
+        req.user.id,
+        req.body.status
+    );
 
-const deleteRSVP = async(req,res)=>{
-    try{
-        const eventId = Number(req.params.id);
-        const userId = req.user.id;
-        const existing = await prisma.rSVP.findUnique({
-            where:{
-                userId_eventId:{
-                    userId,
-                    eventId
-                }
-            }
-        });
-        if(!existing){
-            return res.status(404).json({
-                message:"RSVP not found"
-            });
-        }
+    res.status(201).json({
+        success: true,
+        message: "RSVP submitted.",
+        rsvp
+    });
+});
 
-        await prisma.rSVP.delete({
-            where:{
-                userId_eventId:{
-                    userId,
-                    eventId
-                }
-            },
-            data:{
-                deletedAt:new Date()
-            }
-        });
+const getEventRSVPs = asyncHandler(async (req, res) => {
+    const list = await rsvpService.getEventRSVPs(
+        Number(req.params.eventId)
+    );
 
-        res.status(200).json({
-            message:"RSVP removed"
-        });
-    }
+    res.json({
+        success: true,
+        total: list.length,
+        attendees: list
+    });
+});
 
-    catch(error){
-        res.status(500).json({
-            message:error.message
-        });
-    }
-};
+const updateRSVP = asyncHandler(async (req, res) => {
+    const rsvp = await rsvpService.updateRSVP(
+        Number(req.params.id),
+        req.body.status
+    );
+
+    res.json({
+        success: true,
+        message: "RSVP updated.",
+        rsvp
+    });
+});
+
+const deleteRSVP = asyncHandler(async (req, res) => {
+    await rsvpService.deleteRSVP(
+        Number(req.params.id)
+    );
+
+    res.json({
+        success: true,
+        message: "RSVP removed."
+    });
+});
 
 const getAttendees = async (req, res) => {
     try {

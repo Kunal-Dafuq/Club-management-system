@@ -9,8 +9,10 @@ const {
     getMeeting,
     updateMeeting,
     deleteMeeting,
-    markAttendance
-} = require("../controllers/meetingController"); 
+    restoreMeeting,
+    markAttendance,
+    getMeetingStatistics,
+} = require("../controllers/meetingController");
 
 router.post(
     "/committee/:committeeId",
@@ -43,9 +45,21 @@ router.delete(
 );
 
 router.patch(
+    "/:id/restore",
+    protect,
+    restoreMeeting
+);
+
+router.patch(
     "/:id/attendance",
     protect,
     markAttendance
+);
+
+router.get(
+    "/:id/statistics",
+    protect,
+    getMeetingStatistics
 );
 
 module.exports = router;

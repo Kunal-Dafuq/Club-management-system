@@ -1,18 +1,25 @@
 const prisma = require("../config/prisma");
 
+const auditLogger = require("../utils/auditLogger");
+
 const createCommittee = async (clubId, data) => {
-    const membership = await prisma.membership.findUnique({
-        where: {
-            id: membershipId
+    const club = await prisma.club.findUnique({
+        where:{
+            id:clubId
         }
     });
+
+    if(!club){
+        throw new Error("Club not found");
+    }
+
     return prisma.committee.create({
-        data: {
-            name: data.name,
-            description: data.description,
-            color: data.color,
-            icon: data.icon,
-            isCore: data.isCore || false,
+        data:{
+            name:data.name,
+            description:data.description,
+            color:data.color,
+            icon:data.icon,
+            isCore:data.isCore || false,
             clubId
         }
     });
@@ -76,24 +83,29 @@ const updateCommittee = async (committeeId, data) => {
     });
 };
 
-const deleteCommittee = async (committeeId) => {
-    return prisma.committee.update({
+const deleteCommittee = async (
+    committeeId,
+    userId
+)=>{
+    const committee = await prisma.committee.update({
         where:{
             id:committeeId
         },
+
         data:{
             deletedAt:new Date()
         }
     });
 
-    await createAuditLog({
+    await auditLogger(req,{
         action:"COMMITTEE_DELETED",
         entityType:"Committee",
         entityId:committee.id,
-        clubId:committee.clubId,
-        performedById:userId,
-        metadata:committee
+        clubId:committee.clubId
     });
+
+    return committee;
+
 };
 
 const addMember = async (committeeId, membershipId, role = "MEMBER") => {
@@ -163,6 +175,19 @@ const updateCommitteeRole = async (committeeMemberId, role) => {
     });
 };
 
+const restoreCommittee = async(
+    committeeId
+)=>{
+    return prisma.committee.update({
+        where:{
+            id:committeeId
+        },
+        data:{
+            deletedAt:null
+        }
+    });
+};
+
 const getCommitteeStats = async (committeeId) => {
     const committee = await prisma.committee.findUnique({
 
@@ -227,6 +252,7 @@ module.exports = {
     deleteCommittee,
     addMember,
     removeMember,
+    restoreCommittee,
     updateCommitteeRole,
     getCommitteeStats
 };

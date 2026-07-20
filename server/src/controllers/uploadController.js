@@ -1,93 +1,76 @@
-const path = require("path");
+const prisma = require("../config/prisma");
+const asyncHandler = require("../middleware/asyncHandler");
+const ApiError = require("../utils/ApiError");
 
-const uploadClubLogo = async (req, res) => {
-    try {
-        const club = await prisma.club.update({
-            where: {
-                id: Number(req.params.id)
-            },
-            data: {
-                logoUrl: req.file.path
-            }
-        });
+const completeTusUpload = asyncHandler(async (req, res) => {
+    const {
+        entity,
+        entityId,
+        fileName,
+        fileUrl,
+        filePath,
+        mimeType,
+        size,
+        checksum,
+        bucket,
+        storageProvider = "SUPABASE"
+    } = req.body;
 
-        res.json(club);
-
+    if (!fileName || !fileUrl) {
+        throw new ApiError(
+            400,
+            "Upload metadata is missing."
+        );
     }
 
-    catch (err) {
-        console.log(err);
-        res.status(500).json({
+    switch (entity) {
+        case "club-logo":
+            await prisma.club.update({
+                where: {
+                    id: Number(entityId)
+                },
+                data: {
+                    logoUrl: fileUrl
+                }
+            });
 
-            message: "Upload failed"
-            
-        });
+            break;
+
+        case "club-banner":
+            await prisma.club.update({
+                where: {
+                    id: Number(entityId)
+                },
+                data: {
+                    bannerUrl: fileUrl
+                }
+            });
+
+            break;
+
+        default:
+            throw new ApiError(
+                400,
+                "Unsupported upload target."
+            );
     }
-};
-
-const uploadBanner = async (req, res) => {
-    try {
-        const club = await prisma.club.update({
-            where: {
-                id: Number(req.params.id)
-            },
-            data: {
-                bannerUrl: req.file.path
-            }
-        });
-
-        res.json(club);
-
-    }
-
-    catch (err) {
-        console.log(err);
-        res.status(500).json({
-
-            message: "Upload failed"
-
-        });
-    }
-};
-
-const uploadChatFile = async (req, res) => {
-
-    if (!req.file) {
-        return res.status(400).json({
-            message: "No file uploaded"
-        });
-    }
-
-    const mime = req.file.mimetype;
-
-    let category = "OTHER";
-
-    if (mime.startsWith("image/"))
-        category = "IMAGE";
-
-    else if (mime.startsWith("video/"))
-        category = "VIDEO";
-
-    else if (mime.startsWith("audio/"))
-        category = "AUDIO";
-
-    else
-        category = "DOCUMENT";
 
     res.json({
-        success:true,
-        fileUrl: `${req.protocol}://${req.get("host")}/uploads/chat/${req.file.filename}`,
-        fileName: req.file.originalname,
-        fileType: mime,
-        fileExtension: path.extname(req.file.originalname).replace(".",""),
-        fileSize: req.file.size,
-        mimeCategory: category,
-        thumbnailUrl: null
+        success: true,
+        storage: {
+            fileName,
+            fileUrl,
+            filePath,
+            mimeType,
+            fileSize: size,
+            checksum,
+            storageProvider,
+            bucket,
+            storagePath: filePath
+        }
     });
-};
+});
 
 module.exports = {
-    uploadClubLogo,
-    uploadBanner,
-    uploadChatFile
+    completeTusUpload
 };

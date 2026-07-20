@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const {joinClub, leaveClub, getClubMembers, getMyClubs, approveMember, rejectMember, promoteMember, getPendingRequests, getCommittee, getClubAnalytics} = require("../controllers/membershipController");
-const {protect, allowRoles} = require("../middleware/authMiddleware");
+const { protect } = require("../middleware/authMiddleware");
+const { allowRoles } = require("../middleware/roleMiddleware");
 
 router.get(
     "/my-clubs",

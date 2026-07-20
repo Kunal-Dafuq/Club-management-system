@@ -101,16 +101,4 @@ router.patch(
     reorderTask
 );
 
-module.exports = {
-    createTask,
-    getCommitteeTasks,
-    getTaskById,
-    assignTask,
-    updateStatus,
-    updateTask,
-    archiveTask,
-    restoreTask,
-    deleteTask,
-    getTaskStatistics,
-    reorderTask
-};
+module.exports = router;

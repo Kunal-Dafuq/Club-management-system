@@ -1,6 +1,3 @@
-const {addUser ,removeUser ,getRoomUsers} = require("../utils/onlineUsers");
-const registerChatSocket = require("./chatSocket");
-
 let io = null;
 
 const initSocket = (socketInstance) => {
@@ -9,13 +6,12 @@ const initSocket = (socketInstance) => {
 
 const getIO = () => {
     if (!io) {
-        throw new Error("Socket.IO has not been initialized.");
+        throw new Error("Socket.IO not initialized.");
     }
-
     return io;
 };
 
 module.exports = {
     initSocket,
-    getIO,
+    getIO
 };

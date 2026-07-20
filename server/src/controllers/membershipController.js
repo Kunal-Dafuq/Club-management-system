@@ -3,45 +3,21 @@ const prisma = require("../config/prisma");
 
 const { createActivity } = require("../services/activityService");
 const auditLogger = require("../utils/auditLogger");
+const asyncHandler = require("../middleware/asyncHandler");
+const ApiError = require("../utils/ApiError");
 
-const joinClub = async(req,res)=>{
-  try{
+const joinClub = asyncHandler(async(req,res)=>{
     const clubId = Number(req.params.id);
     const userId = req.user.id;
-    const club = await prisma.club.findUnique({
-      where:{
-        id:clubId
-      }
-    });
-
-    if(!club){
-      return res.status(404).json({
-        message:"Club not found"
-      });
-    }
-
-    const existingMembership = await prisma.membership.findUnique({
-      where:{
-        userId_clubId:{
-          userId,
-          clubId
-        }
-      }
-    });
-
-    if(existingMembership){
-      return res.status(400).json({
-        message:"Already joined"
-      });
-    }
-
-    const membership = await prisma.membership.create({
-      data: {
-        userId,
-        clubId,
-        status: "PENDING",
-        clubRole: "MEMBER"
-      }
+    const membership = await prisma.$transaction(async (tx) => {
+        return await tx.membership.create({
+            data:{
+                userId,
+                clubId,
+                status:"PENDING",
+                clubRole:"MEMBER"
+            }
+        });
     });
 
     await createActivity({
@@ -50,6 +26,19 @@ const joinClub = async(req,res)=>{
         action: "JOIN_REQUEST",
         description: `${req.user.name} requested to join the club.`
     });
+
+    const club = await prisma.club.findUnique({
+        where: {
+            id: clubId
+        }
+    });
+
+    if (!club) {
+        throw new ApiError(
+            404,
+            "Club not found."
+        );
+    }
 
     const coordinators = await prisma.membership.findMany({
       where: {
@@ -77,54 +66,49 @@ const joinClub = async(req,res)=>{
       message:"Join request submitted successfully",
       membership
     });
-  }
+});
 
-  catch(error){
-    console.log(error);
-    res.status(500).json({
-      message:"Server error"
-    });
-  }
-};
+const leaveClub = asyncHandler(async(req,res)=>{
 
-const leaveClub = async(req,res)=>{
-  try{
-    const clubId = Number(req.params.id);
-    const userId = req.user.id;
-    const membership = await prisma.membership.findUnique({
+  const clubId = Number(req.params.id);
+
+  const userId = req.user.id;
+
+  const membership = await prisma.membership.findUnique({
       where:{
-        userId_clubId:{
-          userId,
-          clubId
-        }
+          userId_clubId:{
+              userId,
+              clubId
+          }
       }
-    });
+  });
 
-    if(!membership){
-      return res.status(404).json({
-        message:"You are not a member of this club"
-      });
-    }
+  if(!membership){
+      throw new ApiError(
+          404,
+          "Membership not found."
+      );
+  }
+    await prisma.$transaction(async(tx)=>{
+        await tx.club.update({
+            where:{
+                id:clubId
+            },
+            data:{
+                memberCount:{
+                    decrement:1
+                }
+            }
+        });
 
-    await prisma.club.update({
-      where: {
-          id: clubId
-      },
-
-      data: {
-        memberCount: {
-          decrement: 1
-        }
-      }
-    });
-
-    await prisma.membership.delete({
-      where:{
-        userId_clubId:{
-          userId,
-          clubId
-        }
-      }
+        await tx.membership.delete({
+            where:{
+                userId_clubId:{
+                    userId,
+                    clubId
+                }
+            }
+        });
     });
 
     await createActivity({
@@ -133,8 +117,6 @@ const leaveClub = async(req,res)=>{
       action:"LEFT_CLUB",
       description:`${req.user.name} left the club.`
     });
-
-    
 
     await auditLogger(req,{
       action:"LEFT_CLUB",
@@ -146,29 +128,22 @@ const leaveClub = async(req,res)=>{
     res.json({
       message:"Left club successfully"
     });
-  }
+});
 
-  catch(error){
-    console.log(error);
-    res.status(500).json({
-      message:"Server error"
-    });
-  }
-};
-
-const getClubMembers = async(req,res)=>{
-  try{
+const getClubMembers = asyncHandler(async (req, res) => {
     const clubId = Number(req.params.id);
+
     const club = await prisma.club.findUnique({
-      where:{
-        id:clubId
-      }
+        where: {
+            id: clubId
+        }
     });
 
-    if(!club){
-      return res.status(404).json({
-        message:"Club not found"
-      });
+    if (!club) {
+        throw new ApiError(
+            404,
+            "Club not found."
+        );
     }
 
     const members = await prisma.membership.findMany({
@@ -197,22 +172,14 @@ const getClubMembers = async(req,res)=>{
     });
 
     res.json({
-      club:club.name,
-      totalMembers:members.length,
-      members
+        success: true,
+        club: club.name,
+        totalMembers: members.length,
+        members
     });
-  }
+});
 
-  catch(error){
-    console.log(error);
-    res.status(500).json({
-      message:"Server error"
-    });
-  }
-};
-
-const getMyClubs = async(req,res)=>{
-  try{
+const getMyClubs = asyncHandler(async(req,res)=>{
     const userId = req.user.id;
     const memberships = await prisma.membership.findMany({
       where:{
@@ -230,60 +197,41 @@ const getMyClubs = async(req,res)=>{
       totalClubs:memberships.length,
       clubs:memberships
     });
-  }
+});
 
-  catch(error){
-    console.log(error);
-    res.status(500).json({
-      message:"Server error"
-    });
-  }
-};
-
-const approveMember = async (req, res) => {
-  try {
-    const membershipId = Number(req.params.id);
-    const membership = await prisma.membership.findUnique({
-      where: {
-        id: membershipId
-      },
-      include: {
-        user: true,
-        club: true
-      }
-    });
-
-    if (!membership) {
-      return res.status(404).json({
-        message: "Membership not found"
-      });
-    }
-
-    if(membership.status==="APPROVED"){
-      return res.status(400).json({
-        message:"Already approved"
-      });
-    }
-
-    await prisma.membership.update({
-      where: {
-        id: membershipId
-      },
-      data: {
-        status: "APPROVED"
-      }
-    });
-
-    await prisma.club.update({
-      where: {
-        id: membership.clubId
+const approveMember = asyncHandler(async(req,res)=>{
+  const membership = await prisma.membership.findUnique({
+      where:{
+          id:membershipId
       },
 
-      data: {
-        memberCount: {
-          increment: 1
-        }
+      include:{
+          user:true,
+          club:true
       }
+  });
+
+    const updatedMembership=await prisma.$transaction(async(tx)=>{
+        const updated=await tx.membership.update({
+            where:{
+                id:membershipId
+            },
+            data:{
+                status:"APPROVED"
+            }
+        });
+
+        await tx.club.update({
+            where:{
+                id:membership.clubId
+            },
+            data:{
+                memberCount:{
+                    increment:1
+                }
+            }
+        });
+        return updated;
     });
 
     await createActivity({
@@ -298,10 +246,6 @@ const approveMember = async (req, res) => {
       message: `Your request to join ${membership.club.name} has been approved.`
     });
 
-    await createNotification({
-      userId: membership.userId,
-    });
-
     await auditLogger(req,{
       action:"MEMBER_APPROVED",
       entityType:"Membership",
@@ -314,18 +258,12 @@ const approveMember = async (req, res) => {
       message:"Member approved successfully",
       membership:updatedMembership
     });
+});
 
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({
-       message: "Server error"
-    });
-  }
-};
-
-const rejectMember = async (req, res) => {
-    try {
+const rejectMember = asyncHandler(async(req,res)=>{
     const membershipId = Number(req.params.id);
+    const { clubRole } = req.body;
+    
     const membership = await prisma.membership.findUnique({
       where: {
         id: membershipId
@@ -343,8 +281,9 @@ const rejectMember = async (req, res) => {
     }
 
     if(membership.status==="REJECTED"){
-      return res.status(400).json({
-        message:"Already rejected"
+      throw new ApiError({
+        statusCode: 401,
+        message: "Already rejected"
       });
     }
 
@@ -380,19 +319,9 @@ const rejectMember = async (req, res) => {
     res.json({
       message: "Member rejected"
     });
+});
 
-  } catch (error) {
-
-    console.log(error);
-
-    res.status(500).json({
-      message: "Server error"
-    });
-  }
-};
-
-const getPendingRequests = async (req, res) => {
-  try {
+const getPendingRequests = asyncHandler(async(req,res)=>{
     const clubId = Number(req.params.id);
     const requests = await prisma.membership.findMany({
       where: {
@@ -412,76 +341,52 @@ const getPendingRequests = async (req, res) => {
     });
 
     res.json(requests);
+});
 
-  }
-
-  catch (error) {
-    console.log(error);
-    res.status(500).json({
-      message: "Server error"
-    });
-  }
-};
-
-const promoteMember = async (req, res) => {
-  try {
-    const membershipId = Number(req.params.id);
-
-    if(membership.status!=="APPROVED"){
-      throw new Error("Only approved members can be promoted");
-    }
-
-    const { clubRole } = req.body;
-    const membership = await prisma.membership.findUnique({
-      where: {
-        id: membershipId
-      }
+const promoteMember = asyncHandler(async(req,res)=>{
+    const membership=await prisma.membership.findUnique({
+        where:{
+            id:membershipId
+        }
     });
 
-    if (!membership) {
-      return res.status(404).json({
-        message: "Membership not found"
-      });
+    if(!membership){
+        throw new ApiError(
+            404,
+            "Membership not found."
+        );
     }
 
-    const updatedMembership = await prisma.membership.update({
-      where:{
-          id:updatedMembershipId
-      },
-      data:{
-        status:"APPROVED"
-      }
+    const updatedMembership=await prisma.membership.update({
+        where:{
+            id:membershipId
+        },
+        data:{
+            clubRole
+        }
     });
 
     await createActivity({
-        clubId: updated.clubId,
-        userId: updated.userId,
-        action:"PROMOTED",
-        description:`Member promoted to ${updated.clubRole}.`
+        clubId:updatedMembership.clubId,
+        userId:updatedMembership.userId,
+        action:"ROLE_CHANGED",
+        description:`Promoted to ${updatedMembership.clubRole}.`
     });
 
     await auditLogger(req,{
-      action:"ROLE_CHANGED",
-      entityType:"Membership",
-      entityId:updatedMembership.id,
-      description:`Role changed to ${updated.clubRole}`,
-      clubId:updatedMembership.clubId
+        action:"ROLE_CHANGED",
+        entityType:"Membership",
+        entityId:updatedMembership.id,
+        clubId:updatedMembership.clubId
     });
 
-    res.json(updated);
-
-  }
-
-  catch (error) {
-    console.log(error);
-    res.status(500).json({
-      message: "Server error"
+    res.json({
+        success:true,
+        membership:updatedMembership
     });
-  }
-};
+});
 
-const getCommittee = async (req, res) => {
-    try {
+const getCommittee = asyncHandler(async(req,res)=>{
         const clubId = Number(req.params.id);
         const committee = await prisma.membership.findMany({
             where: {
@@ -506,18 +411,9 @@ const getCommittee = async (req, res) => {
             }
         });
         res.json(committee);
-    }
+});
 
-    catch (error) {
-        console.log(error);
-        res.status(500).json({
-            message: "Server error"
-        });
-    }
-};
-
-const getClubAnalytics = async (req, res) => {
-    try {
+const getClubAnalytics = asyncHandler(async(req,res)=>{
         const clubId = Number(req.params.id);
         const approved =
             await prisma.membership.count({
@@ -562,18 +458,7 @@ const getClubAnalytics = async (req, res) => {
             rejected,
             leads
         });
-
-    }
-
-    catch(error){
-        console.log(error);
-        res.status(500).json({
-
-            message:"Server error"
-
-        });
-    }
-};
+});
 
 module.exports = {
   joinClub,

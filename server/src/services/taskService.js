@@ -2,6 +2,8 @@ const prisma = require("../config/prisma");
 const workflow = require("../utils/taskWorkflow");
 const validateTask = require("../utils/taskValidator");
 
+const { createAuditLog } = require("./auditService");
+
 const createTask = async (
     committeeId,
     membershipId,
@@ -227,31 +229,58 @@ const assignTask = async (taskId, committeeMemberId) => {
         throw new Error("Member does not belong to this committee");
     }
 
-    return prisma.task.update({
-        where: {
-            id: taskId
+    const updatedTask = await prisma.task.update({
+        where:{
+            id:taskId
         },
-        data: {
-            assignedToId: committeeMemberId
+
+        data:{
+            assignedToId:committeeMemberId
         },
-        include: {
-            assignedTo: {
-                include: {
-                    membership: {
-                        include: {
-                            user: true
+
+        include:{
+            committee:true,
+            assignedTo:{
+                include:{
+                    membership:{
+                        include:{
+                            user:true
                         }
                     }
                 }
             }
         }
     });
+
+    await prisma.notification.create({
+        data:{
+            userId:
+                updatedTask
+                .assignedTo
+                .membership
+                .userId,
+            message:
+                `You were assigned "${updatedTask.title}".`
+        }
+    });
+
+    return updatedTask;
 };
 
 const updateStatus = async (taskId, newStatus) => {
     const task = await prisma.task.findUnique({
         where: {
             id: taskId
+        }
+    });
+
+    return prisma.task.update({
+        where: {
+            id: taskId
+        },
+        data: updateData,
+        include: {
+            committee: true
         }
     });
 
@@ -278,65 +307,105 @@ const updateStatus = async (taskId, newStatus) => {
     }
 
     return prisma.task.update({
-        where: {
-            id: taskId
+        where:{
+            id:taskId
         },
-        data: updateData
+        data:updateData,
+        include:{
+            committee:true
+        }
     });
 };
 
 const updateTask = async (taskId, data) => {
     return prisma.task.update({
-        where: {
-            id: taskId
+        where:{
+            id:taskId
         },
-        data: {
-            title: data.title,
-            description: data.description,
-            priority: data.priority
+        data:{
+            title:data.title,
+            description:data.description,
+            priority:data.priority
                 ? data.priority.toUpperCase()
                 : undefined,
-            dueDate: data.dueDate
+            dueDate:data.dueDate
                 ? new Date(data.dueDate)
                 : null
+        },
+        include:{
+            committee:true
         }
     });
 };
 
 const archiveTask = async (taskId) => {
     return prisma.task.update({
-        where: {
-            id: taskId
-        },
-        data: {
-            isArchived: true
-        }
-    });
-};
-
-const restoreTask = async (taskId) => {
-    return prisma.task.update({
-        where: {
-            id: taskId
-        },
-        data: {
-           isArchived: false
-        }
-    });
-};
-
-const deleteTask = async (taskId) => {
-    return prisma.task.update({
         where:{
             id:taskId
         },
         data:{
+            isArchived:true
+        },
+        include:{
+            committee:true
+        }
+    });
+};
+
+const deleteTask = async (taskId, userId) => {
+    const task = await prisma.task.update({
+        where:{
+            id:taskId
+        },
+
+        data:{
             deletedAt:new Date()
+        },
+
+        include:{
+            committee:true
+        }
+    });
+
+    return task;
+
+    if (!task) {
+        throw new Error("Task not found");
+    }
+
+    await prisma.task.update({
+        where: {
+            id: taskId
+        },
+        data: {
+            deletedAt: new Date()
         }
     });
 
     await createAuditLog({
-        action:"TASK_DELETED"
+        action: "TASK_DELETED",
+        entityType: "Task",
+        entityId: task.id,
+        clubId: task.committee.clubId,
+        performedById: userId,
+        metadata: {
+            title: task.title
+        }
+    });
+
+    return true;
+};
+
+const restoreTask = async (taskId) => {
+    return prisma.task.update({
+        where: { id: taskId },
+        data: {
+            deletedAt: null,
+            archivedAt: null
+        },
+        include: {
+            committee: true
+        }
     });
 };
 

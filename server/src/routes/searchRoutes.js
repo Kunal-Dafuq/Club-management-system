@@ -1,12 +1,12 @@
-const router=require("express").Router();
+const router = require("express").Router();
 
-const auth=require("../middlewares/auth");
-const controller=require("../controllers/searchController");
+const { protect } = require("../middleware/authMiddleware");
+const { search } = require("../controllers/searchController");
 
 router.get(
-    "/",
-    auth,
-    controller.search
+    "/:clubId",
+    protect,
+    search
 );
 
-module.exports=router;
+module.exports = router;

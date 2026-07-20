@@ -1,237 +1,173 @@
 const committeeService = require("../services/committeeService");
 const auditLogger = require("../utils/auditLogger");
+const asyncHandler=require("../middleware/asyncHandler");
+const ApiError=require("../utils/ApiError");
 
-const createCommittee = async (req, res) => {
-    try {
-        const clubId = Number(req.params.clubId);
+const createCommittee = asyncHandler(async(req,res)=>{
         const committee = await committeeService.createCommittee(
-            clubId,
-            req.body
-        );
+        clubId,
+        req.body
+    );
 
-        await auditLogger(req,{
-            action:"COMMITTEE_CREATED",
-            entityType:"Committee",
-            entityId:committee.id,
-            description:`Created committee "${committee.name}"`,
-            clubId:committee.clubId
-        });
+    await auditLogger(req, {
+        action: "COMMITTEE_CREATED",
+        entityType: "Committee",
+        entityId: committee.id,
+        description: `Created committee "${committee.name}"`,
+        clubId: committee.clubId
+    });
 
-        res.status(201).json({
-            committee
-        });
-    }
+    res.status(201).json({
+        success: true,
+        committee
+    });
+});
 
-    catch (error) {
-        console.log(error);
-        res.status(500).json({
-
-            message: "Server error."
-
-        });
-    }
-};
-
-const getClubCommittees = async (req, res) => {
-    try {
+const getClubCommittees = asyncHandler(async(req,res)=>{
         const committees = await committeeService.getCommitteesByClub(
             Number(req.params.clubId)
         );
 
         res.json(committees);
+});
 
-    }
-
-    catch (error) {
-        console.log(error);
-        res.status(500).json({
-
-            message: "Server error."
-
-        });
-    }
-};
-
-const getCommittee = async (req, res) => {
-    try {
+const getCommittee = asyncHandler(async(req,res)=>{
         const committee = await committeeService.getCommitteeById(
             Number(req.params.id)
         );
 
         if (!committee) {
-            return res.status(404).json({
-
-                message: "Committee not found."
-
-            });
+            throw new ApiError(
+                404,
+                "Committee not found."
+            );
         }
 
-        res.json(committee);
-
-    }
-
-    catch (error) {
-        console.log(error);
-        res.status(500).json({
-
-            message: "Server error."
-
+        res.json({
+            success: true,
+            committee
         });
-    }
-};
+});
 
-const updateCommittee = async (req, res) => {
-    try {
+const updateCommittee = asyncHandler(async(req,res)=>{
         const committee = await committeeService.updateCommittee(
             Number(req.params.id),
             req.body
         );
 
         await auditLogger(req,{
-            action:"COMMITTEE_ROLE_CHANGED",
-            entityType:"CommitteeMember",
-            entityId:committeeMember.id,
-            description:`Committee role changed to ${committeeMember.role}`
+            action:"COMMITTEE_UPDATED",
+            entityType:"Committee",
+            entityId:committee.id,
+            description:`Updated ${committee.name}`,
+            clubId:committee.clubId
         });
 
         res.json({
             committee
         });
-    }
+});
 
-    catch (error) {
-        console.log(error);
-        res.status(500).json({
+const deleteCommittee = asyncHandler(async(req,res)=>{
+        const committee = await committeeService.deleteCommittee(
+            Number(req.params.id),
+            req.user.id
+        );
 
-            message: "Server error."
-
+        await auditLogger(req, {
+            action: "COMMITTEE_DELETED",
+            entityType: "Committee",
+            entityId: committee.id,
+            clubId: committee.clubId
         });
-    }
-};
 
-const deleteCommittee = async (req, res) => {
-    try {
-        await committeeService.deleteCommittee(
+        res.json({
+            success: true,
+            message: "Committee deleted."
+        });
+});
+
+const restoreCommittee = asyncHandler(async(req,res)=>{
+        const committee = await committeeService.restoreCommittee(
             Number(req.params.id)
         );
 
-        res.json({
-
-            message: "Committee deleted successfully."
-
+        await auditLogger(req,{
+            action:"COMMITTEE_RESTORED",
+            entityType:"Committee",
+            entityId:committee.id,
+            clubId:committee.clubId
         });
-    }
 
-    catch (error) {
-        console.log(error);
-        res.status(500).json({
+        res.json(committee);
+});
 
-            message: "Server error."
-        
-        });
-    }
-};
-
-const addCommitteeMember = async (req, res) => {
-    try {
+const addCommitteeMember = asyncHandler(async(req,res)=>{
         const committee = await committeeService.addMember(
             Number(req.params.committeeId),
             req.body.membershipId,
             req.body.role
         );
 
+        await auditLogger(req,{
+            action:"COMMITTEE_MEMBER_ADDED",
+            entityType:"CommitteeMember",
+            entityId:committee.id
+        });
+
         res.status(201).json({
-
             message: "Member added.",
-
             committee
         });
-    }
+});
 
-    catch (error) {
-        console.log(error);
-        res.status(500).json({
-
-            message: "Server error"
-
-        });
-    }
-};
-
-const removeCommitteeMember = async (req, res) => {
-    try {
+const removeCommitteeMember = asyncHandler(async(req,res)=>{
         await committeeService.removeMember(
             Number(req.params.committeeId),
             Number(req.params.membershipId)
         );
-        res.json({
 
+        await auditLogger(req,{
+            action:"COMMITTEE_MEMBER_REMOVED",
+            entityType:"Committee"
+        });
+
+        res.json({
             message: "Member removed."
         });
-    }
+});
 
-    catch (error) {
-        console.log(error);
-        res.status(500).json({
-
-            message: "Server error"
-        });
-    }
-};
-
-const updateCommitteeMemberRole = async (req, res) => {
-    try {
+const updateCommitteeMemberRole = asyncHandler(async(req,res)=>{
         const member = await committeeService.updateCommitteeRole(
             Number(req.params.id),
             req.body.role
         );
 
-        res.json(member);
-
-    }
-
-    catch (error) {
-        console.log(error);
-        res.status(500).json({
-
-            message: "Server error"
+        await auditLogger(req,{
+            action:"COMMITTEE_ROLE_CHANGED",
+            entityType:"CommitteeMember",
+            entityId:member.id,
+            description:`Role changed to ${member.role}`
         });
-    }
-};
 
-const getCommitteeStatistics = async (req, res) => {
-    try {
+        res.json(member);
+});
+
+const getCommitteeStatistics = asyncHandler(async(req,res)=>{
         const stats = await committeeService.getCommitteeStats(
             Number(req.params.id)
         );
 
         res.json(stats);
-
-    }
-
-    catch (error) {
-        console.log(error);
-        res.status(500).json({
-
-            message: "Server error"
-        });
-    }
-};
-
-await committeeService.restoreCommittee(id);
-
-await auditLogger(req,{
-    action:"COMMITTEE_RESTORED",
-    entityType:"Committee",
-    entityId:id
 });
 
-module.exports = {
+module.exports={
     createCommittee,
     getClubCommittees,
     getCommittee,
     updateCommittee,
     deleteCommittee,
+    restoreCommittee,
     addCommitteeMember,
     removeCommitteeMember,
     updateCommitteeMemberRole,

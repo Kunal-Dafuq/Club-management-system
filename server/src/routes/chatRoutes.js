@@ -1,7 +1,6 @@
 const router = require("express").Router();
 
 const { protect } = require("../middleware/authMiddleware");
-const upload = require("../middleware/chatUpload");
 
 const {
     sendMessage,
@@ -43,9 +42,8 @@ router.get(
 );
 
 router.post(
-    "/upload",
+    "/upload/complete",
     protect,
-    upload.single("file"),
     uploadChatFile
 );
 

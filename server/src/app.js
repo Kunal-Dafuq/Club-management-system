@@ -1,10 +1,52 @@
+// ==============================
+// Core Packages
+// ==============================
+
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
+const compression = require("compression");
 const cookieParser = require("cookie-parser");
+const hpp = require("hpp");
+const morgan = require("morgan");
 const path = require("path");
 
-const apiLimiter = require("./middleware/rateLimit");
+const app = express();
+
+
+// ==============================
+// Environment
+// ==============================
+
+const allowedOrigins = [
+    process.env.CLIENT_URL,
+    "http://localhost:5173"
+].filter(Boolean);
+
+
+// ==============================
+// Security Middlewares
+// ==============================
+
+const apiLimiter = require("./middleware/rateLimiter");
+const security = require("./middleware/security");
+
+const requestId = require("./middleware/requestId");
+const requestLogger = require("./middleware/requestLogger");
+const notFound = require("./middleware/notFound");
+const errorHandler = require("./middleware/errorHandler");
+
+
+// ==============================
+// External Services
+// ==============================
+
+const tusServer = require("./config/tus");
+
+
+// ==============================
+// Routes
+// ==============================
 
 const authRoutes = require("./routes/authRoutes");
 const clubRoutes = require("./routes/clubRoutes");
@@ -27,115 +69,285 @@ const searchRoutes = require("./routes/searchRoutes");
 const savedMessageRoutes = require("./routes/savedMessageRoutes");
 const readRoutes = require("./routes/readRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
-const errorHandler = require("./middleware/errorHandler");
 const googleAuthRoutes = require("./routes/googleAuthRoutes");
 const meetingSummaryRoutes = require("./routes/meetingSummaryRoutes");
 const meetingPollRoutes = require("./routes/meetingPollRoutes");
+const googleMeetRoutes = require("./routes/googleMeetRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
+const analyticsRoutes = require("./routes/analyticsRoutes");
+const profileRoutes = require("./routes/profileRoutes");
+const reportRoutes = require("./routes/reportRoutes");
+const auditRoutes = require("./routes/auditRoutes");
+const healthRoutes = require("./routes/healthRoute");
+const fileRoutes = require("./routes/fileRoutes");
+const exportRoutes = require("./routes/exportRoutes");
+const systemRoutes = require("./routes/systemRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+const clubDashboardRoutes = require("./routes/clubDashboardRoutes");
+const meetingRecordingRoutes = require("./routes/meetingRecordingRoutes");
 
-const tusServer = require("./config/tus");
 
-const app = express();
+// ===================================================
+// Trust Proxy
+// ===================================================
 
-app.use(helmet());
+app.set("trust proxy", 1);
 
-app.use(cors({
-    origin: process.env.CLIENT_URL,
-    credentials: true,
-}));
 
-app.use(express.json());
+// ===================================================
+// Hide Express
+// ===================================================
 
-app.use(express.urlencoded({
-    extended: true
-}));
+app.disable("x-powered-by");
 
-app.use(cookieParser());
 
-app.use(errorHandler);
+// ===================================================
+// Request Tracking
+// ===================================================
+
+app.use(requestId);
+app.use(requestLogger);
+
+
+// ===================================================
+// Logging
+// ===================================================
+
+if (process.env.NODE_ENV === "development") {
+    app.use(morgan("dev"));
+} else {
+    app.use(morgan("combined"));
+}
+
+
+// ===================================================
+// Security
+// ===================================================
+
+app.use(
+    helmet({
+        crossOriginResourcePolicy: false,
+        contentSecurityPolicy: false
+    })
+);
+
+security(app);
+
+app.use(hpp());
+
+app.use(compression());
+
+
+// ===================================================
+// Rate Limiting
+// ===================================================
 
 app.use(apiLimiter);
 
-app.use((req,res,next)=>{
+
+// ===================================================
+// CORS
+// ===================================================
+
+app.use(
+    cors({
+        origin(origin, callback) {
+
+            if (
+                !origin ||
+                allowedOrigins.includes(origin)
+            ) {
+                return callback(null, true);
+            }
+
+            callback(
+                new Error("CORS Not Allowed")
+            );
+        },
+
+        credentials: true,
+
+        methods: [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "OPTIONS"
+        ],
+
+        allowedHeaders: [
+            "Content-Type",
+            "Authorization"
+        ],
+
+        exposedHeaders: [
+            "Content-Disposition"
+        ]
+    })
+);
+
+app.options(/.*/, cors());
+
+
+// ===================================================
+// Body Parsers
+// ===================================================
+
+app.use(
+    express.json({
+        limit: "10mb"
+    })
+);
+
+app.use(
+    express.urlencoded({
+        extended: true,
+        limit: "10mb"
+    })
+);
+
+
+// ===================================================
+// Cookies
+// ===================================================
+
+app.use(
+    cookieParser(
+        process.env.COOKIE_SECRET
+    )
+);
+
+
+// ===================================================
+// Socket Injection
+// ===================================================
+
+app.use((req, res, next) => {
     req.io = app.get("io");
     next();
 });
 
+
+// ===================================================
+// Static Files
+// ===================================================
+
 app.use(
     "/uploads",
     express.static(
-        path.join(__dirname,"../uploads")
+        path.join(__dirname, "../uploads")
     )
 );
 
-app.use("/media",mediaRoutes);
+app.use("/media", mediaRoutes);
 
-app.use("/api/auth",authRoutes);
 
-app.use("/api/clubs",clubRoutes);
-app.use("/api/clubs",membershipRoutes);
+// ===================================================
+// API Routes
+// ===================================================
 
-app.use("/api/events",eventRoutes);
-app.use("/api/events",rsvpRoutes);
+app.use("/api/auth", authRoutes);
 
-app.use("/api/announcements",announcementRoutes);
-app.use("/api/notifications",notificationRoutes);
+app.use("/api/clubs", clubRoutes);
+app.use("/api/clubs", membershipRoutes);
 
-app.use("/api/upload",uploadRoutes);
+app.use("/api/events", eventRoutes);
+app.use("/api/events", rsvpRoutes);
 
-app.use("/api/chat",chatRoutes);
+app.use("/api/notifications", notificationRoutes);
 
-app.use("/api/committees",committeeRoutes);
+app.use("/api/announcements", announcementRoutes);
 
-app.use("/api/tasks",taskRoutes);
-app.use("/api/task-comments",taskCommentRoutes);
-app.use("/api/task-attachments",taskAttachmentRoutes);
+app.use("/api/upload", uploadRoutes);
 
-app.use("/api/meetings",meetingRoutes);
+app.use("/api/chat", chatRoutes);
 
-app.use("/api/activity",activityRoutes);
+app.use("/api/committees", committeeRoutes);
 
-app.use("/api/pins",pinRoutes);
+app.use("/api/tasks", taskRoutes);
+app.use("/api/task-comments", taskCommentRoutes);
+app.use("/api/task-attachments", taskAttachmentRoutes);
 
-app.use("/api/stars",starRoutes);
+app.use("/api/meetings", meetingRoutes);
 
-app.use("/api/search",searchRoutes);
+app.use("/api/activity", activityRoutes);
 
-app.use("/api/saved-messages",savedMessageRoutes);
+app.use("/api/pins", pinRoutes);
 
-app.use("/api/read",readRoutes);
+app.use("/api/stars", starRoutes);
 
-app.use("/api/google",googleAuthRoutes);
+app.use("/api/search", searchRoutes);
 
-app.use("/api/meeting-summary",meetingSummaryRoutes);
+app.use("/api/saved-messages", savedMessageRoutes);
 
-app.use("/api/meeting-polls",meetingPollRoutes);
+app.use("/api/read", readRoutes);
 
-app.all("/files/*",(req,res)=>{
-    tusServer.handle(req,res);
-});
+app.use("/api/google", googleAuthRoutes);
 
-app.get("/", (req, res) => {
-    res.send("ClubPlanet API Running 🚀");
-});
+app.use("/api/google-meet", googleMeetRoutes);
 
-app.all("/files/*", (req, res) => {
+app.use("/api/meeting-summary", meetingSummaryRoutes);
+
+app.use("/api/meeting-polls", meetingPollRoutes);
+
+app.use("/api/dashboard", dashboardRoutes);
+
+app.use("/api/analytics", analyticsRoutes);
+
+app.use("/api/profile", profileRoutes);
+
+app.use("/api/reports", reportRoutes);
+
+app.use("/api/audit", auditRoutes);
+
+app.use("/api/files", fileRoutes);
+
+app.use("/api/export", exportRoutes);
+
+app.use("/api/system", systemRoutes);
+
+app.use("/health", healthRoutes);
+
+app.use("/api/admin", adminRoutes);
+
+app.use("/api/clubs", clubDashboardRoutes);
+
+app.use("/api/meeting-recordings",meetingRecordingRoutes);
+
+// ===================================================
+// Tus Upload Server
+// ===================================================
+
+app.use("/files", (req, res) => {
     tusServer.handle(req, res);
 });
 
-app.use((req, res) => {
-    res.status(404).json({
-        success: false,
-        message: "Route not found",
-    });
+
+// ===================================================
+// Root
+// ===================================================
+
+app.get("/", (req, res) => {
+
+    res.send("ClubPlanet API Running 🚀");
+
 });
 
-app.use((err, req, res, next) => {
-    console.error(err);
 
-    res.status(err.status || 500).json({
-        success: false,
-        message: err.message || "Internal Server Error",
-    });
-});
+// ===================================================
+// 404 Handler
+// ===================================================
+
+app.use(notFound);
+
+
+// ===================================================
+// Error Handlers
+// ===================================================
+
+app.use(errorHandler);
+
+// ===================================================
 
 module.exports = app;

@@ -1,5 +1,7 @@
 require("dotenv").config();
 
+require("./jobs/cron");
+
 const http = require("http");
 const jwt = require("jsonwebtoken");
 const { Server } = require("socket.io");
@@ -8,7 +10,7 @@ const app = require("./app");
 
 const { initSocket } = require("./socket/socket");
 const registerChatSocket = require("./socket/chatSocket");
-const registerTaskSocket = require("./socket/taskSocket");
+const {registerTaskSocket} = require("./socket/taskSocket");const registerNotificationSocket = require("./socket/notificationSocket");
 
 const PORT = process.env.PORT || 5000;
 
@@ -21,6 +23,20 @@ const io = new Server(server, {
     },
 });
 
+const { initializeEmail } = require("./services/emailService");
+(async () => {
+    await initializeEmail();
+    server.listen(PORT, () => {
+        console.log("=================================");
+        console.log("🚀 ClubPlanet Backend Started");
+        console.log(`🌍 Port : ${PORT}`);
+        console.log(`📡 Socket.IO : Enabled`);
+        console.log(`📁 Uploads : Enabled`);
+        console.log(`📦 Environment : ${process.env.NODE_ENV}`);
+        console.log("=================================");
+    });
+})();
+
 app.set("io", io);
 
 io.use((socket, next) => {
@@ -31,10 +47,12 @@ io.use((socket, next) => {
     }
 
     try {
-        socket.user = jwt.verify(
+        const decoded = jwt.verify(
             token,
             process.env.JWT_SECRET
         );
+
+        socket.user = decoded;
 
         next();
 
@@ -48,13 +66,11 @@ initSocket(io);
 
 registerTaskSocket(io);
 registerChatSocket(io);
+registerNotificationSocket(io);
 
-server.listen(PORT, () => {
-    console.log("=================================");
-    console.log("🚀 ClubPlanet Backend Started");
-    console.log(`🌍 Port : ${PORT}`);
-    console.log(`📡 Socket.IO : Enabled`);
-    console.log(`📁 Uploads : Enabled`);
-    console.log(`📦 Environment : ${process.env.NODE_ENV}`);
-    console.log("=================================");
+process.on("SIGINT",()=>{
+    console.log("Stopping server...");
+    server.close(()=>{
+        process.exit(0);
+    });
 });

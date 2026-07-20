@@ -1,17 +1,17 @@
 const router=require("express").Router();
 
-const auth=require("../middlewares/auth");
+const {protect}=require("../middleware/authMiddleware");
 const controller=require("../controllers/mediaController");
 
 router.get(
     "/:roomId/images",
-    auth,
+    protect,
     controller.getMedia
 );
 
 router.get(
     "/:roomId/files",
-    auth,
+    protect,
     controller.getFiles
 );
 

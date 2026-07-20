@@ -1,54 +1,58 @@
 const prisma = require("../config/prisma");
 
-const getMedia = async (req, res) => {
-    const roomId = Number(req.params.roomId);
-    const media = await prisma.chatMessage.findMany({
+const asyncHandler = require("../middleware/asyncHandler");
+const ApiError = require("../utils/ApiError");
 
+const getMedia = asyncHandler(async (req,res)=>{
+    const roomId = Number(req.params.roomId);
+
+    if(Number.isNaN(roomId)){
+        throw new ApiError(
+            400,
+            "Invalid room id."
+        );
+    }
+
+    const media = await prisma.chatAttachment.findMany({
         where:{
-            roomId,
-            
-            fileUrl:{
-              not:null
+            message:{
+                roomId
             },
-            mimeCategory:"image"
+            mimeCategory:"IMAGE"
+        },
+
+        include:{
+            message:true
         },
 
         orderBy:{
             createdAt:"desc"
-        },
-
-        select:{
-            id:true,
-            fileUrl:true,
-            fileName:true,
-            createdAt:true,
-            membership:{
-                include:{
-                    user:true
-                   }
-            }
         }
     });
 
-    res.json(media);
+    res.json({
+        success:true,
+        count:media.length,
+        media
+    });
+});
 
-};
+const getFiles = asyncHandler(async(req,res)=>{
+    const roomId = Number(req.params.roomId);
 
-const getFiles = async(req,res)=>{
-    const roomId=Number(req.params.roomId);
-    const files=await prisma.chatMessage.findMany({
-
+    const files = await prisma.chatAttachment.findMany({
         where:{
-            roomId,
-
-            fileUrl:{
-                not:null
+            message:{
+                roomId
             },
 
             NOT:{
-                mimeCategory:"image"
+                mimeCategory:"IMAGE"
             }
+        },
 
+        include:{
+            message:true
         },
 
         orderBy:{
@@ -56,9 +60,12 @@ const getFiles = async(req,res)=>{
         }
     });
 
-    res.json(files);
-
-};
+    res.json({
+        success:true,
+        count:files.length,
+        files
+    });
+});
 
 module.exports={
     getMedia,

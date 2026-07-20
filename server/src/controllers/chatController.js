@@ -3,6 +3,7 @@ const prisma = require("../config/prisma");
 const getMembershipId = require("../utils/getMembershipId");
 const service=require("../services/chatService");
 const asyncHandler = require("../middleware/asyncHandler");
+const ApiError = require("../utils/ApiError");
 const {editMessage} = require("../services/chatEditService");
 const {deleteForMe,deleteForEveryone}=require("../services/chatDeleteService");
 const auditLogger = require("../utils/auditLogger");
@@ -14,7 +15,10 @@ const sendMessage = asyncHandler(async (req, res) => {
     const membershipId = getMembershipId(req, roomId);
 
     if (!membershipId) {
-        throw new Error("You are not a member of this room.");
+        throw new ApiError(
+            403,
+            "You are not a member of this room."
+        );
     }
 
     const message = await service.sendMessage(
@@ -27,6 +31,13 @@ const sendMessage = asyncHandler(async (req, res) => {
 
     req.io?.to(`room-${roomId}`).emit("message:new", message);
 
+    await auditLogger(req,{
+        action:"CHAT_MESSAGE_SENT",
+        entityType:"ChatMessage",
+        entityId:message.id,
+        clubId:message.roomId
+    });
+
     res.status(201).json(message);
 
 });
@@ -37,7 +48,10 @@ const getMessages = asyncHandler(async (req, res) => {
     const membershipId = getMembershipId(req, roomId);
 
     if (!membershipId) {
-        throw new Error("Not a room member.");
+        throw new ApiError(
+            403,
+            "You are not a member of this room."
+        );
     }
 
     const cursor = req.query.cursor
@@ -61,7 +75,10 @@ const toggleReaction = asyncHandler(async (req, res) => {
     const membershipId = getMembershipId(req, roomId);
 
     if (!membershipId) {
-        throw new Error("Not authorized.");
+        throw new ApiError(
+            403,
+            "You are not a member of this room."
+        );
     }
 
     const reaction = await service.toggleReaction(
@@ -77,7 +94,11 @@ const toggleReaction = asyncHandler(async (req, res) => {
             emoji: req.body.emoji
         });
 
-    res.json(reaction);
+    res.json({
+        success: true,
+        message: "Reaction updated.",
+        reaction
+    });
 
 });
 
@@ -92,44 +113,47 @@ const editChatMessage = asyncHandler(async (req,res)=>{
     req.io?.to(`room-${message.roomId}`)
         .emit("message:update", message);
 
+    await auditLogger(req,{
+        action:"MESSAGE_EDITED",
+        entityType:"ChatMessage",
+        entityId:message.id,
+        clubId:message.roomId
+    });    
+
     res.json(message);
 
 });
 
 const uploadChatFile = asyncHandler(async (req, res) => {
-    let category = "DOCUMENT";
-
-    if (!req.file) {
-        return res.status(400).json({ message: "No file uploaded." });
+    const { storage } = req.body;
+    
+    if(!storage){
+        throw new ApiError(
+            400,
+            "Attachment metadata missing."
+        );
     }
 
-    if (req.file.mimetype.startsWith("image/")) {
-        category = "IMAGE";
+    if (!storage) {
+        throw new ApiError(
+            400,
+            "Storage metadata missing."
+        );
     }
 
-    else if (req.file.mimetype.startsWith("video/")) {
-        category = "VIDEO";
-    }
-
-    else if (req.file.mimetype.startsWith("audio/")) {
-        category = "AUDIO";
-    }
-
-    const mime = req.file.mimetype;
-
-    return res.json({
-        url: `/uploads/chat/${req.file.filename}`,
-        name: req.file.originalname,
-        type: mime,
-        size: req.file.size,
-        extension: req.file.originalname.split(".").pop(),
-        category
+    res.json({
+        success: true,
+        attachment: storage
     });
 });
 
 const searchMessages = asyncHandler(async (req, res) => {
     const roomId = Number(req.params.clubId);
     const query = req.query.q || "";
+
+    if (!query.trim()) {
+        return res.json([]);
+    }
 
     const messages = await service.searchMessages(
         roomId,
@@ -157,9 +181,23 @@ const removeForEveryone = asyncHandler(async(req,res)=>{
         Number(req.params.messageId)
     );
 
+    if (!message) {
+        throw new ApiError(
+            404,
+            "Message not found."
+        );
+    }
+
     req.io
         ?.to(`room-${message.roomId}`)
         .emit("message:delete",message);
+
+    await auditLogger(req,{
+        action:"MESSAGE_DELETED",
+        entityType:"ChatMessage",
+        entityId:message.id,
+        clubId:message.roomId
+    });
 
     res.json(message);
 });
