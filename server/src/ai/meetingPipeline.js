@@ -1,4 +1,4 @@
-const prisma = require("../../config/prisma");
+const prisma = require("../config/prisma");
 const fs = require("fs/promises");
 
 const { prepareAudio } = require("./audioService");

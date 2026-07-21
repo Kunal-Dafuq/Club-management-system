@@ -1,7 +1,6 @@
 const prisma = require("../config/prisma");
 const getFileIcon = require("../utils/fileIcon");
 const { createNotification } = require("./notificationService");
-const { buildStorageInfo } = require("./storageService");
 
 const uploadAttachment = async (
     taskId,

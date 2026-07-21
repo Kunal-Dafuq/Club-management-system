@@ -1,6 +1,7 @@
 const router = require("express").Router();
 
-const { protect } = require("../middleware/authMiddleware");
+const {protect} = require("../middleware/authMiddleware");
+
 const {completeTusUpload} = require("../controllers/uploadController");
 
 router.post(

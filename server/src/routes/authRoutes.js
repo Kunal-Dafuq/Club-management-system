@@ -32,7 +32,7 @@ router.get(
   protect,
   (req,res)=>{
     const {
-      password,
+      password: _password,
       ...safeUser
     } = req.user;
 

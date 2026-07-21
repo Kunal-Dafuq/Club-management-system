@@ -1,6 +1,3 @@
-const prisma = require("../config/prisma");
-
-const getMembershipId = require("../utils/getMembershipId");
 const service=require("../services/chatService");
 const asyncHandler = require("../middleware/asyncHandler");
 const ApiError = require("../utils/ApiError");
@@ -12,8 +9,7 @@ const sendMessage = asyncHandler(async (req, res) => {
 
     const roomId = Number(req.params.roomId);
 
-    const membershipId = getMembershipId(req, roomId);
-
+    const membershipId = req.membership?.id;
     if (!membershipId) {
         throw new ApiError(
             403,
@@ -45,8 +41,7 @@ const sendMessage = asyncHandler(async (req, res) => {
 const getMessages = asyncHandler(async (req, res) => {
     const roomId = Number(req.params.roomId);
 
-    const membershipId = getMembershipId(req, roomId);
-
+    const membershipId = req.membership?.id;
     if (!membershipId) {
         throw new ApiError(
             403,
@@ -72,7 +67,7 @@ const getMessages = asyncHandler(async (req, res) => {
 const toggleReaction = asyncHandler(async (req, res) => {
     const roomId = Number(req.body.roomId);
 
-    const membershipId = getMembershipId(req, roomId);
+    const membershipId = req.membership?.id;
 
     if (!membershipId) {
         throw new ApiError(

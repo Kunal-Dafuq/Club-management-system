@@ -46,12 +46,16 @@ const getClubDashboard = async (clubId) => {
                 committee: {
                     clubId
                 },
-                archived: false
+                isArchived: false
             },
             include: {
-                assignee: {
+                assignedTo: {
                     include: {
-                        user: true
+                        membership: {
+                            include: {
+                                user: true
+                            }
+                        }
                     }
                 }
             },
@@ -79,101 +83,50 @@ const getClubDashboard = async (clubId) => {
         })
     ]);
 
+    if (!club) {
+        throw new Error("Club not found");
+    }
+
     return {
-        club: {
-            id: club.id,
-            name: club.name,
-            slug: club.slug,
-            logoUrl: club.logoUrl,
-            bannerUrl: club.bannerUrl,
-            tagline: club.tagline,
-            motto: club.motto,
-            description: club.description,
-            category: club.category,
-            established: club.established,
-            verified: club.verified,
-            isRecruiting: club.isRecruiting,
-            socialLinks: {
-                website: club.website,
-                instagram: club.instagram,
-                linkedin: club.linkedin,
-                github: club.github,
-                discord: club.discord
-            }
-        },
+        club,
 
         statistics: {
-            totalMembers,
-            activeMembers,
-            committees,
-            coordinators,
-            upcomingEvents,
-            completedEvents,
-            ongoingMeetings,
-            pendingTasks,
-            completedTasks,
-            announcements,
-            galleryImages
+            totalMembers: members,
+
+            upcomingEvents: events.length,
+
+            upcomingMeetings: meetings.filter(
+                meeting => meeting.startTime > new Date()
+            ).length,
+
+            pendingTasks: tasks.filter(
+                task => task.status !== "COMPLETED"
+            ).length,
+
+            completedTasks: tasks.filter(
+                task => task.status === "COMPLETED"
+            ).length,
+
+            announcements: announcements.length
         },
 
-        overview: {
-            nextEvent,
-            nextMeeting,
-            latestAnnouncement,
-            latestActivity,
-            clubHealthScore
-        },
+        upcomingEvents: events,
 
-        upcomingEvents,
+        upcomingMeetings: meetings,
 
-        upcomingMeetings,
+        pendingTasks: tasks.filter(
+            task => task.status !== "COMPLETED"
+        ),
 
         announcements,
 
-        pendingTasks,
+        overview: {
+            nextEvent: events[0] || null,
 
-        committees: {
-            total,
-            items: committeeList
-        },
+            nextMeeting: meetings[0] || null,
 
-        members: {
-            total: totalMembers,
-            recent: recentMembers,
-            coordinators: coordinatorList
-        },
-
-        activity: {
-            recent: recentActivities,
-            timeline
-        },
-
-        gallery: {
-            recentImages,
-            totalImages
-        },
-
-        recruitment: {
-            isRecruiting: club.isRecruiting,
-            pendingApplications,
-            openPositions
-        },
-
-        achievements: {
-            awards,
-            certificates,
-            milestones
-        },
-
-        resources: {
-            sharedFiles,
-            driveFolders,
-            documents
-        },
-
-        integrations: {
-            googleCalendarConnected,
-            googleMeetEnabled
+            latestAnnouncement:
+                announcements[0] || null
         }
     };
 };

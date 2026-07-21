@@ -14,7 +14,9 @@ const health = asyncHandler(async (req, res) => {
     try {
         await ollama.list();
         aiStatus = "online";
-    } catch {}
+    } catch (err) {
+        console.error(err);
+    }
 
     res.json({
         success: true,

@@ -1,6 +1,5 @@
 const prisma = require("../config/prisma");
 const workflow = require("../utils/taskWorkflow");
-const validateTask = require("../utils/taskValidator");
 
 const { createAuditLog } = require("./auditService");
 
@@ -9,7 +8,6 @@ const createTask = async (
     membershipId,
     data
 ) => {
-
     return prisma.$transaction(async (tx) => {
         const committee = await tx.committee.findUnique({
             where: {
@@ -67,7 +65,7 @@ const createTask = async (
             data: {
                 title: data.title,
                 description: data.description,
-                priority: data.priority || "MEDIUM",
+                priority: (data.priority || "MEDIUM").toUpperCase(),
                 dueDate:
                     data.dueDate
                         ? new Date(data.dueDate)
@@ -180,7 +178,7 @@ const getCommitteeTasks = async (committeeId) => {
 };
 
 const getTaskById = async (taskId) => {
-    return prisma.task.findUnique({
+    const task = await prisma.task.findUnique({
         where: {
             id: taskId
         },
@@ -202,6 +200,12 @@ const getTaskById = async (taskId) => {
             }
         }
     });
+
+    if (!task) {
+        throw new Error("Task not found");
+    }
+
+    return task;
 };
 
 const assignTask = async (taskId, committeeMemberId) => {
@@ -274,6 +278,26 @@ const updateStatus = async (taskId, newStatus) => {
         }
     });
 
+    if (!task) {
+        throw new Error("Task not found");
+    }
+
+    const allowed = workflow[task.status] || [];
+
+    if (!allowed.includes(newStatus)) {
+        throw new Error(
+            `Cannot move task from ${task.status} to ${newStatus}`
+        );
+    }
+
+    const updateData = {
+        status: newStatus,
+        completedAt:
+            newStatus === "COMPLETED"
+                ? new Date()
+                : null
+    };
+
     return prisma.task.update({
         where: {
             id: taskId
@@ -283,38 +307,6 @@ const updateStatus = async (taskId, newStatus) => {
             committee: true
         }
     });
-
-    if (!task) {
-        throw new Error("Task not found");
-    }
-
-    const allowed = workflow[task.status];
-
-    if (!allowed.includes(newStatus)) {
-        throw new Error(
-            `Cannot move task from ${task.status} to ${newStatus}`
-        );
-    }
-
-    const updateData = {
-        status: newStatus
-    };
-
-    if (newStatus === "COMPLETED") {
-        updateData.completedAt = new Date();
-    } else {
-        updateData.completedAt = null;
-    }
-
-    return prisma.task.update({
-        where:{
-            id:taskId
-        },
-        data:updateData,
-        include:{
-            committee:true
-        }
-    });
 };
 
 const updateTask = async (taskId, data) => {
@@ -322,15 +314,16 @@ const updateTask = async (taskId, data) => {
         where:{
             id:taskId
         },
-        data:{
-            title:data.title,
-            description:data.description,
-            priority:data.priority
+        data: {
+            title: data.title ?? undefined,
+            description: data.description ?? undefined,
+            priority: data.priority
                 ? data.priority.toUpperCase()
                 : undefined,
-            dueDate:data.dueDate
-                ? new Date(data.dueDate)
-                : null
+            dueDate:
+                data.dueDate !== undefined
+                    ? (data.dueDate ? new Date(data.dueDate) : null)
+                    : undefined
         },
         include:{
             committee:true
@@ -343,8 +336,9 @@ const archiveTask = async (taskId) => {
         where:{
             id:taskId
         },
-        data:{
-            isArchived:true
+        data: {
+            isArchived: true,
+            archivedAt: new Date()
         },
         include:{
             committee:true
@@ -353,55 +347,52 @@ const archiveTask = async (taskId) => {
 };
 
 const deleteTask = async (taskId, userId) => {
-    const task = await prisma.task.update({
-        where:{
-            id:taskId
+    const task = await prisma.task.findUnique({
+        where: {
+            id: taskId
         },
-
-        data:{
-            deletedAt:new Date()
-        },
-
-        include:{
-            committee:true
+        include: {
+            committee: true
         }
     });
-
-    return task;
 
     if (!task) {
         throw new Error("Task not found");
     }
 
-    await prisma.task.update({
+    const deletedTask = await prisma.task.update({
         where: {
             id: taskId
         },
         data: {
             deletedAt: new Date()
+        },
+        include: {
+            committee: true
         }
     });
 
     await createAuditLog({
         action: "TASK_DELETED",
         entityType: "Task",
-        entityId: task.id,
-        clubId: task.committee.clubId,
+        entityId: deletedTask.id,
+        clubId: deletedTask.committee.clubId,
         performedById: userId,
         metadata: {
-            title: task.title
+            title: deletedTask.title
         }
     });
 
-    return true;
+    return deletedTask;
 };
 
 const restoreTask = async (taskId) => {
     return prisma.task.update({
         where: { id: taskId },
         data: {
-            deletedAt: null,
-            archivedAt: null
+            isArchived: false,
+            archivedAt: null,
+            deletedAt: null
         },
         include: {
             committee: true
@@ -448,13 +439,15 @@ const reorderTask = async(
     position
 )=>{
     return prisma.task.update({
-        where:{
-            id:taskId
+        where: {
+            id: taskId
         },
-
-        data:{
+        data: {
             status,
             position
+        },
+        include: {
+            committee: true
         }
     });
 };

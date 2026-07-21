@@ -1,6 +1,6 @@
 const router = require("express").Router();
 
-const protect = require("../middleware/protect");
+const {protect} = require("../middleware/authMiddleware");
 
 const controller = require("../controllers/meetingRecordingController");
 

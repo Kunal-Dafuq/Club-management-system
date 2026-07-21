@@ -14,18 +14,11 @@ const {
     reorderTask
 } = require("../controllers/taskController");
 
-const {
-    protect,
-    allowRoles
-} = require("../middleware/authMiddleware");
+const {protect} = require("../middleware/authMiddleware");
 
-const {
-    canManageTask
-} = require("../middleware/taskPermissionMiddleware");
+const {canManageTask} = require("../middleware/taskPermissionMiddleware");
 
-const {
-    canManageCommittee
-} = require("../middleware/permissionMiddleware");
+const {canManageCommittee} = require("../middleware/permissionMiddleware");
 
 router.post(
     "/committee/:committeeId",

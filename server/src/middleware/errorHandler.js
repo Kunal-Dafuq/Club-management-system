@@ -1,7 +1,7 @@
 const Prisma = require("@prisma/client");
 const ApiError = require("../utils/ApiError");
 
-module.exports = (err, req, res, next) => {
+module.exports = (err, req, res) => {
     console.error(err);
 
     if (err instanceof ApiError) {

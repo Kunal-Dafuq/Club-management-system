@@ -1,13 +1,11 @@
-const requestLogger = (req, res, next) => {
-    const start = Date.now();
+module.exports = (req,res,next) => {
+    const started = Date.now();
 
     res.on("finish", () => {
         console.log(
-            `[${req.requestId}] ${req.method} ${req.originalUrl} ${res.statusCode} ${Date.now() - start}ms`
+            `${req.method} ${req.originalUrl} ${res.statusCode} ${Date.now() - started}ms`
         );
     });
 
     next();
 };
-
-module.exports = requestLogger;

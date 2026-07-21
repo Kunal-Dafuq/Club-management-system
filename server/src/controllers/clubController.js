@@ -30,8 +30,8 @@ const createClub = asyncHandler(async (req, res) => {
 
     if(existingClub){
       throw new ApiError(
-        401,
-        "Club already exists"
+          409,
+          "Club already exists."
       );
     }
 
@@ -237,9 +237,7 @@ const getClubBySlug = asyncHandler(async (req, res) => {
 
         if (!club) {
             return res.status(404).json({
-
                 message: "Club not found"
-
             });
         }
         res.json(club);
@@ -265,9 +263,10 @@ const updateClub = asyncHandler(async (req, res) => {
     });
 
     if(!existingClub){
-      return res.status(404).json({
-        message:"Club not found"
-      });
+      throw new ApiError(
+          404,
+          "Club not found."
+      );
     }
 
     const updatedClub = await prisma.club.update({
@@ -286,50 +285,55 @@ const updateClub = asyncHandler(async (req, res) => {
       }
     });
 
-    res.json({
-      message:"Club updated",
-      club:updatedClub
+    res.status(200).json({
+        success: true,
+        message: "Club updated successfully.",
+        club: updatedClub
     });
 });
 
 const deleteClub = asyncHandler(async (req, res) => {
-    const { id } = req.params;
-    const existingClub = await prisma.club.findUnique({
-      where:{
-        id:Number(id)
-      }
+    const clubId = Number(req.params.id);
+
+    const club = await prisma.club.findUnique({
+        where: {
+            id: clubId
+        }
     });
 
-    if(!existingClub){
-      return res.status(404).json({
-        message:"Club not found"
-      });
+    if (!club) {
+        throw new ApiError(
+            404,
+            "Club not found."
+        );
     }
 
     await prisma.club.update({
-      where:{
-          id:Number(id)
-      },
-      data:{
-          deletedAt:new Date()
-      }
+        where: {
+            id: clubId
+        },
+        data: {
+            deletedAt: new Date()
+        }
     });
 
-    await createAuditLog({
-      action:"CLUB_DELETED",
-      entityType:"Club",
-      entityId:id,
-      performedById:req.user.id,
-      description:`Deleted club ${existingClub.name}`,
-      metadata:{
-          clubName:club.name
-      },
-      ipAddress:req.ip,
-      userAgent:req.headers["user-agent"]
-  });
+    await auditLogger(req, {
+        action: "CLUB_DELETED",
+        entityType: "Club",
+        entityId: club.id,
+        clubId: club.id,
+        description: `Deleted club "${club.name}"`
+    });
 
-    res.json({
-      message:"Club deleted successfully"
+    req.io
+        ?.to(`club-${club.id}`)
+        .emit("club-deleted", {
+            clubId: club.id
+        });
+
+    res.status(200).json({
+        success: true,
+        message: "Club deleted successfully."
     });
 });
 

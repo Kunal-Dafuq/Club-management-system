@@ -191,10 +191,9 @@ const registerChatSocket = (io) => {
                     );
                 }
 
-                const updated =
-                    await markDelivered(
-                        Number(messageId)
-                    );
+                await markDelivered(
+                    Number(messageId)
+                );
             }
 
             catch (err) {

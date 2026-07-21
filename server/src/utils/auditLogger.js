@@ -1,13 +1,38 @@
-const { createAuditLog } = require("../services/auditService");
+const prisma = require("../config/prisma");
 
-module.exports = async (req, data) => {n
-    return createAuditLog({
-        ...data,
-        performedById: req.user?.id || null,
-        ipAddress:
-            req.headers["x-forwarded-for"] ||
-            req.socket.remoteAddress,
-        userAgent:
-            req.headers["user-agent"] || "Unknown"
-    });
+const auditLogger = async (req,{
+        action,
+        entityType,
+        entityId,
+        metadata = {}
+    }
+) => {
+    try {
+        await prisma.auditLog.create({
+            data: {
+
+                action,
+
+                entityType,
+
+                entityId: entityId
+                    ? String(entityId)
+                    : null,
+
+                performedById:
+                    req.user?.id ?? null,
+
+                metadata
+            }
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Audit Log Error:",
+            error.message
+        );
+    }
 };
+
+module.exports = auditLogger;

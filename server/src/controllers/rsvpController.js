@@ -1,6 +1,6 @@
 const prisma = require("../config/prisma");
-const { createNotification } = require("../services/notificationService");
-const { createActivity } = require("../services/activityService");
+
+const rsvpService = require("../services/rsvpService");
 
 const asyncHandler = require("../middleware/asyncHandler");
 const ApiError = require("../utils/ApiError");
@@ -29,14 +29,14 @@ const createRSVP = asyncHandler(async (req, res) => {
 });
 
 const getEventRSVPs = asyncHandler(async (req, res) => {
-    const list = await rsvpService.getEventRSVPs(
+    const attendees = await rsvpService.getEventRSVPs(
         Number(req.params.eventId)
     );
 
     res.json({
         success: true,
-        total: list.length,
-        attendees: list
+        total: attendees.length,
+        attendees
     });
 });
 
@@ -64,39 +64,37 @@ const deleteRSVP = asyncHandler(async (req, res) => {
     });
 });
 
-const getAttendees = async (req, res) => {
-    try {
-        const eventId = Number(req.params.id);
-        const attendees = await prisma.rSVP.findMany({
-            where: { eventId },
-            select: {
-                id: true,
-                status: true,
-                user: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true
-                    }
+const getAttendees = asyncHandler(async (req, res) => {
+    const eventId = Number(req.params.id);
+
+    const attendees = await prisma.rSVP.findMany({
+        where: {
+            eventId
+        },
+        select: {
+            id: true,
+            status: true,
+            user: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true
                 }
             }
-        });
+        }
+    });
 
-        return res.status(200).json({
-            count: attendees.length,
-            attendees
-        });
-
-    } catch (error) {
-        return res.status(500).json({
-            message: error.message
-        });
-    }
-};
+    res.json({
+        success: true,
+        count: attendees.length,
+        attendees
+    });
+});
 
 module.exports = {
     createRSVP,
-    getAttendees,
+    getEventRSVPs,
     updateRSVP,
-    deleteRSVP
+    deleteRSVP,
+    getAttendees
 };

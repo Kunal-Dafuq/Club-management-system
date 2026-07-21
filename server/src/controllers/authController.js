@@ -131,53 +131,66 @@ const login = asyncHandler(async (req, res) => {
 });
 
 const promoteUser = asyncHandler(async (req, res) => {
-    const {
-      email,
-      role
-    } = req.body;
+    const { email, role } = req.body;
 
-    if(
-      !email || !role
-    ){
-      return res.status(400).json({
-        message:"Email and role required"
-      });
+    if (!email || !role) {
+        throw new ApiError(
+            400,
+            "Email and role are required."
+        );
     }
 
-    const allowedRoles=[
-      "MEMBER",
-      "COORDINATOR",
-      "SUPER_ADMIN"
+    const allowedRoles = [
+        "MEMBER",
+        "COORDINATOR",
+        "SUPER_ADMIN"
     ];
 
-    if(!allowedRoles.includes(role)){
-      return res.status(400).json({
-        message:"Invalid role"
-      });
+    if (!allowedRoles.includes(role)) {
+        throw new ApiError(
+            400,
+            "Invalid role."
+        );
     }
 
-    if(!existingUser){
-      throw new ApiError(
-        404,
-        "User not found."
-      );
-    }
-
-    await auditLogger(req,{
-        action:"USER_PROMOTION",
-        entityType:"User",
-        entityId:user.id,
-        description:`${user.name} has been promoted`
+    const user = await prisma.user.findUnique({
+        where: {
+            email
+        }
     });
 
-    res.json({
-      message:"Role updated",
-      user:{
-        id:user.id,
-        name:user.name,
-        email:user.email,
-        role:user.role
-      }
+    if (!user) {
+        throw new ApiError(
+            404,
+            "User not found."
+        );
+    }
+
+    const updatedUser = await prisma.user.update({
+        where: {
+            email
+        },
+        data: {
+            role
+        }
+    });
+
+    await auditLogger(req, {
+        action: "USER_PROMOTION",
+        entityType: "User",
+        entityId: updatedUser.id,
+        description: `${updatedUser.name} promoted to ${updatedUser.role}`
+    });
+
+    res.status(200).json({
+        success: true,
+        message: "Role updated successfully.",
+        user: {
+            id: updatedUser.id,
+            name: updatedUser.name,
+            email: updatedUser.email,
+            role: updatedUser.role
+        }
     });
 });
 

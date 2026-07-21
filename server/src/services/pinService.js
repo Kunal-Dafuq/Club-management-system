@@ -1,5 +1,7 @@
 const prisma = require("../config/prisma");
 
+const auditLogger = require("../utils/auditLogger");
+
 const pinMessage = async (messageId, membershipId) => {
     const message = await prisma.chatMessage.findUnique({
         where: {
@@ -21,13 +23,18 @@ const pinMessage = async (messageId, membershipId) => {
         throw new Error("Message is already pinned.");
     }
 
-    await createAuditLog({
-        action:"PIN_CREATED",
-        entityType:"ChatMessage",
-        entityId:messageId,
-        performedById:
-            membershipId
-    });
+    await auditLogger(
+        {
+            user: {
+                id: membershipId
+            }
+        },
+        {
+            action: "PIN_CREATED",
+            entityType: "ChatMessage",
+            entityId: messageId
+        }
+    );
 
     return prisma.chatPin.create({
         data: {
@@ -88,9 +95,8 @@ const unpinMessage = async (messageId) => {
 
     await prisma.chatPin.delete({
         where: {
-            messageId: Number(messageId),
-        },
-        action:"PIN_REMOVED"
+            messageId: Number(messageId)
+        }
     });
 
     return {

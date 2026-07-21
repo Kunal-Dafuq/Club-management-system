@@ -1,4 +1,3 @@
-const { google } = require("googleapis");
 const prisma = require("../config/prisma");
 const oauth2Client = require("../config/googleOAuth");
 
@@ -6,6 +5,11 @@ const getAuthenticatedClient = async (userId) => {
     const user = await prisma.user.findUnique({
         where: {
             id: userId
+        },
+        select: {
+            googleAccessToken: true,
+            googleRefreshToken: true,
+            googleTokenExpiry: true
         }
     });
 
@@ -18,12 +22,12 @@ const getAuthenticatedClient = async (userId) => {
         refresh_token: user.googleRefreshToken
     });
 
-    const expiry = user.googleTokenExpiry
-        ? new Date(user.googleTokenExpiry).getTime()
-        : 0;
+    const expired =
+        !user.googleTokenExpiry ||
+        Date.now() >=
+        new Date(user.googleTokenExpiry).getTime();
 
-    if (Date.now() >= expiry) {
-
+    if (expired) {
         const { credentials } =
             await oauth2Client.refreshAccessToken();
 
@@ -34,8 +38,12 @@ const getAuthenticatedClient = async (userId) => {
                 id: userId
             },
             data: {
-                googleAccessToken: credentials.access_token,
-                googleTokenExpiry: new Date(credentials.expiry_date)
+                googleAccessToken:
+                    credentials.access_token,
+                googleTokenExpiry:
+                    credentials.expiry_date
+                        ? new Date(credentials.expiry_date)
+                        : null
             }
         });
     }

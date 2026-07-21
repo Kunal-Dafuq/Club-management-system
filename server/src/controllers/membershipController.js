@@ -9,6 +9,23 @@ const ApiError = require("../utils/ApiError");
 const joinClub = asyncHandler(async(req,res)=>{
     const clubId = Number(req.params.id);
     const userId = req.user.id;
+
+    const existingMembership = await prisma.membership.findUnique({
+        where:{
+            userId_clubId:{
+                userId,
+                clubId
+            }
+        }
+    });
+
+    if(existingMembership){
+        throw new ApiError(
+            409,
+            "You are already associated with this club."
+        );
+    }
+
     const membership = await prisma.$transaction(async (tx) => {
         return await tx.membership.create({
             data:{
@@ -63,8 +80,9 @@ const joinClub = asyncHandler(async(req,res)=>{
     );
 
     res.status(201).json({
-      message:"Join request submitted successfully",
-      membership
+        success: true,
+        message: "Join request submitted successfully.",
+        membership
     });
 });
 
@@ -83,12 +101,19 @@ const leaveClub = asyncHandler(async(req,res)=>{
       }
   });
 
-  if(!membership){
-      throw new ApiError(
-          404,
-          "Membership not found."
-      );
-  }
+    if(!membership){
+        throw new ApiError(
+            404,
+            "Membership not found."
+        );
+    }
+
+    if (membership.clubRole === "PRESIDENT") {
+        throw new ApiError(
+            400,
+            "Club president cannot leave the club."
+        );
+    }
     await prisma.$transaction(async(tx)=>{
         await tx.club.update({
             where:{
@@ -126,7 +151,8 @@ const leaveClub = asyncHandler(async(req,res)=>{
     });
 
     res.json({
-      message:"Left club successfully"
+      success: true,
+      message: "Left club successfully"
     });
 });
 
@@ -186,8 +212,18 @@ const getMyClubs = asyncHandler(async(req,res)=>{
         userId
       },
       include:{
-        club:true
-      },
+            club:{
+                select:{
+                    id:true,
+                    name:true,
+                    slug:true,
+                    logoUrl:true,
+                    bannerUrl:true,
+                    verified:true,
+                    memberCount:true
+                }
+            }
+        },
       orderBy:{
         joinedAt:"desc"
       }
@@ -199,19 +235,45 @@ const getMyClubs = asyncHandler(async(req,res)=>{
     });
 });
 
-const approveMember = asyncHandler(async(req,res)=>{
-  const membership = await prisma.membership.findUnique({
+const approveMember = asyncHandler(async (req, res) => {
+    const membershipId = Number(req.params.id);
+
+    const membership = await prisma.membership.findUnique({
       where:{
           id:membershipId
       },
 
       include:{
-          user:true,
-          club:true
-      }
+            user:true,
+            club:{
+                select:{
+                    id:true,
+                    name:true,
+                    slug:true,
+                    logoUrl:true,
+                    bannerUrl:true,
+                    verified:true,
+                    memberCount:true
+                }
+            }
+        }
   });
 
     const updatedMembership=await prisma.$transaction(async(tx)=>{
+        if (!membership) {
+            throw new ApiError(
+                404,
+                "Membership not found."
+            );
+        }
+
+        if (membership.status === "APPROVED") {
+            throw new ApiError(
+                400,
+                "Member is already approved."
+            );
+        }
+
         const updated=await tx.membership.update({
             where:{
                 id:membershipId
@@ -262,7 +324,6 @@ const approveMember = asyncHandler(async(req,res)=>{
 
 const rejectMember = asyncHandler(async(req,res)=>{
     const membershipId = Number(req.params.id);
-    const { clubRole } = req.body;
     
     const membership = await prisma.membership.findUnique({
       where: {
@@ -276,15 +337,16 @@ const rejectMember = asyncHandler(async(req,res)=>{
 
     if (!membership) {
       return res.status(404).json({
+        success: false,
         message: "Membership not found"
       });
     }
 
     if(membership.status==="REJECTED"){
-      throw new ApiError({
-        statusCode: 401,
-        message: "Already rejected"
-      });
+        throw new ApiError(
+            400,
+            "Membership already rejected."
+        );
     }
 
     await prisma.membership.update({
@@ -317,6 +379,7 @@ const rejectMember = asyncHandler(async(req,res)=>{
     });
 
     res.json({
+      success: true,
       message: "Member rejected"
     });
 });
@@ -340,10 +403,16 @@ const getPendingRequests = asyncHandler(async(req,res)=>{
       }
     });
 
-    res.json(requests);
+    res.json({
+        success: true,
+        total: requests.length,
+        requests
+    });
 });
 
-const promoteMember = asyncHandler(async(req,res)=>{
+const promoteMember = asyncHandler(async (req, res) => {
+    const membershipId = Number(req.params.id);
+
     const membership=await prisma.membership.findUnique({
         where:{
             id:membershipId
@@ -357,13 +426,29 @@ const promoteMember = asyncHandler(async(req,res)=>{
         );
     }
 
-    const updatedMembership=await prisma.membership.update({
-        where:{
-            id:membershipId
-        },
-        data:{
-            clubRole
-        }
+    const { clubRole } = req.body;
+
+    if (
+      ![
+        "MEMBER",
+        "COORDINATOR",
+        "LEAD",
+        "PRESIDENT"
+      ].includes(clubRole)
+    ) {
+      throw new ApiError(
+        400,
+        "Invalid club role."
+      );
+    }
+
+    const updatedMembership = await prisma.membership.update({
+      where: {
+        id: membershipId
+      },
+      data: {
+        clubRole
+      }
     });
 
     await createActivity({
@@ -410,7 +495,12 @@ const getCommittee = asyncHandler(async(req,res)=>{
                 clubRole: "asc"
             }
         });
-        res.json(committee);
+
+        res.json({
+            success: true,
+            total: committee.length,
+            committee
+        });
 });
 
 const getClubAnalytics = asyncHandler(async(req,res)=>{
@@ -453,10 +543,13 @@ const getClubAnalytics = asyncHandler(async(req,res)=>{
             });
 
         res.json({
-            approved,
-            pending,
-            rejected,
-            leads
+            success: true,
+            analytics: {
+                approved,
+                pending,
+                rejected,
+                leads
+            }
         });
 });
 

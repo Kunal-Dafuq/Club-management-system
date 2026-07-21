@@ -3,8 +3,17 @@ const auditLogger = require("../utils/auditLogger");
 const asyncHandler=require("../middleware/asyncHandler");
 const ApiError=require("../utils/ApiError");
 
-const createCommittee = asyncHandler(async(req,res)=>{
-        const committee = await committeeService.createCommittee(
+const createCommittee = asyncHandler(async (req, res) => {
+    const clubId = Number(req.params.clubId);
+
+    if (!clubId) {
+        throw new ApiError(
+            400,
+            "Invalid club id."
+        );
+    }
+
+    const committee = await committeeService.createCommittee(
         clubId,
         req.body
     );
@@ -17,6 +26,10 @@ const createCommittee = asyncHandler(async(req,res)=>{
         clubId: committee.clubId
     });
 
+    req.io
+        ?.to(`club-${committee.clubId}`)
+        .emit("committee-created", committee);
+
     res.status(201).json({
         success: true,
         committee
@@ -28,7 +41,10 @@ const getClubCommittees = asyncHandler(async(req,res)=>{
             Number(req.params.clubId)
         );
 
-        res.json(committees);
+        res.status(200).json({
+            success: true,
+            committees
+        });
 });
 
 const getCommittee = asyncHandler(async(req,res)=>{
@@ -63,7 +79,8 @@ const updateCommittee = asyncHandler(async(req,res)=>{
             clubId:committee.clubId
         });
 
-        res.json({
+        res.status(200).json({
+            success: true,
             committee
         });
 });
@@ -99,7 +116,10 @@ const restoreCommittee = asyncHandler(async(req,res)=>{
             clubId:committee.clubId
         });
 
-        res.json(committee);
+        res.status(200).json({
+            success: true,
+            committee
+        });
 });
 
 const addCommitteeMember = asyncHandler(async(req,res)=>{
@@ -150,7 +170,10 @@ const updateCommitteeMemberRole = asyncHandler(async(req,res)=>{
             description:`Role changed to ${member.role}`
         });
 
-        res.json(member);
+        res.status(200).json({
+            success: true,
+            member
+        });
 });
 
 const getCommitteeStatistics = asyncHandler(async(req,res)=>{
@@ -158,7 +181,10 @@ const getCommitteeStatistics = asyncHandler(async(req,res)=>{
             Number(req.params.id)
         );
 
-        res.json(stats);
+        res.status(200).json({
+            success: true,
+            stats
+        });
 });
 
 module.exports={

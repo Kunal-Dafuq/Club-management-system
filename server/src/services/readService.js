@@ -1,23 +1,32 @@
 const prisma = require("../config/prisma");
 
 const markAsRead = async (messageId, membershipId) => {
-    if(!message || !message.room){
+    const message = await prisma.chatMessage.findUnique({
+        where: {
+            id: Number(messageId)
+        },
+        include: {
+            room: true
+        }
+    });
+
+    if (!message || !message.room) {
         throw new Error("Room not found");
     }
     
     return prisma.chatRead.upsert({
         where: {
             messageId_membershipId: {
-                messageId,
-                membershipId
+                messageId: Number(messageId),
+                membershipId: Number(membershipId)
             }
         },
 
         update: {},
 
         create: {
-            messageId,
-            membershipId
+            messageId: Number(messageId),
+            membershipId: Number(membershipId)
         }
     });
 };

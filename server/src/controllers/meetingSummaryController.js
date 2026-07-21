@@ -4,103 +4,75 @@ const asyncHandler = require("../middleware/asyncHandler");
 const ApiError = require("../utils/ApiError");
 const auditLogger = require("../utils/auditLogger");
 
-const {prepareAudio} = require("../services/ai/audioService");
-
-const {transcribe} = require("../services/ai/whisperService");
-
-const {loadTranscript} = require("../services/ai/transcriptService");
-
-const {generateMeetingSummary} = require("../services/ai/ollamaService");
+const {generateMeetingSummary} = require("../ai/ollamaService");
 
 const generateSummary = asyncHandler(async (req, res) => {
     const meetingId = Number(req.params.id);
 
-    let transcript;
+    const meeting = await prisma.committeeMeeting.findUnique({
+        where: {
+            id: meetingId
+        },
+        include: {
+            summary: true
+        }
+    });
 
-    if (req.file) {
-        const audio = await prepareAudio(
-            req.body.audioUrl
+    if (!meeting) {
+        throw new ApiError(
+            404,
+            "Meeting not found."
         );
+    }
 
-        const transcriptPath = await transcribe(audio);
+    const transcript =
+        req.body.transcript ||
+        meeting.summary?.transcript;
 
-        transcript = await loadTranscript(
-            transcriptPath
-        );
-
-    } else if (req.body.transcript) {    
-        transcript = req.body.transcript;
-    
-    } else {
+    if (!transcript) {
         throw new ApiError(
             400,
-            "Upload audio or provide transcript."
+            "Transcript not available."
         );
     }
 
-    let summary;
+    const ai = await generateMeetingSummary(
+        transcript
+    );
 
-    try {
-        const ai =
-            await generateMeetingSummary(
-                transcript
-            );
+    const summary =
+        await prisma.meetingSummary.upsert({
 
-        summary =
-            await prisma.meetingSummary.upsert({
-                where: {
-                    meetingId
-                },
+            where: {
+                meetingId
+            },
 
-                update: {
-                    transcript,
-                    summary: ai.summary,
-                    actionItems: ai.actionItems,
-                    decisions: ai.decisions,
-                    nextSteps: ai.nextSteps,
-                    generatedByAI: true,
-                    updatedAt: new Date()
-                },
+            update: {
+                transcript,
+                summary: ai.summary,
+                discussionPoints: ai.discussionPoints,
+                decisions: ai.decisions,
+                actionItems: ai.actionItems,
+                nextSteps: ai.nextSteps,
+                generatedByAI: true
+            },
 
-                create: {
-                    meetingId,
-                    transcript,
-                    summary: ai.summary,
-                    actionItems: ai.actionItems,
-                    decisions: ai.decisions,
-                    nextSteps: ai.nextSteps,
-                    generatedByAI: true
-                }
-            });
-    } catch (error) {
-        console.error(error);
-
-        summary =
-            await prisma.meetingSummary.upsert({
-                where: {
-                    meetingId
-                },
-
-                update: {
-                    transcript,
-                    summary:"AI summary could not be generated.",
-                    generatedByAI: false,
-                    updatedAt: new Date()
-                },
-
-                create: {
-                    meetingId,
-                    transcript,
-                    summary:"AI summary could not be generated.",
-                    generatedByAI: false
-                }
-            });
-    }
+            create: {
+                meetingId,
+                transcript,
+                summary: ai.summary,
+                discussionPoints: ai.discussionPoints,
+                decisions: ai.decisions,
+                actionItems: ai.actionItems,
+                nextSteps: ai.nextSteps,
+                generatedByAI: true
+            }
+        });
 
     await auditLogger(req, {
-        action:"MEETING_SUMMARY_GENERATED",
-        entityType:"Meeting",
-        entityId:meetingId
+        action: "MEETING_SUMMARY_GENERATED",
+        entityType: "Meeting",
+        entityId: meetingId
     });
 
     res.json({
@@ -110,8 +82,7 @@ const generateSummary = asyncHandler(async (req, res) => {
 });
 
 const getSummary = asyncHandler(async (req, res) => {
-    const meetingId =
-        Number(req.params.id);
+    const meetingId = Number(req.params.id);
 
     const summary =
         await prisma.meetingSummary.findUnique({

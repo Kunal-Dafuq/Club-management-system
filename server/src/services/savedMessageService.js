@@ -1,9 +1,10 @@
 const prisma = require("../config/prisma");
+const auditLogger = require("../utils/auditLogger");
 
-const toggleSavedMessage = async (
-    membershipId,
-    messageId
-) => {
+const toggleSavedMessage = async (req, membershipId, messageId) => {
+    membershipId = Number(membershipId);
+    messageId = Number(messageId);
+
     const existing = await prisma.savedMessage.findUnique({
         where: {
             membershipId_messageId: {
@@ -20,9 +21,13 @@ const toggleSavedMessage = async (
             }
         });
 
-        return {
-            saved: false
-        };
+        await auditLogger(req, {
+            action: "MESSAGE_UNSAVED",
+            entityType: "ChatMessage",
+            entityId: messageId
+        });
+
+        return { saved: false };
     }
 
     await prisma.savedMessage.create({
@@ -32,23 +37,22 @@ const toggleSavedMessage = async (
         }
     });
 
-    await createAuditLog({
-        action:"MESSAGE_SAVED",
-        entityType:"ChatMessage",
-        entityId:messageId
+    await auditLogger(req, {
+        action: "MESSAGE_SAVED",
+        entityType: "ChatMessage",
+        entityId: messageId
     });
 
-    return {
-        saved: true
-    };
+    return { saved: true };
 };
 
 const getSavedMessages = async (membershipId) => {
+    membershipId = Number(membershipId);
+    
     return prisma.savedMessage.findMany({
         where: {
             membershipId
         },
-
         include: {
             message: {
                 include: {
@@ -60,7 +64,6 @@ const getSavedMessages = async (membershipId) => {
                 }
             }
         },
-
         orderBy: {
             createdAt: "desc"
         }

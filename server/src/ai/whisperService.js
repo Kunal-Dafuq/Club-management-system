@@ -1,6 +1,7 @@
 const { execFile } = require("child_process");
 const util = require("util");
 const path = require("path");
+const fs = require("fs/promises"); 
 
 const exec = util.promisify(execFile);
 
@@ -10,6 +11,8 @@ const transcribe = async (audioPath) => {
         "uploads",
         "transcripts"
     );
+
+    await fs.mkdir(outputDir, { recursive: true });
 
     await exec(
         "whisper",
@@ -28,7 +31,6 @@ const transcribe = async (audioPath) => {
     );
 
     return txt;
-
 };
 
 module.exports = {

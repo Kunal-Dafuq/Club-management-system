@@ -1,72 +1,76 @@
 const prisma = require("../config/prisma");
+const auditLogger = require("../utils/auditLogger");
 
-const toggleStar = async (messageId, membershipId) => {
+const toggleStar = async (req, messageId, membershipId) => {
+    messageId = Number(messageId);
+    membershipId = Number(membershipId);
 
     const existing = await prisma.starredMessage.findUnique({
         where: {
             membershipId_messageId: {
                 membershipId,
-                messageId,
-            },
-        },
+                messageId
+            }
+        }
     });
 
     if (existing) {
         await prisma.starredMessage.delete({
             where: {
-                id: existing.id,
-            },
-            action:"MESSAGE_UNSTARRED"
+                id: existing.id
+            }
+        });
+
+        await auditLogger(req, {
+            action: "MESSAGE_UNSTARRED",
+            entityType: "ChatMessage",
+            entityId: messageId
         });
 
         return {
-            starred: false,
+            starred: false
         };
     }
 
     await prisma.starredMessage.create({
         data: {
             membershipId,
-            messageId,
-        },
+            messageId
+        }
     });
 
-    await createAuditLog({
-        action:"MESSAGE_STARRED",
-        entityType:"ChatMessage",
-        entityId:messageId
+    await auditLogger(req, {
+        action: "MESSAGE_STARRED",
+        entityType: "ChatMessage",
+        entityId: messageId
     });
 
     return {
-        starred: true,
+        starred: true
     };
-
 };
 
 const getStarredMessages = async (membershipId) => {
+    membershipId = Number(membershipId);
+    
     return prisma.starredMessage.findMany({
         where: {
             membershipId,
         },
-
         include: {
             message: {
                 include: {
                     membership: {
                         include: {
                             user: true,
-
                         },
-
                     },
                     reactions: true,
                 },
             },
         },
-
         orderBy: {
             createdAt: "desc",
-
         },
     });
 };

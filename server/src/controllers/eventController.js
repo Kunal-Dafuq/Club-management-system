@@ -4,81 +4,109 @@ const asyncHandler = require("../middleware/asyncHandler");
 const ApiError = require("../utils/ApiError");
 const auditLogger = require("../utils/auditLogger");
 
-const { createNotification } = require("../services/notificationService");
 const { createActivity } = require("../services/activityService");
 
 const {eventSchema,updateEventSchema} = require("../validators/eventValidator");
 
-const createEvent = asyncHandler(async(req,res)=>{
-  const club = await prisma.club.findUnique({
-      where: {
-          id: clubId
-      }
-  });
+const createEvent = asyncHandler(async (req, res) => {
+    const validation = eventSchema.safeParse(req.body);
 
-  if (!club) {
-      throw new ApiError(
-          404,
-          "Club not found."
-      );
-  }
+    if (!validation.success) {
+        throw new ApiError(
+            400,
+            validation.error.errors[0]?.message || "Invalid event data."
+        );
+    }
 
-  const result = await prisma.$transaction(async(tx)=>{
-      const event = await tx.event.create({
-          data:{
-              title,
-              description,
-              startTime,
-              endTime,
-              location,
-              visibility,
-              clubId,
-              createdById
-          }
-      });
+    const {
+        title,
+        description,
+        startTime,
+        endTime,
+        location,
+        visibility,
+        clubId
+    } = validation.data;
 
-      if (req.body.createGoogleMeet === true) {
-          const {createMeet} = require("../services/googleMeetService");
+    const createdById = req.user.id;
 
-          await createMeet(
-              result.id,
-              req.user.id
-          );
-      }
+    const club = await prisma.club.findUnique({
+        where: {
+            id: Number(clubId)
+        }
+    });
 
-      await tx.club.update({
-          where:{
-              id:clubId
-          },
-          data:{
-              eventCount:{
-                  increment:1
-              }
-          }
-      });
+    if (!club) {
+        throw new ApiError(
+            404,
+            "Club not found."
+        );
+    }
 
-      return event ;
-  });
+    const event = await prisma.$transaction(async (tx) => {
 
-  await createActivity({
-    clubId,
-    userId:req.user.id,
-    action:"EVENT_CREATED",
-    description:`${result.title} was created.`
-  });
+        const createdEvent = await tx.event.create({
+            data: {
+                title,
+                description,
+                startTime: new Date(startTime),
+                endTime: new Date(endTime),
+                location,
+                visibility,
+                clubId: Number(clubId),
+                createdById
+            }
+        });
 
-  await auditLogger(req,{
-    action:"EVENT_CREATED",
-    entityType:"Event",
-    entityId:result.id,
-    clubId
-  });
+        await tx.club.update({
+            where: {
+                id: Number(clubId)
+            },
+            data: {
+                eventCount: {
+                    increment: 1
+                }
+            }
+        });
 
-  res.status(201).json({
-    success:true,
-    message:"Event created successfully.",
-    event:result
-  });
+        return createdEvent;
+    });
+
+    if (req.body.createGoogleMeet) {
+
+        const {
+            createMeet
+        } = require("../services/googleMeetService");
+
+        await createMeet(
+            event.id,
+            createdById
+        );
+    }
+
+    await createActivity({
+        clubId: event.clubId,
+        userId: createdById,
+        action: "EVENT_CREATED",
+        description: `${event.title} was created.`
+    });
+
+    await auditLogger(req, {
+        action: "EVENT_CREATED",
+        entityType: "Event",
+        entityId: event.id,
+        clubId: event.clubId
+    });
+
+    req.io
+        ?.to(`club-${event.clubId}`)
+        .emit("event-created", event);
+
+    res.status(201).json({
+        success: true,
+        message: "Event created successfully.",
+        event
+    });
 });
 
 const getEvents = asyncHandler(async(req,res)=>{

@@ -2,6 +2,7 @@ const prisma = require("../config/prisma");
 
 const asyncHandler = require("../middleware/asyncHandler");
 const ApiError = require("../utils/ApiError");
+const auditLogger = require("../utils/auditLogger");
 
 const { createNotification } = require("../services/notificationService");
 const { createActivity } = require("../services/activityService");
@@ -43,7 +44,7 @@ const sendAnnouncement = asyncHandler(async (req, res) => {
     });
 
     await createActivity({
-        clubId,
+        clubId: Number(clubId),
         userId: req.user.id,
         action: "ANNOUNCEMENT",
         description: `Announcement "${title}" posted.`
@@ -71,7 +72,7 @@ const sendAnnouncement = asyncHandler(async (req, res) => {
         action: "ANNOUNCEMENT_CREATED",
         entityType: "Announcement",
         entityId: announcement.id,
-        clubId
+        clubId: Number(clubId)
     });
 
     req.io
@@ -88,7 +89,7 @@ const sendAnnouncement = asyncHandler(async (req, res) => {
 const getAnnouncements = asyncHandler(async (req, res) => {
     const clubId = Number(req.params.clubId);
     const page = Number(req.query.page) || 1;
-    const limit = 20;
+    const limit = Number(req.query.limit) || 20;
 
     const announcements = await prisma.announcement.findMany({
         where: {
@@ -109,9 +110,17 @@ const getAnnouncements = asyncHandler(async (req, res) => {
         }
     });
 
+    const total = await prisma.announcement.count({
+        where: {
+            clubId
+        }
+    });
+
     res.json({
         success: true,
-        total: announcements.length,
+        page,
+        limit,
+        total,
         announcements
     });
 });
@@ -160,8 +169,8 @@ const updateAnnouncement = asyncHandler(async (req, res) => {
     });
 
     req.io
-        ?.to(`club-${announcement.clubId}`)
-        .emit("announcement:update", announcement);
+    ?.to(`club-${announcement.clubId}`)
+    .emit("announcement:update", updated);
 
     res.json({
         success: true,
@@ -177,6 +186,13 @@ const deleteAnnouncement = asyncHandler(async (req, res) => {
             id
         }
     });
+
+    if (!announcement) {
+        throw new ApiError(
+            404,
+            "Announcement not found."
+        );
+    }
 
     if(
         announcement.createdById !== req.user.id &&

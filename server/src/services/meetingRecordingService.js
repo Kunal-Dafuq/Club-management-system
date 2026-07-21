@@ -1,6 +1,6 @@
 const prisma = require("../config/prisma");
 
-const meetingPipeline = require("./ai/meetingPipeline");
+const meetingPipeline = require("../ai/meetingPipeline");
 
 const saveRecording = async ({
     meetingId,

@@ -52,8 +52,9 @@ const deleteFile = async (id, userId) => {
 
     try {
         await fs.unlink(file.fileUrl);
-    }
-    catch (_) {
+        
+    } catch (err) {
+        console.warn("Failed to delete physical file:", err.message);
     }
 
     await prisma.file.delete({

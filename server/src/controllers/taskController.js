@@ -11,10 +11,15 @@ const createTask = asyncHandler(async (req,res)=>{
             req.body
         );
 
-        if(
+        const allowed = [
+            "LEAD",
+            "PRESIDENT"
+        ];
+
+        if (
             !req.membership ||
             !allowed.includes(req.membership.role)
-        ){
+        ) {
             throw new ApiError(
                 403,
                 "Only committee leads can create tasks."

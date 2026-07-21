@@ -1,6 +1,6 @@
-// ==============================
+// ======================================================
 // Core Packages
-// ==============================
+// ======================================================
 
 const express = require("express");
 const cors = require("cors");
@@ -13,116 +13,57 @@ const path = require("path");
 
 const app = express();
 
+// ======================================================
+// Configuration
+// ======================================================
 
-// ==============================
+const tusServer = require("./config/tus");
+
+const apiLimiter = require("./middleware/rateLimiter");
+const security = require("./middleware/security");
+const requestId = require("./middleware/requestId");
+const requestLogger = require("./middleware/requestLogger");
+const notFound = require("./middleware/notFound");
+const errorHandler = require("./middleware/errorHandler");
+
+// ======================================================
 // Environment
-// ==============================
+// ======================================================
 
 const allowedOrigins = [
     process.env.CLIENT_URL,
     "http://localhost:5173"
 ].filter(Boolean);
 
-
-// ==============================
-// Security Middlewares
-// ==============================
-
-const apiLimiter = require("./middleware/rateLimiter");
-const security = require("./middleware/security");
-
-const requestId = require("./middleware/requestId");
-const requestLogger = require("./middleware/requestLogger");
-const notFound = require("./middleware/notFound");
-const errorHandler = require("./middleware/errorHandler");
-
-
-// ==============================
-// External Services
-// ==============================
-
-const tusServer = require("./config/tus");
-
-
-// ==============================
-// Routes
-// ==============================
-
-const authRoutes = require("./routes/authRoutes");
-const clubRoutes = require("./routes/clubRoutes");
-const membershipRoutes = require("./routes/membershipRoutes");
-const eventRoutes = require("./routes/eventRoutes");
-const rsvpRoutes = require("./routes/rsvpRoutes");
-const notificationRoutes = require("./routes/notificationRoutes");
-const announcementRoutes = require("./routes/announcementRoutes");
-const committeeRoutes = require("./routes/committeeRoutes");
-const taskRoutes = require("./routes/taskRoutes");
-const taskCommentRoutes = require("./routes/taskCommentRoutes");
-const taskAttachmentRoutes = require("./routes/taskAttachmentRoutes");
-const meetingRoutes = require("./routes/meetingRoutes");
-const activityRoutes = require("./routes/activityRoutes");
-const chatRoutes = require("./routes/chatRoutes");
-const pinRoutes = require("./routes/pinRoutes");
-const starRoutes = require("./routes/starRoutes");
-const mediaRoutes = require("./routes/mediaRoutes");
-const searchRoutes = require("./routes/searchRoutes");
-const savedMessageRoutes = require("./routes/savedMessageRoutes");
-const readRoutes = require("./routes/readRoutes");
-const uploadRoutes = require("./routes/uploadRoutes");
-const googleAuthRoutes = require("./routes/googleAuthRoutes");
-const meetingSummaryRoutes = require("./routes/meetingSummaryRoutes");
-const meetingPollRoutes = require("./routes/meetingPollRoutes");
-const googleMeetRoutes = require("./routes/googleMeetRoutes");
-const dashboardRoutes = require("./routes/dashboardRoutes");
-const analyticsRoutes = require("./routes/analyticsRoutes");
-const profileRoutes = require("./routes/profileRoutes");
-const reportRoutes = require("./routes/reportRoutes");
-const auditRoutes = require("./routes/auditRoutes");
-const healthRoutes = require("./routes/healthRoute");
-const fileRoutes = require("./routes/fileRoutes");
-const exportRoutes = require("./routes/exportRoutes");
-const systemRoutes = require("./routes/systemRoutes");
-const adminRoutes = require("./routes/adminRoutes");
-const clubDashboardRoutes = require("./routes/clubDashboardRoutes");
-const meetingRecordingRoutes = require("./routes/meetingRecordingRoutes");
-
-
-// ===================================================
-// Trust Proxy
-// ===================================================
+// ======================================================
+// Express Settings
+// ======================================================
 
 app.set("trust proxy", 1);
-
-
-// ===================================================
-// Hide Express
-// ===================================================
-
 app.disable("x-powered-by");
 
-
-// ===================================================
+// ======================================================
 // Request Tracking
-// ===================================================
+// ======================================================
 
 app.use(requestId);
 app.use(requestLogger);
 
-
-// ===================================================
+// ======================================================
 // Logging
-// ===================================================
+// ======================================================
 
-if (process.env.NODE_ENV === "development") {
-    app.use(morgan("dev"));
-} else {
-    app.use(morgan("combined"));
-}
+app.use(
+    morgan(
+        process.env.NODE_ENV === "development"
+            ? "dev"
+            : "combined"
+    )
+);
 
-
-// ===================================================
+// ======================================================
 // Security
-// ===================================================
+// ======================================================
 
 app.use(
     helmet({
@@ -137,20 +78,15 @@ app.use(hpp());
 
 app.use(compression());
 
-
-// ===================================================
-// Rate Limiting
-// ===================================================
-
 app.use(apiLimiter);
 
-
-// ===================================================
+// ======================================================
 // CORS
-// ===================================================
+// ======================================================
 
 app.use(
     cors({
+
         origin(origin, callback) {
 
             if (
@@ -163,6 +99,7 @@ app.use(
             callback(
                 new Error("CORS Not Allowed")
             );
+
         },
 
         credentials: true,
@@ -177,8 +114,8 @@ app.use(
         ],
 
         allowedHeaders: [
-            "Content-Type",
-            "Authorization"
+            "Authorization",
+            "Content-Type"
         ],
 
         exposedHeaders: [
@@ -189,10 +126,9 @@ app.use(
 
 app.options(/.*/, cors());
 
-
-// ===================================================
-// Body Parsers
-// ===================================================
+// ======================================================
+// Body Parser
+// ======================================================
 
 app.use(
     express.json({
@@ -207,10 +143,9 @@ app.use(
     })
 );
 
-
-// ===================================================
+// ======================================================
 // Cookies
-// ===================================================
+// ======================================================
 
 app.use(
     cookieParser(
@@ -218,136 +153,153 @@ app.use(
     )
 );
 
-
-// ===================================================
+// ======================================================
 // Socket Injection
-// ===================================================
+// ======================================================
 
 app.use((req, res, next) => {
+
     req.io = app.get("io");
+
     next();
+
 });
 
-
-// ===================================================
+// ======================================================
 // Static Files
-// ===================================================
+// ======================================================
 
 app.use(
     "/uploads",
     express.static(
-        path.join(__dirname, "../uploads")
+        path.join(
+            __dirname,
+            "../uploads"
+        )
     )
 );
 
-app.use("/media", mediaRoutes);
-
-
-// ===================================================
+// ======================================================
 // API Routes
-// ===================================================
+// ======================================================
 
-app.use("/api/auth", authRoutes);
+const routes = [
 
-app.use("/api/clubs", clubRoutes);
-app.use("/api/clubs", membershipRoutes);
+    ["/api/auth", require("./routes/authRoutes")],
 
-app.use("/api/events", eventRoutes);
-app.use("/api/events", rsvpRoutes);
+    ["/api/clubs", require("./routes/clubRoutes")],
+    ["/api/clubs", require("./routes/membershipRoutes")],
+    ["/api/clubs", require("./routes/clubDashboardRoutes")],
 
-app.use("/api/notifications", notificationRoutes);
+    ["/api/events", require("./routes/eventRoutes")],
+    ["/api/events", require("./routes/rsvpRoutes")],
 
-app.use("/api/announcements", announcementRoutes);
+    ["/api/chat", require("./routes/chatRoutes")],
 
-app.use("/api/upload", uploadRoutes);
+    ["/api/notifications", require("./routes/notificationRoutes")],
 
-app.use("/api/chat", chatRoutes);
+    ["/api/announcements", require("./routes/announcementRoutes")],
 
-app.use("/api/committees", committeeRoutes);
+    ["/api/committees", require("./routes/committeeRoutes")],
 
-app.use("/api/tasks", taskRoutes);
-app.use("/api/task-comments", taskCommentRoutes);
-app.use("/api/task-attachments", taskAttachmentRoutes);
+    ["/api/tasks", require("./routes/taskRoutes")],
 
-app.use("/api/meetings", meetingRoutes);
+    ["/api/task-comments", require("./routes/taskCommentRoutes")],
 
-app.use("/api/activity", activityRoutes);
+    ["/api/task-attachments", require("./routes/taskAttachmentRoutes")],
 
-app.use("/api/pins", pinRoutes);
+    ["/api/meetings", require("./routes/meetingRoutes")],
 
-app.use("/api/stars", starRoutes);
+    ["/api/meeting-summary", require("./routes/meetingSummaryRoutes")],
 
-app.use("/api/search", searchRoutes);
+    ["/api/meeting-polls", require("./routes/meetingPollRoutes")],
 
-app.use("/api/saved-messages", savedMessageRoutes);
+    ["/api/meeting-recordings",require("./routes/meetingRecordingRoutes")],
 
-app.use("/api/read", readRoutes);
+    ["/api/activity", require("./routes/activityRoutes")],
 
-app.use("/api/google", googleAuthRoutes);
+    ["/api/dashboard", require("./routes/dashboardRoutes")],
 
-app.use("/api/google-meet", googleMeetRoutes);
+    ["/api/analytics", require("./routes/analyticsRoutes")],
 
-app.use("/api/meeting-summary", meetingSummaryRoutes);
+    ["/api/profile", require("./routes/profileRoutes")],
 
-app.use("/api/meeting-polls", meetingPollRoutes);
+    ["/api/search", require("./routes/searchRoutes")],
 
-app.use("/api/dashboard", dashboardRoutes);
+    ["/api/upload", require("./routes/uploadRoutes")],
 
-app.use("/api/analytics", analyticsRoutes);
+    ["/api/files", require("./routes/fileRoutes")],
 
-app.use("/api/profile", profileRoutes);
+    ["/media", require("./routes/mediaRoutes")],
 
-app.use("/api/reports", reportRoutes);
+    ["/api/pins", require("./routes/pinRoutes")],
 
-app.use("/api/audit", auditRoutes);
+    ["/api/stars", require("./routes/starRoutes")],
 
-app.use("/api/files", fileRoutes);
+    ["/api/read", require("./routes/readRoutes")],
 
-app.use("/api/export", exportRoutes);
+    ["/api/saved-messages", require("./routes/savedMessageRoutes")],
 
-app.use("/api/system", systemRoutes);
+    ["/api/google", require("./routes/googleAuthRoutes")],
 
-app.use("/health", healthRoutes);
+    ["/api/google-meet", require("./routes/googleMeetRoutes")],
 
-app.use("/api/admin", adminRoutes);
+    ["/api/reports", require("./routes/reportRoutes")],
 
-app.use("/api/clubs", clubDashboardRoutes);
+    ["/api/export", require("./routes/exportRoutes")],
 
-app.use("/api/meeting-recordings",meetingRecordingRoutes);
+    ["/api/audit", require("./routes/auditRoutes")],
 
-// ===================================================
-// Tus Upload Server
-// ===================================================
+    ["/api/system", require("./routes/systemRoutes")],
+
+    ["/api/admin", require("./routes/adminRoutes")],
+
+    ["/health", require("./routes/healthRoute")]
+
+];
+
+routes.forEach(([path, router]) => {
+    app.use(path, router);
+});
+
+// ======================================================
+// Tus Upload
+// ======================================================
 
 app.use("/files", (req, res) => {
     tusServer.handle(req, res);
 });
 
-
-// ===================================================
+// ======================================================
 // Root
-// ===================================================
+// ======================================================
 
 app.get("/", (req, res) => {
 
-    res.send("ClubPlanet API Running 🚀");
+    res.json({
+
+        success: true,
+
+        service: "ClubPlanet Backend",
+
+        status: "Running",
+
+        environment:
+            process.env.NODE_ENV,
+
+        timestamp:
+            new Date().toISOString()
+
+    });
 
 });
 
-
-// ===================================================
-// 404 Handler
-// ===================================================
+// ======================================================
+// Error Handling
+// ======================================================
 
 app.use(notFound);
 
-
-// ===================================================
-// Error Handlers
-// ===================================================
-
 app.use(errorHandler);
-
-// ===================================================
 
 module.exports = app;
