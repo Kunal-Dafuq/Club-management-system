@@ -151,24 +151,26 @@ const updateTask = asyncHandler(async (req,res)=>{
     });;
 });
 
-const archiveTask = asyncHandler(async (req,res)=>{
-        const task = await taskService.archiveTask(
-            Number(req.params.taskId)
-        );
+const archiveTask = asyncHandler(async (req, res) => {
+    const task = await taskService.archiveTask(
+        Number(req.params.taskId)
+    );
 
-        req.io
+    req.io
         ?.to(`committee-${task.committeeId}`)
         .emit("task-updated", task);
-        await auditLogger(req,{
-            action:"TASK_ARCHIVED",
-            entityType:"Task",
-            entityId:task.id
-        });
 
-        res.json({
-        success:true,
+    await auditLogger(req, {
+        action: "TASK_ARCHIVED",
+        entityType: "Task",
+        entityId: task.id
+    });
+
+    return res.status(200).json({
+        success: true,
+        message: "Task successfully archived",
         task
-    });;
+    });
 });
 
 const restoreTask = asyncHandler(async (req, res) => {

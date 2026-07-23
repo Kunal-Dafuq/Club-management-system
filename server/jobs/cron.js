@@ -1,17 +1,10 @@
 const cron = require("node-cron");
 
-const {
-    sendUpcomingMeetingReminders,
-    sendEventReminders
-} = require("../src/services/reminderService");
-
-const {
-    cleanupSoftDeleted,
-    cleanupTempFiles
-} = require("../src/services/cleanupService");
+const {sendUpcomingMeetingReminders,sendEventReminders} = require("../src/services/reminderService");
+const {cleanupSoftDeleted,cleanupTempFiles} = require("../src/services/cleanupService");
 
 const REMINDER_CRON = process.env.REMINDER_CRON || "*/30 * * * *"; // Every 30 mins
-const CLEANUP_CRON = process.env.CLEANUP_CRON || "0 2 * * *";      // 2:00 AM daily
+const CLEANUP_CRON = process.env.CLEANUP_CRON || "0 2 * * *";     // 2:00 AM daily
 
 let isReminderRunning = false;
 let isCleanupRunning = false;

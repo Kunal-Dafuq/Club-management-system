@@ -1,107 +1,145 @@
-import { Routes, Route } from "react-router-dom";
+import { useEffect } from "react";
+import {
+    BrowserRouter,
+    Routes,
+    Route
+} from "react-router-dom";
+
+import { AuthProvider } from "./context/AuthContext";
+
+import socket from "./socket/socket";
+
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
-import DashboardLayout from "./layout/DashboardLayout";
 import Clubs from "./pages/Clubs";
+import ClubDetails from "./pages/ClubDetails";
+import ClubProfile from "./pages/ClubProfile";
 import Events from "./pages/Events";
 import CreateEvent from "./pages/CreateEvent";
 import Notifications from "./pages/Notifications";
 import Profile from "./pages/Profile";
-import ProtectedRoute from "./components/ProtectedRoute";
-import ClubProfile from "./pages/ClubProfile";
 import PinnedMessages from "./pages/PinnedMessages";
-import ClubDetails from "./pages/ClubDetails";
 
-function App() {
-  return (
-    <Routes>
-      <Route
-        path="/"
-        element={<Home />}
-      />
+import DashboardLayout from "./layout/DashboardLayout";
+import ProtectedRoute from "./components/ProtectedRoute";
 
-      <Route
-        path="/login"
-        element={<Login />}
-      />
+import MeetingUploader from "./features/meetings/MeetingUploader";
+import MeetingRecorder from "./features/meetings/MeetingRecorder";
 
-      <Route
-        path="/register"
-        element={<Register />}
-      />
+function AppRoutes() {
+    useEffect(() => {
+        const token = localStorage.getItem("token");
 
-      <Route
-        element={
-          <ProtectedRoute>
-            <DashboardLayout />
-          </ProtectedRoute>
+        if (!token) {
+            return;
         }
-      >
 
-        <Route
-          path="/dashboard"
-          element={<Dashboard />}
-        />
+        socket.auth = {
+            token
+        };
 
-        <Route
-          path="/clubs"
-          element={<Clubs />}
-        />
+        socket.connect();
 
-        <Route
-          path="/clubs/:id"
-          element={<ClubDetails/>}
-          />
+        return () => {
+            socket.disconnect();
+        };
+    }, []);
 
-        <Route
-          path="/clubs/:id"
-          element={<ClubProfile/>}
-        />
+    return (
+        <Routes>
+            <Route
+                path="/"
+                element={<Home />}
+            />
 
-        <Route
-          path="/events"
-          element={<Events />}
-        />
+            <Route
+                path="/login"
+                element={<Login />}
+            />
 
-        <Route
-          path="create-event"
-          element={<CreateEvent />}
-        />
+            <Route
+                path="/register"
+                element={<Register />}
+            />
 
-        <Route
-          path="/notifications"
-          element={<Notifications />}
-        />
+            <Route
+                element={
 
-        <Route
-          path="/profile"
-          element={<Profile />}
-        />
+                    <ProtectedRoute>
 
-        <Route
-          path="/chat/:roomId/pins"
-          element={<PinnedMessages />}
-        />
+                        <DashboardLayout />
 
-      </Route>
-    </Routes>
-  );
+                    </ProtectedRoute>
+
+                }
+            >
+                <Route
+                    path="/dashboard"
+                    element={<Dashboard />}
+                />
+
+                <Route
+                    path="/clubs"
+                    element={<Clubs />}
+                />
+
+                <Route
+                    path="/clubs/:id"
+                    element={<ClubDetails />}
+                />
+
+                <Route
+                    path="/club-profile/:id"
+                    element={<ClubProfile />}
+                />
+
+                <Route
+                    path="/events"
+                    element={<Events />}
+                />
+
+                <Route
+                    path="/create-event"
+                    element={<CreateEvent />}
+                />
+
+                <Route
+                    path="/notifications"
+                    element={<Notifications />}
+                />
+
+                <Route
+                    path="/profile"
+                    element={<Profile />}
+                />
+
+                <Route
+                    path="/chat/:roomId/pins"
+                    element={<PinnedMessages />}
+                />
+
+                <Route
+                    path="/meetings/upload"
+                    element={<MeetingUploader />}
+                />
+
+                <Route
+                    path="/meetings/record"
+                    element={<MeetingRecorder />}
+                />
+            </Route>
+      </Routes>
+    );
 }
 
-import socket from "../socket/socket";
-
-useEffect(() => {
-
-    if (token) {
-        socket.connect();
-    }
-
-    return () => {
-        socket.disconnect();
-    };
-
-}, [token]);
-
-export default App;
+export default function App() {
+    return (
+        <BrowserRouter>
+            <AuthProvider>
+                <AppRoutes />
+            </AuthProvider>
+        </BrowserRouter>
+    );
+}

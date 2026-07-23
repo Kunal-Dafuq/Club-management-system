@@ -14,7 +14,7 @@ const createEvent = asyncHandler(async (req, res) => {
     if (!validation.success) {
         throw new ApiError(
             400,
-            validation.error.errors[0]?.message || "Invalid event data."
+            validation.error?.errors?.[0]?.message || "Invalid event data."
         );
     }
 

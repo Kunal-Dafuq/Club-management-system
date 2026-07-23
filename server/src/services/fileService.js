@@ -1,22 +1,17 @@
-const fs = require("fs/promises");
 const prisma = require("../config/prisma");
-
 const ApiError = require("../utils/ApiError");
 
-const uploadFile = async (file, user) => {
-    if (!file) {
-        throw new ApiError(
-            400,
-            "No file uploaded."
-        );
+const uploadFile = async (data, user) => {
+    if (!data || !data.fileUrl) {
+        throw new ApiError(400, "File data is missing.");
     }
 
     return prisma.file.create({
         data: {
-            fileName: file.originalname,
-            fileUrl: file.path,
-            mimeType: file.mimetype,
-            size: file.size,
+            fileName: data.fileName,
+            fileUrl: data.fileUrl,
+            mimeType: data.mimeType,
+            size: data.size,
             uploadedById: user.id
         }
     });
@@ -24,44 +19,27 @@ const uploadFile = async (file, user) => {
 
 const getFile = async (id) => {
     const file = await prisma.file.findUnique({
-        where: {
-            id
-        }
+        where: { id }
     });
 
     if (!file) {
-        throw new ApiError(
-            404,
-            "File not found."
-        );
+        throw new ApiError(404, "File not found.");
     }
 
     return file;
-
 };
 
 const deleteFile = async (id, userId) => {
     const file = await getFile(id);
 
     if (file.uploadedById !== userId) {
-        throw new ApiError(
-            403,
-            "You cannot delete this file."
-        );
-    }
-
-    try {
-        await fs.unlink(file.fileUrl);
-        
-    } catch (err) {
-        console.warn("Failed to delete physical file:", err.message);
+        throw new ApiError(403, "You cannot delete this file.");
     }
 
     await prisma.file.delete({
-        where: {
-            id
-        }
+        where: { id }
     });
+
     return true;
 };
 

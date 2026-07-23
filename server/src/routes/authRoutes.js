@@ -4,6 +4,7 @@ const {allowRoles} = require("../middleware/roleMiddleware");
 const {
     register,
     login ,
+    getMe ,
     promoteUser
 } = require("../controllers/authController");
 
@@ -20,6 +21,12 @@ router.post(
     "/login",
     authLimiter,
     login
+);
+
+router.get(
+    "/me",
+    protect,
+    getMe
 );
 
 router.put(

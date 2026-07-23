@@ -1,8 +1,8 @@
 const router = require("express").Router();
-
 const { protect } = require("../middleware/authMiddleware");
 
 const {
+    createChatRoom,
     sendMessage,
     getMessages,
     editChatMessage,
@@ -13,9 +13,29 @@ const {
     uploadChatFile
 } = require("../controllers/chatController");
 
-router.post("/room/:roomId", protect, sendMessage);
-router.get("/room/:roomId", protect, getMessages);
-router.post("/reaction/:messageId", protect, toggleReaction);
+router.post(
+    "/rooms", 
+    protect, 
+    createChatRoom
+);
+
+router.post(
+    "/room/:roomId", 
+    protect, 
+    sendMessage
+);
+
+router.get(
+    "/room/:roomId", 
+    protect, 
+    getMessages
+);
+
+router.post(
+    "/reaction/:messageId", 
+    protect, 
+    toggleReaction
+);
 
 router.put(
     "/room/:roomId/:messageId",

@@ -1,6 +1,5 @@
 const prisma = require("../config/prisma");
 const workflow = require("../utils/taskWorkflow");
-
 const { createAuditLog } = require("./auditService");
 
 const createTask = async (
@@ -54,7 +53,6 @@ const createTask = async (
         }
 
         const count = await tx.task.count({
-
             where: {
                 committeeId,
                 isArchived: false
@@ -113,12 +111,14 @@ const createTask = async (
             await tx.notification.createMany({
                 data: heads.map(head => ({
                     userId: head.membership.userId,
-
-                    message:
-                        `New task "${task.title}" has been created.`
+                    title: "New Task Created",
+                    category: "INFO",
+                    type: "TASK", 
+                    message: `New task "${task.title}" has been created.`
                 }))
             });
         }
+
         return tx.task.findUnique({
             where: {
                 id: task.id
@@ -234,21 +234,19 @@ const assignTask = async (taskId, committeeMemberId) => {
     }
 
     const updatedTask = await prisma.task.update({
-        where:{
-            id:taskId
+        where: {
+            id: taskId
         },
-
-        data:{
-            assignedToId:committeeMemberId
+        data: {
+            assignedToId: committeeMemberId
         },
-
-        include:{
-            committee:true,
-            assignedTo:{
-                include:{
-                    membership:{
-                        include:{
-                            user:true
+        include: {
+            committee: true,
+            assignedTo: {
+                include: {
+                    membership: {
+                        include: {
+                            user: true
                         }
                     }
                 }
@@ -257,12 +255,15 @@ const assignTask = async (taskId, committeeMemberId) => {
     });
 
     await prisma.notification.create({
-        data:{
+        data: {
             userId:
                 updatedTask
-                .assignedTo
-                .membership
-                .userId,
+                    .assignedTo
+                    .membership
+                    .userId,
+            title: "Task Assigned",
+            category: "INFO",
+            type: "TASK", 
             message:
                 `You were assigned "${updatedTask.title}".`
         }
@@ -311,8 +312,8 @@ const updateStatus = async (taskId, newStatus) => {
 
 const updateTask = async (taskId, data) => {
     return prisma.task.update({
-        where:{
-            id:taskId
+        where: {
+            id: taskId
         },
         data: {
             title: data.title ?? undefined,
@@ -325,23 +326,23 @@ const updateTask = async (taskId, data) => {
                     ? (data.dueDate ? new Date(data.dueDate) : null)
                     : undefined
         },
-        include:{
-            committee:true
+        include: {
+            committee: true
         }
     });
 };
 
 const archiveTask = async (taskId) => {
     return prisma.task.update({
-        where:{
-            id:taskId
+        where: {
+            id: taskId
         },
         data: {
             isArchived: true,
             archivedAt: new Date()
         },
-        include:{
-            committee:true
+        include: {
+            committee: true
         }
     });
 };
@@ -410,21 +411,16 @@ const getTaskStatistics = async (committeeId) => {
 
     return {
         total: tasks.length,
-
         todo: tasks.filter(t => t.status === "TODO").length,
-
         inProgress: tasks.filter(
             t => t.status === "IN_PROGRESS"
         ).length,
-
         review: tasks.filter(
             t => t.status === "REVIEW"
         ).length,
-
         completed: tasks.filter(
             t => t.status === "COMPLETED"
         ).length,
-
         overdue: tasks.filter(task =>
             task.dueDate &&
             task.status !== "COMPLETED" &&
@@ -433,11 +429,11 @@ const getTaskStatistics = async (committeeId) => {
     };
 };
 
-const reorderTask = async(
+const reorderTask = async (
     taskId,
     status,
     position
-)=>{
+) => {
     return prisma.task.update({
         where: {
             id: taskId

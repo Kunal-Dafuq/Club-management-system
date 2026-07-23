@@ -1,4 +1,5 @@
 const permissionService = require("../services/permissionService");
+const prisma = require("../config/prisma");
 
 const canManageCommittee = async (
     req,
@@ -6,11 +7,20 @@ const canManageCommittee = async (
     next
 ) => {
     try {
-        const committeeId =
-            Number(
-                req.params.committeeId ||
-                req.params.id
-            );
+        let committeeId = Number(
+            req.params.committeeId ||
+            req.params.id
+        );
+
+        if (!committeeId && req.params.taskId) {
+            const task = await prisma.task.findUnique({
+                where: { id: Number(req.params.taskId) },
+                select: { committeeId: true }
+            });
+            if (task) {
+                committeeId = task.committeeId;
+            }
+        }
 
         const allowed =
             await permissionService.canManageCommittee(
@@ -24,20 +34,16 @@ const canManageCommittee = async (
             });
         }
         next();
-    }
-
-    catch (err) {
+    } catch (err) {
         console.error(err);
         res.status(500).json({
             message: "Permission check failed"
         });
-
     }
-
 };
 
-const canDeleteCommittee = async (req,res,next) => {
-    try{
+const canDeleteCommittee = async (req, res, next) => {
+    try {
         const committeeId = Number(req.params.id);
 
         const allowed = await permissionService
@@ -46,22 +52,17 @@ const canDeleteCommittee = async (req,res,next) => {
                 committeeId
             );
 
-        if(!allowed){
+        if (!allowed) {
             return res.status(403).json({
-                message:"Only President can delete committee"
+                message: "Only President can delete committee"
             });
-
         }
 
         next();
-
-    }
-
-    catch(err){
+    } catch (err) {
         console.log(err);
-
         res.status(500).json({
-            message:"Permission check failed"
+            message: "Permission check failed"
         });
     }
 };

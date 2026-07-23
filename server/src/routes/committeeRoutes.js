@@ -33,7 +33,7 @@ router.get(
     getCommittee
 );
 
-router.patch(
+router.put(
     "/:id",
     protect,
     updateCommittee

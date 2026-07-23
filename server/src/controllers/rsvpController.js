@@ -6,18 +6,15 @@ const asyncHandler = require("../middleware/asyncHandler");
 const ApiError = require("../utils/ApiError");
 
 const createRSVP = asyncHandler(async (req, res) => {
-    const eventId = Number(req.params.eventId);
+    const eventId = Number(req.params.id);
 
     if (Number.isNaN(eventId)) {
-        throw new ApiError(
-            400,
-            "Invalid event."
-        );
+        throw new ApiError(400, "Invalid event.");
     }
 
     const rsvp = await rsvpService.createRSVP(
+        req,
         eventId,
-        req.user.id,
         req.body.status
     );
 
@@ -42,7 +39,8 @@ const getEventRSVPs = asyncHandler(async (req, res) => {
 
 const updateRSVP = asyncHandler(async (req, res) => {
     const rsvp = await rsvpService.updateRSVP(
-        Number(req.params.id),
+        req,
+        eventId,
         req.body.status
     );
 
@@ -55,7 +53,8 @@ const updateRSVP = asyncHandler(async (req, res) => {
 
 const deleteRSVP = asyncHandler(async (req, res) => {
     await rsvpService.deleteRSVP(
-        Number(req.params.id)
+        req,
+        eventId,
     );
 
     res.json({

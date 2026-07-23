@@ -56,28 +56,28 @@ router.patch(
 router.patch(
     "/:taskId/assign",
     protect,
-    canManageCommittee,
+    canManageTask, 
     assignTask
 );
 
 router.patch(
     "/:taskId/archive",
     protect,
-    canManageCommittee,
+    canManageTask, 
     archiveTask
 );
 
 router.patch(
     "/:taskId/restore",
     protect,
-    canManageCommittee,
+    canManageTask, 
     restoreTask
 );
 
 router.delete(
     "/:taskId",
     protect,
-    canManageCommittee,
+    canManageTask, 
     deleteTask
 );
 

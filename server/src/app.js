@@ -188,7 +188,7 @@ const routes = [
     ["/api/auth", require("./routes/authRoutes")],
 
     ["/api/clubs", require("./routes/clubRoutes")],
-    ["/api/clubs", require("./routes/membershipRoutes")],
+    ["/api/memberships", require("./routes/membershipRoutes")],
     ["/api/clubs", require("./routes/clubDashboardRoutes")],
 
     ["/api/events", require("./routes/eventRoutes")],
@@ -210,7 +210,7 @@ const routes = [
 
     ["/api/meetings", require("./routes/meetingRoutes")],
 
-    ["/api/meeting-summary", require("./routes/meetingSummaryRoutes")],
+    ["/api/meeting-summaries", require("./routes/meetingSummaryRoutes")],
 
     ["/api/meeting-polls", require("./routes/meetingPollRoutes")],
 

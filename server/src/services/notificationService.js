@@ -1,5 +1,4 @@
 const prisma = require("../config/prisma");
-
 const { getIO } = require("../socket/socket");
 const { sendEmail } = require("./emailService");
 
@@ -8,7 +7,7 @@ const createNotification = async ({
     title = "Notification",
     message,
     type = "GENERAL",
-    category = "SYSTEM",
+    category = "INFO", 
     priority = "NORMAL",
     metadata = null,
     actionUrl = null,
@@ -22,33 +21,25 @@ const createNotification = async ({
         throw new Error("userId is required.");
     }
 
-    const notification =
-        await prisma.notification.create({
-            data: {
-                userId,
-                title,
-                message,
-                type,
-                category,
-                priority,
-                metadata,
-                actionUrl
-            }
-        });
+    const notification = await prisma.notification.create({
+        data: {
+            userId,
+            title,
+            message,
+            type,
+            category,
+            priority,
+            metadata,
+            actionUrl
+        }
+    });
 
     if (realtime) {
         try {
             const io = getIO();
-
-            io.to(`user-${userId}`).emit(
-                "notification:new",
-                notification
-            );
+            io.to(`user-${userId}`).emit("notification:new", notification);
         } catch (err) {
-            console.error(
-                "Socket notification failed:",
-                err.message
-            );
+            console.error("Socket notification failed:", err.message);
         }
     }
 
@@ -56,15 +47,11 @@ const createNotification = async ({
         try {
             await sendEmail({
                 to: emailTo,
-                subject:emailSubject || title,
-                html:emailHtml ||`<h3>${title}</h3><p>${message}</p>`
+                subject: emailSubject || title,
+                html: emailHtml || `<h3>${title}</h3><p>${message}</p>`
             });
-
         } catch (err) {
-            console.error(
-                "Email notification failed:",
-                err.message
-            );
+            console.error("Email notification failed:", err.message);
         }
     }
 
@@ -77,7 +64,7 @@ const createBulkNotifications = async (notifications) => {
     });
 };
 
-const deleteNotification = async (notificationId,userId) => {
+const deleteNotification = async (notificationId, userId) => {
     return prisma.notification.delete({
         where: {
             id: notificationId,
@@ -91,7 +78,6 @@ const markAsRead = async (notificationId) => {
         where: {
             id: notificationId
         },
-
         data: {
             isRead: true,
             readAt: new Date()
@@ -105,7 +91,6 @@ const markAllAsRead = async (userId) => {
             userId,
             isRead: false
         },
-
         data: {
             isRead: true,
             readAt: new Date()
@@ -124,17 +109,13 @@ const getUnreadCount = async (userId) => {
     });
 };
 
-const getNotifications = async (userId,options = {}) => {
-    const {
-        limit = 25,
-        page = 1
-    } = options;
+const getNotifications = async (userId, options = {}) => {
+    const { limit = 25, page = 1 } = options;
 
     return prisma.notification.findMany({
         where: {
             userId
         },
-
         orderBy: {
             createdAt: "desc"
         },

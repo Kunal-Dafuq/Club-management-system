@@ -1,7 +1,7 @@
 const Prisma = require("@prisma/client");
 const ApiError = require("../utils/ApiError");
 
-module.exports = (err, req, res) => {
+module.exports = (err, req, res, next) => {
     console.error(err);
 
     if (err instanceof ApiError) {
@@ -32,17 +32,19 @@ module.exports = (err, req, res) => {
         });
     }
 
-    if (
-        err instanceof Prisma.PrismaClientValidationError
-    ) {
+    if (err instanceof Prisma.PrismaClientValidationError) {
         return res.status(400).json({
             success: false,
             message: "Database validation failed."
         });
     }
 
-    return res.status(500).json({
+    const statusCode = err.statusCode || 400; // Defaults to 400 for standard controller errors, or use 500 if preferred
+    const message = err.message || "Internal Server Error";
+
+    return res.status(err.statusCode || 500).json({
         success: false,
-        message: "Internal Server Error"
+        message: message,
+        stack: process.env.NODE_ENV === "development" ? err.stack : undefined
     });
 };

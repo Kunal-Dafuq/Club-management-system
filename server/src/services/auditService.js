@@ -11,19 +11,21 @@ const createAuditLog = async ({
     ipAddress = null,
     userAgent = null
 }) => {
-    return prisma.auditLog.create({
-        data: {
-            action,
-            entityType,
-            entityId,
-            performedById,
-            clubId,
-            description,
-            metadata: metadata || {},
-            ipAddress,
-            userAgent
-        }
-    });
+    try {
+        return await prisma.auditLog.create({
+            data: {
+                action,
+                entityType,
+                entityId,
+                performedById,
+                ...(clubId && { club: { connect: { id: Number(clubId) } } }),
+                description,
+                metadata: metadata || {}
+            }
+        });
+    } catch (err) {
+        console.error("Audit log creation failed:", err.message);
+    }
 };
 
 module.exports = {
