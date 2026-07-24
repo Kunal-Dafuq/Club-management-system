@@ -1,14 +1,7 @@
 import { useEffect } from "react";
-import {
-    BrowserRouter,
-    Routes,
-    Route
-} from "react-router-dom";
-
-import { AuthProvider } from "./context/AuthContext";
-
+import { Routes, Route } from "react-router-dom";
+import useAuth from "./hooks/useAuth";
 import socket from "./socket/socket";
-
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -21,125 +14,59 @@ import CreateEvent from "./pages/CreateEvent";
 import Notifications from "./pages/Notifications";
 import Profile from "./pages/Profile";
 import PinnedMessages from "./pages/PinnedMessages";
-
 import DashboardLayout from "./layout/DashboardLayout";
+import MainLayout from "./layout/MainLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
-
 import MeetingUploader from "./features/meetings/MeetingUploader";
 import MeetingRecorder from "./features/meetings/MeetingRecorder";
 
-function AppRoutes() {
-    useEffect(() => {
-        const token = localStorage.getItem("token");
+function App() {
+    const { token } = useAuth();
 
+    useEffect(() => {
         if (!token) {
+            socket.disconnect();
             return;
         }
 
-        socket.auth = {
-            token
-        };
-
+        socket.auth = { token };
         socket.connect();
 
         return () => {
             socket.disconnect();
         };
-    }, []);
+    }, [token]);
 
     return (
         <Routes>
-            <Route
-                path="/"
-                element={<Home />}
-            />
+            <Route element={<MainLayout />}>
+                <Route index element={<Home />} />
+            </Route>
 
-            <Route
-                path="/login"
-                element={<Login />}
-            />
-
-            <Route
-                path="/register"
-                element={<Register />}
-            />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
 
             <Route
                 element={
-
                     <ProtectedRoute>
-
                         <DashboardLayout />
-
                     </ProtectedRoute>
-
                 }
             >
-                <Route
-                    path="/dashboard"
-                    element={<Dashboard />}
-                />
-
-                <Route
-                    path="/clubs"
-                    element={<Clubs />}
-                />
-
-                <Route
-                    path="/clubs/:id"
-                    element={<ClubDetails />}
-                />
-
-                <Route
-                    path="/club-profile/:id"
-                    element={<ClubProfile />}
-                />
-
-                <Route
-                    path="/events"
-                    element={<Events />}
-                />
-
-                <Route
-                    path="/create-event"
-                    element={<CreateEvent />}
-                />
-
-                <Route
-                    path="/notifications"
-                    element={<Notifications />}
-                />
-
-                <Route
-                    path="/profile"
-                    element={<Profile />}
-                />
-
-                <Route
-                    path="/chat/:roomId/pins"
-                    element={<PinnedMessages />}
-                />
-
-                <Route
-                    path="/meetings/upload"
-                    element={<MeetingUploader />}
-                />
-
-                <Route
-                    path="/meetings/record"
-                    element={<MeetingRecorder />}
-                />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/clubs" element={<Clubs />} />
+                <Route path="/clubs/:id" element={<ClubDetails />} />
+                <Route path="/club-profile/:id" element={<ClubProfile />} />
+                <Route path="/events" element={<Events />} />
+                <Route path="/create-event" element={<CreateEvent />} />
+                <Route path="/notifications" element={<Notifications />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/chat/:roomId/pins" element={<PinnedMessages />} />
+                <Route path="/meetings/upload" element={<MeetingUploader />} />
+                <Route path="/meetings/record" element={<MeetingRecorder />} />
             </Route>
-      </Routes>
+        </Routes>
     );
 }
 
-export default function App() {
-    return (
-        <BrowserRouter>
-            <AuthProvider>
-                <AppRoutes />
-            </AuthProvider>
-        </BrowserRouter>
-    );
-}
+export default App;
