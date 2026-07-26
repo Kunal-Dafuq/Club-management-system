@@ -1,8 +1,7 @@
-// src/services/dashboardService.js
-import { getClubs } from "./clubService";
+import { getClubs } from "../../clubs/services/clubService";
 import { getEvents } from "../../events/services/eventService";
-import { getNotifications } from "./notificationService";
-import { getMyRsvps } from "./rsvpService";
+import { getNotifications } from "../../notifications/services/notificationService";
+import { getMyRsvps } from "../../events/services/rsvpService";
 
 export const getDashboardData = async () => {
     const [clubsRes, eventsRes, notificationsRes, rsvpsRes] = await Promise.all([

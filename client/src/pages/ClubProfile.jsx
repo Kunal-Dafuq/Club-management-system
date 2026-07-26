@@ -1,21 +1,19 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
-import Loader from "../components/Loader";
+import Loader from "../components/common/Loader";
+import { getClub as getClubById } from "../features/clubs/services/clubService";
+import ClubHero from "../features/clubs/components/ClubHero";
+import ClubStats from "../features/clubs/components/ClubStats";
+import LeadershipCard from "../features/clubs/components/LeadershipCard";
+import MembersList from "../features/clubs/components/MembersList";
+import AnnouncementBoard from "../features/clubs/components/AnnouncementBoard";
+import ActivityTimeline from "../features/clubs/components/ActivityTimeline";
+import UpcomingEvents from "../components/home/UpcomingEvents";
 
-import { getClubById } from "../services/clubService";
+import ClubChat from "../features/chat/components/ClubChat";
 
-import ClubHero from "../features/clubs/ClubHero";
-import ClubStats from "../features/clubs/ClubStats";
-import LeadershipCard from "../features/clubs/LeadershipCard";
-import MembersList from "../features/clubs/MembersList";
-import UpcomingEvents from "../features/clubs/UpcomingEvents";
-import AnnouncementBoard from "../features/clubs/AnnouncementBoard";
-import ActivityTimeline from "../features/clubs/ActivityTimeline";
-
-import ClubChat from "../features/clubs/chat/ClubChat";
-
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 
 const ClubProfile = () => {
     const { id } = useParams();

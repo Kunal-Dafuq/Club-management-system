@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { searchMessages } from "../../../../services/chatService";
+import { searchMessages } from "../services/chatService";
 
 export default function useMessageSearch(clubId) {
 

@@ -1,8 +1,8 @@
 import {useEffect,useState} from "react";
 import {useLocation} from "react-router-dom";
-import Loader from "../components/Loader";
-import EventGrid from "../features/events/EventGrid";
-import { getEvents } from "../services/eventService";
+import Loader from "../components/common/Loader";
+import EventGrid from "../features/events/components/EventGrid";
+import { getEvents } from "../features/events/services/eventService";
 
 const Events = () => {
   const location = useLocation();

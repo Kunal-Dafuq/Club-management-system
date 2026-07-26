@@ -1,5 +1,5 @@
-import api from "../api/axios";
-import { handleApi } from "../api/handleApi";
+import api from "../../../api/axios";
+import { handleApi } from "../../../api/handleApi";
 
 export const getImages = (roomId) => {
     return handleApi(() => api.get(`/media/${roomId}/images`));

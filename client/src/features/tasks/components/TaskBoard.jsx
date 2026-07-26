@@ -7,102 +7,69 @@ import {
     DragOverlay,
     pointerWithin,
 } from "@dnd-kit/core";
-
-import {
-    sortableKeyboardCoordinates
-} from "@dnd-kit/sortable";
-
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useState } from "react";
-
 import TaskColumn from "./TaskColumn";
 import TaskCard from "./TaskCard";
 
-export default function TaskBoard({
-    groupedTasks,
-    onDragEnd,
-    openTask
-}){
-    const [activeTask,setActiveTask]=useState(null);
+export default function TaskBoard({ groupedTasks, onDragEnd, openTask }) {
+    const [activeTask, setActiveTask] = useState(null);
 
-    const sensors=useSensors(
-
-        useSensor(PointerSensor,{
-            activationConstraint:{
-                distance:5
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 5
             }
         }),
-
-        useSensor(KeyboardSensor,{
-            coordinateGetter:sortableKeyboardCoordinates
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates
         })
     );
 
-    return(
+    return (
         <DndContext
             sensors={sensors}
             collisionDetection={pointerWithin}
-            onDragStart={({active})=>{
-                const task=Object
+            onDragStart={({ active }) => {
+                const task = Object
                     .values(groupedTasks)
                     .flat()
-                    .find(t=>t.id===active.id);
+                    .find(t => t.id === active.id);
                 setActiveTask(task);
             }}
-
-            onDragEnd={(event)=>{
+            onDragEnd={(event) => {
                 setActiveTask(null);
-
-                const {active,over}=event;
-                if(!over) return;
-
-                if(active.id===over.id) return;
-
+                const { active, over } = event;
+                if (!over) return;
+                if (active.id === over.id) return;
                 onDragEnd(event);
             }}
-
-            onDragCancel={()=>{
+            onDragCancel={() => {
                 setActiveTask(null);
             }}
         >
-
-            <div
-                className="
-                    grid
-                    grid-cols-5
-                    gap-5
-                    h-full
-                "
-            >
-                {
-                    Object.entries(groupedTasks).map(
-                        ([status,tasks])=>(
-                            <TaskColumn
-                                key={status}
-                                id={status}
-                                title={
-                                    status
-                                        .replaceAll("_"," ")
-                                }
-                                tasks={tasks}
-                                openTask={openTask}
-                            />
-                        )
-                    )
-                }
-            </div>
-
-            <DragOverlay>
-                {
-                    activeTask &&
-
-                    <div className="rotate-2 scale-105">
-                        <TaskCard
-                            task={activeTask}
-                            openTask={()=>{}}
-                            style={{ transition: "transform 200ms cubic-bezier(.2,.8,.2,1)" }}
+            <div className="flex h-full w-full gap-6 overflow-x-auto pb-4 snap-x scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
+                {Object.entries(groupedTasks).map(([status, tasks]) => (
+                    <div key={status} className="min-w-[320px] w-[320px] snap-center flex-shrink-0">
+                        <TaskColumn
+                            id={status}
+                            title={status.replaceAll("_", " ")}
+                            tasks={tasks}
+                            openTask={openTask}
                         />
                     </div>
-                }
+                ))}
+            </div>
+
+            <DragOverlay dropAnimation={{ duration: 200, easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)' }}>
+                {activeTask && (
+                    <div className="rotate-3 scale-105 shadow-2xl shadow-black/50 cursor-grabbing opacity-90">
+                        <TaskCard
+                            task={activeTask}
+                            openTask={() => {}}
+                        />
+                    </div>
+                )}
             </DragOverlay>
         </DndContext>
     );

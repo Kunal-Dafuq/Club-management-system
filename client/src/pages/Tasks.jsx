@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 
-import useTasks from "../hooks/useTasks";
+import useTasks from "../features/tasks/hooks/useTasks";
 import TaskBoard from "../features/tasks/components/TaskBoard";''
 
 export default function Tasks(){

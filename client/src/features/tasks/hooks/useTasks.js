@@ -1,16 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
 
-import {
-    getCommitteeTasks,
-    createTask,
-    updateTask,
-    updateTaskStatus,
-    deleteTask,
-    reorderTask
-} from "../../services/taskService";
+import { getTasks, createTask, updateTask, updateTaskStatus, deleteTask, reorderTask } from "../services/taskService";
 import groupTasks from "../utils/groupTasks";
 
-import { getSocket } from "../../socket/socket";
+import { getSocket } from "../../../socket/socket";
 
 export default function useTasks(committeeId){
     const socket=getSocket();

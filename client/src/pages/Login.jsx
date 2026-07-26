@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import authService from "../../services/authService";
-import useAuth from "../../hooks/useAuth";
-import { supabase } from "../../lib/supabase";
-import { ROUTES } from "../../config/routes";
+import authService from "../features/auth/services/authService";
+import useAuth from "../hooks/useAuth";
+import { supabase } from "../lib/supabase";
+import { ROUTES } from "../constants/routes";
 
 const Login = () => {
   const navigate = useNavigate();

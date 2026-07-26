@@ -1,4 +1,4 @@
-import ClubStats from "./components/ClubStats";
+import ClubStats from "../features/clubs/components/ClubStats";
 
 const ClubDetails = ({
     club,

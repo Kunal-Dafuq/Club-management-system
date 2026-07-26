@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { initSocket, getSocket } from "../socket/socket";
+import { initSocket, getSocket } from "../../../socket/socket";
 
 export default function useClubChat(clubId, token) {
 

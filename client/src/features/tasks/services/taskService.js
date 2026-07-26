@@ -4,8 +4,8 @@ import { handleApi } from "../../../api/handleApi";
 export const getCommitteeTasks = (committeeId) =>
     handleApi(() => api.get(`/tasks/committee/${committeeId}`));
 
-export const getTask = (taskId) =>
-    handleApi(() => api.get(`/tasks/${taskId}`));
+export const getTasks = (committeeId) =>
+  handleApi(() => api.get(`/tasks/committee/${committeeId}`));
 
 export const createTask = (committeeId, data) =>
     handleApi(() => api.post(`/tasks/committee/${committeeId}`, data));

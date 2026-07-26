@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Pin } from "lucide-react";
-import { getPinnedMessages } from "../services/chatService";
+import { getPinnedMessages } from "../features/chat/services/chatService";
 
 export default function PinnedMessages() {
     const { roomId } = useParams();

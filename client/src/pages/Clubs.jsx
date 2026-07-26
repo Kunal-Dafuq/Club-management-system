@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import Loader from "../components/Loader";
-import ClubGrid from "../features/clubs/ClubGrid";
-import ClubDetails from "../features/clubs/ClubDetails";
-import { getClubs } from "../services/clubService";
-import {joinClub, leaveClub, getMyClubs} from "../services/membershipService";
+import Loader from "../components/common/Loader";
+import ClubGrid from "../features/clubs/components/ClubGrid";
+import ClubDetails from "../features/clubs/components/ClubDetails";
+import { getClubs } from "../features/clubs/services/clubService";
+import { joinClub, leaveClub, getMyClubs } from "../features/clubs/services/membershipService";
 
 const Clubs = () => {
   const [clubs, setClubs] = useState([]);

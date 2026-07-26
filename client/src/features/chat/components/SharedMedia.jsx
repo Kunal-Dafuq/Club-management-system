@@ -1,6 +1,6 @@
 import {useEffect,useState} from "react";
 
-import {getImages} from "../../../services/mediaService";
+import { getImages } from "../services/mediaService";
 
 export default function SharedMedia({roomId}){
     const [images,setImages]=useState([]);

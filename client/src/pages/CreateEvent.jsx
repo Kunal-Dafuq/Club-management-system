@@ -1,7 +1,7 @@
 import {useEffect,useState} from "react";
 import { useNavigate } from "react-router-dom";
-import { createEvent } from "../services/eventService";
-import { getClubs } from "../services/clubService";
+import { createEvent } from "../features/events/services/eventService";
+import { getClubs } from "../features/clubs/services/clubService";
 
 const CreateEvent = () => {
     const navigate = useNavigate();

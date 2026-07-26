@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import {getPendingRequests ,approveMember ,rejectMember} from "../../services/membershipService";
-
+import { getPendingRequests, approveMember, rejectMember } from "../services/membershipService";
 const PendingRequests = ({ clubId }) => {
     const [requests, setRequests] = useState([]);
     const loadRequests = async () => {

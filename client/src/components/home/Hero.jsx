@@ -1,9 +1,13 @@
-import AnimatedButton from "../AnimatedGrid";
+import AnimatedGrid from "../ui/AnimatedGrid";
+import GlowButton from "../ui/GlowButton"; // Using GlowButton for the CTAs
 
 const Hero = () => {
   return (
     <section className="relative min-h-screen overflow-hidden">
+      {/* Background Animated Grid */}
+      <AnimatedGrid />
 
+      {/* Glow Effects */}
       <div
         className="
         absolute
@@ -40,7 +44,6 @@ const Hero = () => {
         px-6
         min-h-screen"
       >
-
         <div
           className="
           mb-6
@@ -75,14 +78,13 @@ const Hero = () => {
         </p>
 
         <div className="mt-10 flex gap-6">
-
-          <AnimatedButton>
+          <GlowButton>
             Explore Clubs
-          </AnimatedButton>
+          </GlowButton>
 
-          <AnimatedButton>
+          <GlowButton>
             View Events
-          </AnimatedButton>
+          </GlowButton>
         </div>
       </div>
     </section>

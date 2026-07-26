@@ -1,5 +1,5 @@
-import api from "../api/axios";
-import { handleApi } from "../api/handleApi";
+import api from "../../../api/axios";
+import { handleApi } from "../../../api/handleApi";
 
 export const getClubMessages = (roomId, cursor) => {
     let url = `/chat/room/${roomId}`;
@@ -44,3 +44,9 @@ export const uploadChatFile = (file, onProgress) => {
 
 export const markRoomRead = (clubId, roomId, messageId) =>
     handleApi(() => api.post(`/read/clubs/${clubId}/rooms/${roomId}`, { messageId }));
+
+export const getPinnedMessages = (roomId) =>
+    handleApi(() => api.get(`/chat/room/${roomId}/pinned`));
+
+export const togglePinMessage = (messageId) =>
+    handleApi(() => api.post(`/chat/messages/${messageId}/pin`));

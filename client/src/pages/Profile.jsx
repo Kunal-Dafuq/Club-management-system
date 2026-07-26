@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import authService from "../services/authService";
+import authService from "../features/auth/services/authService";
 import useAuth from "../hooks/useAuth";
 
 const Profile = () => {

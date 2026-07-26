@@ -15,3 +15,9 @@ export const updateClub = (id, data) =>
 
 export const deleteClub = (id) =>
     handleApi(() => api.delete(`/clubs/${id}`));
+
+export const getClubActivities = (clubId) =>
+    handleApi(() => api.get(`/clubs/${clubId}/activities`));
+
+export const getRecentActivity = () =>
+    handleApi(() => api.get("/activities/recent"));

@@ -1,19 +1,8 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { Calendar, Flag, MessageSquare, Paperclip } from "lucide-react";
 
-import {
-    Calendar,
-    Flag,
-    User,
-    MessageSquare,
-    Paperclip
-} from "lucide-react";
-
-export default function TaskCard({
-    task,
-    openTask
-}) {
-
+export default function TaskCard({ task, openTask }) {
     const {
         attributes,
         listeners,
@@ -21,38 +10,32 @@ export default function TaskCard({
         transform,
         transition,
         isDragging
-    } = useSortable({
-        id: task.id
-    });
+    } = useSortable({ id: task.id });
 
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
-        opacity: isDragging ? .55 : 1,
-        scale: isDragging ? 1.05 : 1,
+        opacity: isDragging ? 0.4 : 1,
         zIndex: isDragging ? 999 : 1,
-        boxShadow:
-            isDragging
-                ? "0 35px 80px rgba(0,0,0,.35)"
-                : ""
-        ,
         touchAction: "none"
     };
 
     const statusColor = {
-        BACKLOG:"bg-gray-100 text-gray-700",
-        TODO:"bg-slate-100 text-slate-700",
-        IN_PROGRESS:"bg-blue-100 text-blue-700",
-        REVIEW:"bg-orange-100 text-orange-700",
-        COMPLETED:"bg-green-100 text-green-700"
+        BACKLOG: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+        TODO: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+        IN_PROGRESS: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+        REVIEW: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+        COMPLETED: "bg-green-500/10 text-green-400 border-green-500/20"
     };
 
-    const priorityColor={
-        HIGH:"bg-red-100 text-red-700",
-        MEDIUM:"bg-yellow-100 text-yellow-700",
-        LOW:"bg-green-100 text-green-700",
-        CRITICAL:"bg-purple-100 text-purple-700"
-        };
+    const priorityColor = {
+        HIGH: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+        MEDIUM: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+        LOW: "bg-green-500/10 text-green-400 border-green-500/20",
+        CRITICAL: "bg-red-500/10 text-red-400 border-red-500/20 shadow-sm shadow-red-900/20"
+    };
+
+    const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== "COMPLETED";
 
     return (
         <div
@@ -61,147 +44,50 @@ export default function TaskCard({
             {...attributes}
             {...listeners}
             onClick={() => openTask(task)}
-            className="
-                bg-white
-                rounded-2xl
-                p-4
-                border
-
-                hover:border-blue-400
-                hover:-translate-y-1
-                hover:shadow-2xl
-
-                transition-all
-                duration-300
-
-                cursor-grab
-                active:cursor-grabbing
-
-                space-y-4
-            "
+            className="bg-zinc-900/80 backdrop-blur-sm rounded-2xl p-4 border border-zinc-800 hover:border-violet-500/50 hover:shadow-xl hover:shadow-black/40 transition-all duration-200 cursor-grab active:cursor-grabbing space-y-4 group"
         >
-
-            <div className="flex justify-between">
-                <h3 className="font-semibold">
-
+            <div className="flex justify-between items-start gap-2">
+                <h3 className="font-semibold text-zinc-100 leading-tight group-hover:text-violet-300 transition-colors">
                     {task.title}
-
                 </h3>
-
-                <div className="flex items-center gap-2">
-                    <Flag
-                        size={15}
-                        className={
-                            task.priority === "CRITICAL"
-                                ? "text-purple-600"
-                                : task.priority === "HIGH"
-                                ? "text-red-500"
-                                : task.priority === "MEDIUM"
-                                ? "text-yellow-500"
-                                : "text-green-500"
-                        }
-                    />
-
-                    <span
-                        className={`
-                            px-2
-                            py-0.5
-                            rounded-full
-                            text-[11px]
-                            font-semibold
-                            ${priorityColor[task.priority]}
-                        `}
-                    >
-                        {task.priority}
-                    </span>
-                </div>
+                <span className={`shrink-0 px-2.5 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider border ${priorityColor[task.priority]}`}>
+                    {task.priority}
+                </span>
             </div>
 
-            <p className="text-sm text-gray-500 line-clamp-3">
-
-                {task.description}
-
+            <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
+                {task.description || "No description provided."}
             </p>
 
-            <div className="flex justify-between text-xs">
-                <div className="flex items-center gap-1">
+            <div className="flex justify-between items-end pt-2 border-t border-zinc-800/50">
+                <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-3 text-zinc-500 text-xs font-medium">
+                        <div className="flex items-center gap-1.5" title="Comments">
+                            <MessageSquare size={14} />
+                            <span>{task.comments?.length || 0}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5" title="Attachments">
+                            <Paperclip size={14} />
+                            <span>{task.attachments?.length || 0}</span>
+                        </div>
+                    </div>
 
-                    <Calendar size={14}/>
-
-                    {
-                        task.dueDate
-                        &&
-                        new Date(task.dueDate)
-                            .toLocaleDateString()
-                    }
+                    {task.dueDate && (
+                        <div className={`flex items-center gap-1.5 text-xs font-medium ${isOverdue ? 'text-red-400' : 'text-zinc-500'}`}>
+                            <Calendar size={13} />
+                            {new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-2">
                     <div
-                        className="
-                            w-7
-                            h-7
-                            rounded-full
-                            bg-blue-600
-                            text-white
-                            flex
-                            items-center
-                            justify-center
-                            text-xs
-                            font-semibold
-                        "
+                        className="w-7 h-7 rounded-full bg-violet-600 border-2 border-zinc-900 text-white flex items-center justify-center text-xs font-bold shadow-sm"
+                        title={task.assignedTo?.membership?.user?.name || "Unassigned"}
                     >
-                        {
-                            task.assignedTo?.membership?.user?.name
-                                ?.charAt(0)
-                                ?.toUpperCase() || "?"
-                        }
-                    </div>
-
-                    <span className="text-xs">
-
-                        {
-                            task.assignedTo?.membership?.user?.name ||
-                            "Unassigned"
-                        }
-
-                    </span>
-                </div>
-            </div>
-
-            <div className="flex justify-between">
-                <div className="flex gap-3">
-                    <div className="flex items-center gap-1">
-
-                        <MessageSquare size={14}/>
-                        {
-                            task.comments?.length || 0
-                        }
-                    </div>
-
-                    <div className="flex items-center gap-1">
-
-                        <Paperclip size={14}/>
-                        {
-                            task.attachments?.length || 0
-                        }
+                        {task.assignedTo?.membership?.user?.name?.charAt(0)?.toUpperCase() || "?"}
                     </div>
                 </div>
-
-                <span
-                    className={`
-                        px-2
-                        py-1
-                        rounded-full
-                        text-xs
-                        font-medium
-                        ${statusColor[task.status]}
-                    `}
-                >
-                    
-                    {task.status.replace("_"," ")}
-
-                </span>
             </div>
         </div>
     );
