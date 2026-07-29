@@ -1,9 +1,10 @@
 @import "tailwindcss";
 
 body {
-  background: #09090B;
+  background: #090A0F;
   color: white;
   overflow-x: hidden;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
 * {
@@ -14,16 +15,30 @@ html {
   scroll-behavior: smooth;
 }
 
-@keyframes slideIn{
-    from{
-        transform:translateX(100%);
-    }
-    
-    to{
-        transform:translateX(0);
-    }
+/* Premium Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #090A0F;
+}
+::-webkit-scrollbar-thumb {
+  background: #1E293B;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #06B6D4;
 }
 
-.animate-slideIn{
-    animation:slideIn .25s ease;
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slideIn {
+  animation: slideIn 0.25s ease;
 }

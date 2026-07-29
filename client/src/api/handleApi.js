@@ -7,7 +7,9 @@ export const handleApi = async (apiCall) => {
             error: null,
         };
     } catch (error) {
-        console.error("API Error Execution Failed:", error);
+        if (error.response?.status !== 401) {
+            console.error("API Error Execution Failed:", error);
+        }
         return {
             success: false,
             data: null,

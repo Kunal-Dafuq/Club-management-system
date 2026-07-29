@@ -1,17 +1,25 @@
 import api from "../../../api/axios";
 import { handleApi } from "../../../api/handleApi";
 
-const login = (credentials) =>
-    handleApi(() => api.post("/auth/login", credentials));
+const login = async (credentials) => {
+  return handleApi(() => api.post("/auth/login", credentials));
+};
 
-const register = (userData) =>
-    handleApi(() => api.post("/auth/register", userData));
+const register = async (userData) => {
+  return handleApi(() => api.post("/auth/register", userData));
+};
 
-const getProfile = () =>
-    handleApi(() => api.get("/auth/profile"));
+const getProfile = async () => {
+  return handleApi(() => api.get("/auth/me"));
+};
+
+const logout = async () => {
+  return handleApi(() => api.post("/auth/logout"));
+};
 
 export default {
-    login,
-    register,
-    getProfile,
+  login,
+  register,
+  getProfile,
+  logout,
 };

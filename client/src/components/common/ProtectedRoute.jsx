@@ -1,4 +1,4 @@
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation, Outlet } from "react-router-dom";
 import useAuth from "../../hooks/useAuth";
 import { ROUTES } from "../../constants/routes";
 
@@ -8,8 +8,14 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 
   if (loading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-black text-white">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+      <div className="flex flex-col h-screen w-screen items-center justify-center bg-[#06080F] text-white space-y-4">
+        <div className="relative w-12 h-12">
+          <div className="absolute inset-0 rounded-full border-2 border-cyan-500/20 border-t-cyan-400 animate-spin" />
+          <div className="absolute inset-2 rounded-full border-2 border-violet-500/20 border-b-violet-400 animate-spin" />
+        </div>
+        <div className="text-xs font-mono font-extrabold uppercase tracking-widest text-cyan-400 animate-pulse">
+          VERIFYING ORGOS SESSION...
+        </div>
       </div>
     );
   }
@@ -22,7 +28,7 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     return <Navigate to={ROUTES.DASHBOARD} replace />;
   }
 
-  return children;
+  return children ? children : <Outlet />;
 };
 
 export default ProtectedRoute;

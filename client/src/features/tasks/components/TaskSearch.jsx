@@ -1,40 +1,26 @@
-import {Search} from "lucide-react";
+import AutoCompleteSearch from "../../../components/ui/AutoCompleteSearch";
 
-export default function TaskSearch({
-    value,
-    onChange
-}){
-    return(
-        <div
-            className="
-                relative
-                w-80
-            "
-        >
-            <Search
-                className="
-                    absolute
-                    left-3
-                    top-3
-                    text-gray-400
-                "
-                size={18}
-            />
+const COMMON_TASKS = [
+  { id: "t1", label: "Autonomous Drone Firmware V2.4", category: "Robotics Core Tech" },
+  { id: "t2", label: "Sponsor Pitch Deck for HackPlanet", category: "Corporate Relations" },
+  { id: "t3", label: "Order 20 LiPo Batteries & ESCs", category: "Hardware Procurement" },
+  { id: "t4", label: "Symphony Night Sound System Setup", category: "Stage & Acoustics" },
+  { id: "t5", label: "Publish NAAC Student Activity Report", category: "Faculty Governance" },
+  { id: "t6", label: "ABACUS Society Quantitative Model Review", category: "Technical" },
+];
 
-            <input
-                value={value}
-                onChange={e=>
-                    onChange(e.target.value)
-                }
-                placeholder="Search task..."
-                className="
-                    border
-                    rounded-xl
-                    pl-10
-                    py-3
-                    w-full
-                "
-            />
-        </div>
-    );
+export default function TaskSearch({ value, onChange }) {
+  return (
+    <div className="w-80">
+      <AutoCompleteSearch
+        items={COMMON_TASKS}
+        value={value}
+        onChange={onChange}
+        onSelect={(item) => {
+          if (item?.label) onChange(item.label);
+        }}
+        placeholder="Search tasks (e.g. ABACUS...)"
+      />
+    </div>
+  );
 }

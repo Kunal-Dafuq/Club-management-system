@@ -1,16 +1,11 @@
-import Hero from "../components/home/Hero";
-import ClubUniverse from "../components/shared/ClubUniverse";
-import UpcomingEvents from "../components/home/UpcomingEvents";
-import StatsCards from "../components/home/StatsCards";
+import LandingPage from "../components/home/LandingPage";
+
+/**
+ * Home Page route rendering the flagship ClubPlanet 9-scene
+ * cinematic 3D storytelling experience.
+ */
 const Home = () => {
-  return (
-    <>
-      <Hero />
-      <ClubUniverse />
-      <UpcomingEvents />
-      <StatsCards />
-    </>
-  );
+  return <LandingPage />;
 };
 
 export default Home;
