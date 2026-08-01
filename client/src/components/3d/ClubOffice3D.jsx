@@ -16,6 +16,27 @@ const ClubOffice3D = ({ progress = 0, onSelectClub }) => {
   const roomGroupRef = useRef();
   const hologramCardsRef = useRef();
 
+  // Randomly select 5 clubs every time the room loads so it never overlaps or glitches
+  const displayedClubs = useMemo(() => {
+    // Shuffle copy of clubs
+    const shuffled = [...CLUBS_DATA].sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, 5);
+
+    // 5 clean, well-spaced coordinates in an amphitheater semicircle (3.1+ units horizontal separation)
+    const cleanPositions = [
+      [-6.4, 1.8, -3.2],  // Left Pedestal
+      [-3.2, 2.1, -4.6],  // Center-Left Pedestal
+      [0.0, 2.4, -5.2],   // Center Flagship Pedestal (highest)
+      [3.2, 2.1, -4.6],   // Center-Right Pedestal
+      [6.4, 1.8, -3.2],   // Right Pedestal
+    ];
+
+    return selected.map((club, idx) => ({
+      ...club,
+      displayPosition: cleanPositions[idx],
+    }));
+  }, []);
+
   // Active during Section 4 & 5 (progress 0.62 to 1.0)
   const visibility = useMemo(() => {
     if (progress < 0.6) return 0;
@@ -23,11 +44,13 @@ const ClubOffice3D = ({ progress = 0, onSelectClub }) => {
   }, [progress]);
 
   useFrame((state) => {
+    if (visibility <= 0.01) return;
     const time = state.clock.getElapsedTime();
 
     if (hologramCardsRef.current) {
       hologramCardsRef.current.children.forEach((card, idx) => {
-        card.position.y += Math.sin(time * 2 + idx) * 0.002;
+        // Smooth, glitch-free sine wave bobbing
+        card.position.y = Math.sin(time * 1.5 + idx * 1.2) * 0.12;
       });
     }
   });
@@ -68,7 +91,6 @@ const ClubOffice3D = ({ progress = 0, onSelectClub }) => {
       ========================================================= */}
       {[-12, -6, 0, 6, 12].map((x, idx) => (
         <group key={idx} position={[x, 1, -15]}>
-          {/* Vertical Architectural Structural Column */}
           <mesh position={[0, 0, 0]}>
             <boxGeometry args={[0.6, 9, 0.6]} />
             <meshStandardMaterial
@@ -77,7 +99,6 @@ const ClubOffice3D = ({ progress = 0, onSelectClub }) => {
               roughness={0.3}
             />
           </mesh>
-          {/* Glass Wall Pane Between Columns */}
           {idx < 4 && (
             <mesh position={[3, 0, 0]}>
               <planeGeometry args={[5.4, 9]} />
@@ -110,11 +131,11 @@ const ClubOffice3D = ({ progress = 0, onSelectClub }) => {
       </mesh>
 
       {/* =========================================================
-          4. 9 ARCHITECTURAL EXHIBITION PEDESTALS & HOLOGRAM PANELS
+          4. EXACTLY 5 RANDOMIZED EXHIBITION STANDS (ZERO OVERLAP)
       ========================================================= */}
       <group ref={hologramCardsRef}>
-        {CLUBS_DATA.map((club) => (
-          <group key={club.id} position={club.position}>
+        {displayedClubs.map((club) => (
+          <group key={club.id} position={club.displayPosition}>
             {/* Architectural Exhibition Stand / Pedestal Base */}
             <mesh position={[0, -2.4, 0]}>
               <cylinderGeometry args={[0.3, 0.45, 2.2, 16]} />
@@ -132,9 +153,9 @@ const ClubOffice3D = ({ progress = 0, onSelectClub }) => {
 
             {/* Floating Glass Hologram Display Pane */}
             <Float
-              speed={2}
-              rotationIntensity={0.2}
-              floatIntensity={0.3}
+              speed={1.5}
+              rotationIntensity={0.15}
+              floatIntensity={0.2}
               position={[0, 0.2, 0]}
             >
               <group
@@ -162,57 +183,57 @@ const ClubOffice3D = ({ progress = 0, onSelectClub }) => {
                     color={club.color}
                     wireframe
                     transparent
-                    opacity={0.8}
+                    opacity={0.7}
                   />
                 </mesh>
 
-                {/* Interactive UI Card Overlay */}
+                {/* Interactive UI Card Overlay (Sleek Apple/Vercel style) */}
                 <Html
                   position={[0, 0, 0.06]}
                   transform
                   occlude={false}
                   style={{
-                    width: "230px",
-                    height: "130px",
+                    width: "220px",
+                    height: "120px",
                     pointerEvents: "auto",
                     userSelect: "none",
                   }}
                 >
                   <div
                     onClick={() => onSelectClub && onSelectClub(club)}
-                    className="w-full h-full p-3.5 rounded-xl border flex flex-col justify-between cursor-pointer transition-all duration-300 hover:scale-105 shadow-xl group"
+                    className="w-full h-full p-3 rounded-xl border flex flex-col justify-between cursor-pointer transition-all duration-300 hover:scale-105 shadow-xl group"
                     style={{
-                      backgroundColor: "rgba(11, 19, 43, 0.9)",
-                      borderColor: `${club.color}99`,
-                      boxShadow: `0 0 25px ${club.color}33`,
+                      backgroundColor: "rgba(11, 19, 43, 0.92)",
+                      borderColor: `${club.color}80`,
+                      boxShadow: `0 0 20px ${club.color}25`,
                     }}
                   >
                     <div className="flex items-center justify-between">
                       <span
-                        className="text-[10px] font-mono px-2 py-0.5 rounded uppercase font-bold"
+                        className="text-[9px] font-mono px-2 py-0.5 rounded uppercase font-semibold"
                         style={{
-                          backgroundColor: `${club.color}33`,
+                          backgroundColor: `${club.color}25`,
                           color: club.color,
                         }}
                       >
                         {club.category}
                       </span>
-                      <span className="text-[10px] text-zinc-400 font-mono font-semibold">
+                      <span className="text-[10px] text-zinc-400 font-mono">
                         {club.currentMembers} Members
                       </span>
                     </div>
 
                     <div>
-                      <h5 className="text-base font-extrabold text-white group-hover:text-cyan-300 transition-colors">
+                      <h5 className="text-sm font-semibold text-white group-hover:text-cyan-300 transition-colors">
                         {club.name}
                       </h5>
-                      <p className="text-[11px] text-zinc-300 line-clamp-1 mt-0.5">
+                      <p className="text-[10px] text-zinc-400 line-clamp-1 mt-0.5 font-normal">
                         {club.tagline}
                       </p>
                     </div>
 
-                    <div className="flex items-center justify-between text-[11px] font-mono border-t border-white/10 pt-1.5 text-cyan-400 font-bold">
-                      <span>Open Headquarters</span>
+                    <div className="flex items-center justify-between text-[10px] font-mono border-t border-white/10 pt-1.5 text-zinc-400 group-hover:text-white transition-colors">
+                      <span>Headquarters</span>
                       <span>→</span>
                     </div>
                   </div>

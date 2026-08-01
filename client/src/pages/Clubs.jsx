@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { CLUBS_DATA } from "../constants/landingData";
 import AutoCompleteSearch from "../components/ui/AutoCompleteSearch";
+import RoleGovernanceBar from "../components/ui/RoleGovernanceBar";
 
 const CATEGORIES = [
   "All Categories",
@@ -24,20 +25,22 @@ const CATEGORIES = [
   "Literary",
   "Business",
   "Recreation",
+  "Social Impact",
 ];
 
 const BANNER_GRADIENTS = [
-  "from-cyan-950/80 via-violet-950/50 to-black",
-  "from-violet-950/80 via-pink-950/50 to-black",
-  "from-emerald-950/80 via-cyan-950/50 to-black",
-  "from-amber-950/80 via-red-950/50 to-black",
-  "from-blue-950/80 via-indigo-950/50 to-black",
+  "from-cyan-500/20 via-blue-500/10 to-transparent",
+  "from-violet-500/20 via-purple-500/10 to-transparent",
+  "from-emerald-500/20 via-teal-500/10 to-transparent",
+  "from-amber-500/20 via-orange-500/10 to-transparent",
+  "from-pink-500/20 via-rose-500/10 to-transparent",
 ];
 
 const Clubs = () => {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
-  const [myMemberships, setMyMemberships] = useState(["abacus", "robotics", "coding"]);
+  const [selectedClub, setSelectedClub] = useState(null);
+  const [myMemberships, setMyMemberships] = useState(["acm", "cyborg", "tasveer", "astronuts", "electroholics", "muse", "lda", "foobar"]);
   const [toastMessage, setToastMessage] = useState(null);
 
   const showToast = (msg) => {
@@ -46,14 +49,21 @@ const Clubs = () => {
   };
 
   const toggleMembership = (clubId, e) => {
-    if (e) e.stopPropagation();
-    if (myMemberships.includes(clubId)) {
-      setMyMemberships((prev) => prev.filter((id) => id !== clubId));
-      showToast("Left organization orbit.");
-    } else {
-      setMyMemberships((prev) => [...prev, clubId]);
-      showToast("Successfully joined organization orbit!");
-    }
+    e.stopPropagation();
+    setMyMemberships((prev) => {
+      const exists = prev.includes(clubId);
+      const next = exists
+        ? prev.filter((id) => id !== clubId)
+        : [...prev, clubId];
+      const clubName =
+        CLUBS_DATA.find((c) => c.id === clubId)?.name || "Club";
+      showToast(
+        exists
+          ? `Left ${clubName} membership roster`
+          : `Joined ${clubName} active roster!`
+      );
+      return next;
+    });
   };
 
   const filteredClubs = useMemo(() => {
@@ -61,11 +71,13 @@ const Clubs = () => {
       const matchesSearch =
         club.name.toLowerCase().includes(search.toLowerCase()) ||
         club.tagline.toLowerCase().includes(search.toLowerCase()) ||
-        club.category.toLowerCase().includes(search.toLowerCase());
-      const matchesCategory =
+        club.description.toLowerCase().includes(search.toLowerCase());
+
+      const matchesCat =
         selectedCategory === "All Categories" ||
-        club.category.toLowerCase() === selectedCategory.toLowerCase();
-      return matchesSearch && matchesCategory;
+        club.category === selectedCategory;
+
+      return matchesSearch && matchesCat;
     });
   }, [search, selectedCategory]);
 
@@ -75,6 +87,7 @@ const Clubs = () => {
 
   return (
     <div className="space-y-10">
+      <RoleGovernanceBar />
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMessage && (
@@ -296,6 +309,34 @@ const Clubs = () => {
           );
         })}
       </div>
+
+      {/* Sleek Empty Search State */}
+      {filteredClubs.length === 0 && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="rounded-3xl border border-white/10 bg-[#0A0D18]/80 backdrop-blur-xl p-16 text-center space-y-4 max-w-xl mx-auto shadow-2xl"
+        >
+          <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-400/30 flex items-center justify-center mx-auto text-cyan-400 shadow-[0_0_30px_rgba(6,182,212,0.2)]">
+            <Compass className="w-8 h-8 animate-pulse" />
+          </div>
+          <h3 className="text-xl font-extrabold text-white">
+            No Student Clubs Matched Your Search
+          </h3>
+          <p className="text-sm text-zinc-400 max-w-sm mx-auto">
+            Try adjusting your keyword filter or switching category tabs to explore IIIT-Delhi's official organizations.
+          </p>
+          <button
+            onClick={() => {
+              setSearch("");
+              setSelectedCategory("All Categories");
+            }}
+            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-xs tracking-wider uppercase transition shadow-lg cursor-pointer"
+          >
+            Reset Filters
+          </button>
+        </motion.div>
+      )}
     </div>
   );
 };

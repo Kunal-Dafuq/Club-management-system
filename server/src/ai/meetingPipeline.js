@@ -4,7 +4,7 @@ const fs = require("fs/promises");
 const { prepareAudio } = require("./audioService");
 const { transcribe } = require("./whisperService");
 const { loadTranscript } = require("./transcriptService");
-const { generateMeetingSummary } = require("./ollamaService");
+const { generateMeetingSummary } = require("../services/meetingSummaryService");
 
 const meetingPipeline = async (meetingId) => {
     const meeting = await prisma.committeeMeeting.findUnique({

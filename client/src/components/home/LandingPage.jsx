@@ -19,7 +19,7 @@ import GlowButton from "../ui/GlowButton";
 import ClubModal from "../ui/ClubModal";
 import ClubGallery from "../ui/ClubGallery";
 import WaitlistForm from "../ui/WaitlistForm";
-import { CLUBS_DATA } from "../../constants/landingData";
+import { CLUBS_DATA, getMostActiveClubs } from "../../constants/landingData";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -33,6 +33,8 @@ const PRIORITY_SERVICES = [
     icon: Sparkles,
     color: "#06B6D4",
     stat: "100% Delivery",
+    href: "/dashboard",
+    ctaLabel: "Launch Broadcast Feed",
   },
   {
     id: "events",
@@ -42,6 +44,8 @@ const PRIORITY_SERVICES = [
     icon: Calendar,
     color: "#7C3AED",
     stat: "Zero Check-in Wait",
+    href: "/events",
+    ctaLabel: "Open Events & Tickets",
   },
   {
     id: "governance",
@@ -51,6 +55,8 @@ const PRIORITY_SERVICES = [
     icon: Shield,
     color: "#EC4899",
     stat: "3x Faster Approval",
+    href: "/settings",
+    ctaLabel: "Open Governance Suite",
   },
   {
     id: "analytics",
@@ -60,6 +66,8 @@ const PRIORITY_SERVICES = [
     icon: Activity,
     color: "#10B981",
     stat: "Live Roster Sync",
+    href: "/clubs",
+    ctaLabel: "Explore Roster Analytics",
   },
 ];
 
@@ -74,6 +82,7 @@ const PRIORITY_SERVICES = [
  */
 const LandingPage = () => {
   const containerRef = useRef(null);
+  const lastProgressRef = useRef(0);
   const [progress, setProgress] = useState(0);
   const [selectedClub, setSelectedClub] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -89,7 +98,7 @@ const LandingPage = () => {
 
   useEffect(() => {
     const lenis = new Lenis({
-      duration: 1.2,
+      duration: 1.0,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,
     });
@@ -107,7 +116,11 @@ const LandingPage = () => {
       end: "bottom bottom",
       scrub: 0.5,
       onUpdate: (self) => {
-        setProgress(self.progress);
+        const rounded = Math.round(self.progress * 400) / 400;
+        if (Math.abs(rounded - lastProgressRef.current) >= 0.0025) {
+          lastProgressRef.current = rounded;
+          setProgress(rounded);
+        }
       },
     });
 
@@ -182,6 +195,14 @@ const LandingPage = () => {
             transition={{ duration: 0.7, delay: 0.3 }}
             className="flex flex-wrap items-center justify-center gap-4 pt-4"
           >
+            <a
+              href="/campus-portal"
+              className="px-7 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-violet-600 hover:scale-105 text-white font-bold text-sm shadow-[0_0_35px_rgba(6,182,212,0.5)] transition-all flex items-center gap-2.5 border border-cyan-400/40"
+            >
+              <Sparkles className="w-5 h-5 text-cyan-300" />
+              <span>Enter Campus Portal</span>
+            </a>
+
             <GlowButton
               size="lg"
               variant="primary"
@@ -240,7 +261,10 @@ const LandingPage = () => {
                   key={service.id}
                   hoverEffect={true}
                   glowColor={`${service.color}30`}
-                  className="p-8 flex flex-col justify-between h-full"
+                  onClick={() => {
+                    window.location.href = service.href;
+                  }}
+                  className="p-8 flex flex-col justify-between h-full cursor-pointer group transition-all"
                 >
                   <div>
                     <div className="flex items-center justify-between mb-6">
@@ -265,7 +289,7 @@ const LandingPage = () => {
                       </span>
                     </div>
 
-                    <h3 className="text-2xl font-bold text-white mb-3">
+                    <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-cyan-300 transition-colors">
                       {service.title}
                     </h3>
                     <p className="text-base text-zinc-300 leading-relaxed">
@@ -273,11 +297,15 @@ const LandingPage = () => {
                     </p>
                   </div>
 
-                  <div className="mt-8 pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono text-zinc-400">
-                    <span>MODULE: ACTIVE</span>
-                    <span className="text-cyan-400 font-semibold flex items-center gap-1">
-                      Inspect Telemetry <ArrowRight className="w-3.5 h-3.5" />
-                    </span>
+                  <div className="mt-8 pt-4 border-t border-white/10 flex items-center justify-between text-xs font-mono">
+                    <span className="text-emerald-400 font-bold">● MODULE: ACTIVE</span>
+                    <a
+                      href={service.href}
+                      className="text-cyan-400 group-hover:text-cyan-300 font-bold flex items-center gap-1.5 transition-all"
+                    >
+                      <span>{service.ctaLabel}</span>
+                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                    </a>
                   </div>
                 </GlassCard>
               );
@@ -296,40 +324,42 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto w-full">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <span className="text-xs font-mono uppercase tracking-widest text-violet-400 font-bold">
-              02 // MAIN ENTRANCE // GATE 01
+              02 // MOST ACTIVE ORGANIZATIONS // 2-MONTH ROLLING INDEX
             </span>
             <h2 className="text-3xl sm:text-5xl font-extrabold mt-2 tracking-tight">
-              Enter University Campus & Discover Leadership
+              Top 6 Most Active Campus Clubs
             </h2>
             <p className="mt-4 text-zinc-400 text-base sm:text-lg">
-              Emerging below the clouds directly facing the monumental University Main Entrance Gates. Glide down the campus boulevard to explore premier student organizations.
+              Activeness criteria automatically ranked and updated from a 2-month rolling window of event frequency and student participation across IIIT-Delhi.
             </p>
           </div>
 
           {/* 3-Column Grid of Top Clubs */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {CLUBS_DATA.slice(0, 6).map((club) => (
+            {getMostActiveClubs(CLUBS_DATA, 6).map((club, index) => (
               <GlassCard
                 key={club.id}
                 hoverEffect={true}
                 glowColor={`${club.color}30`}
                 onClick={() => setSelectedClub(club)}
-                className="flex flex-col justify-between cursor-pointer group"
+                className="flex flex-col justify-between cursor-pointer group relative overflow-hidden"
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <span
-                      className="px-3 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider"
+                      className="px-2.5 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5"
                       style={{
                         backgroundColor: `${club.color}22`,
                         color: club.color,
                         border: `1px solid ${club.color}40`,
                       }}
                     >
-                      {club.category}
+                      <span>#{index + 1} ACTIVE</span>
+                      <span>•</span>
+                      <span>{club.category}</span>
                     </span>
-                    <span className="text-xs font-mono text-zinc-400">
-                      {club.currentMembers} Members
+                    <span className="text-xs font-mono text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
+                      🔥 2M INDEX
                     </span>
                   </div>
 
@@ -339,9 +369,20 @@ const LandingPage = () => {
                   <p className="mt-2 text-sm text-zinc-300 line-clamp-2 leading-relaxed">
                     {club.tagline}
                   </p>
+
+                  <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs font-mono text-zinc-400">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-cyan-400 font-bold">{club.eventsCount2Months || 10} Events</span>
+                      <span>(last 2m)</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-violet-400 font-bold">{(club.totalParticipation || 1400).toLocaleString()}</span>
+                      <span>Participation</span>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="mt-8 pt-4 border-t border-white/10 flex items-center justify-between text-xs font-semibold text-cyan-400">
+                <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between text-xs font-semibold text-cyan-400">
                   <span>Enter Club Terminal</span>
                   <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </div>

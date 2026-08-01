@@ -14,7 +14,7 @@ const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
-    { name: "Explore OrgOS", path: "/" },
+    { name: "🪐 Planet One (Main Menu)", path: "/" },
     { name: "Clubs", path: "/clubs" },
     { name: "Events", path: "/events" },
     { name: "Workspace", path: "/dashboard" },
@@ -32,7 +32,7 @@ const Navbar = () => {
             ClubPlanet
           </span>
           <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
-            OrgOS v2.0
+            Enterprise v2.0
           </span>
         </Link>
 

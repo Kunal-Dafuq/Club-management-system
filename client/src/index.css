@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 body {
-  background: #090A0F;
-  color: white;
+  background: #06080F;
+  color: #F8FAFC;
   overflow-x: hidden;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
@@ -15,12 +15,54 @@ html {
   scroll-behavior: smooth;
 }
 
+/* ==========================================
+   PHASE 5: ACCESSIBILITY & FOCUS MANAGEMENT
+   ========================================== */
+
+/* 1. Visible Keyboard Focus Ring (WCAG AA Compliant) */
+:focus-visible {
+  outline: 2px solid #06B6D4 !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.35) !important;
+}
+
+/* 2. Screen Reader Only Utility Class (.sr-only) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* 3. Reduced Motion Support for Accessibility Preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 4. High-Contrast Selection */
+::selection {
+  background: rgba(6, 182, 212, 0.35);
+  color: #FFFFFF;
+}
+
 /* Premium Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #090A0F;
+  background: #06080F;
 }
 ::-webkit-scrollbar-thumb {
   background: #1E293B;

@@ -28,12 +28,61 @@ const INITIAL_SNAPSHOTS = [
   { id: "snap-99", name: "v2.3.5 — SOC2 MFA Enforce Rollout", date: "July 20, 2026 • 09:00", author: "System Telemetry", status: "ARCHIVED" },
 ];
 
+const INSTITUTE_PRESETS = [
+  {
+    id: "iiitd",
+    name: "IIIT-Delhi Student Council",
+    tagline: "Top 6 Active Technical & Cultural Clubs • Okhla Campus",
+    orgName: "IIIT-Delhi Student Council & Club Enterprise",
+    university: "Indraprastha Institute of Information Technology Delhi",
+    timezone: "Asia/Kolkata (UTC+5:30)",
+    color: "from-cyan-500 to-violet-600",
+  },
+  {
+    id: "iitb",
+    name: "IIT Bombay Techfest Council",
+    tagline: "Asia's Largest Science & Tech Festival • Powai Campus",
+    orgName: "IIT Bombay Techfest & Student Bodies",
+    university: "Indian Institute of Technology Bombay",
+    timezone: "Asia/Kolkata (UTC+5:30)",
+    color: "from-amber-500 to-red-600",
+  },
+  {
+    id: "bits",
+    name: "BITS Pilani Student Union",
+    tagline: "Oasis & Apogee Council • Multi-Campus Enterprise",
+    orgName: "BITS Pilani Students Union",
+    university: "Birla Institute of Technology and Science, Pilani",
+    timezone: "Asia/Kolkata (UTC+5:30)",
+    color: "from-emerald-500 to-teal-600",
+  },
+  {
+    id: "mit",
+    name: "MIT Student Activities Office",
+    tagline: "Cambridge Massachusetts • 500+ Student Organizations",
+    orgName: "MIT Student Organizations & Activities",
+    university: "Massachusetts Institute of Technology",
+    timezone: "America/New_York (UTC-5)",
+    color: "from-violet-500 to-pink-600",
+  },
+];
+
+const MODULE_GROUPS = [
+  { id: "ALL", label: "All 21 Modules", count: 21 },
+  { id: "GOV", label: "🏛️ Institution & Governance", ids: ["general", "branding", "rbac", "sso", "security"] },
+  { id: "EXP", label: "🎨 UI & Campus Experience", ids: ["spatial", "events", "tasks", "meetings", "chat"] },
+  { id: "FIN", label: "💰 Budget & Ledger", ids: ["budget", "billing", "analytics", "storage", "performance"] },
+  { id: "CORE", label: "⚙️ Core & API Integrations", ids: ["aiConfig", "integrations", "database", "compliance", "notifications", "backups"] },
+];
+
 const Settings = () => {
   // Navigation & Search State
   const [selectedCatId, setSelectedCatId] = useState("general");
   const [searchQuery, setSearchQuery] = useState("");
   const [showPinnedOnly, setShowPinnedOnly] = useState(false);
   const [pinnedCategories, setPinnedCategories] = useState(["security", "general", "rbac", "aiConfig"]);
+  const [activeInstitute, setActiveInstitute] = useState(INSTITUTE_PRESETS[0]);
+  const [moduleGroupFilter, setModuleGroupFilter] = useState("ALL");
 
   // Form & Dirty-State Management
   const [formData, setFormData] = useState({});
@@ -41,6 +90,24 @@ const Settings = () => {
   const [toastMessage, setToastMessage] = useState(null);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [safeModeActive, setSafeModeActive] = useState(false);
+
+  const applyInstitutePreset = (preset) => {
+    setActiveInstitute(preset);
+    setFormData((prev) => ({
+      ...prev,
+      "general__orgName": preset.orgName,
+      "general__universityName": preset.university,
+      "general__timezone": preset.timezone,
+    }));
+    setDirtyFields((prev) => ({
+      ...prev,
+      "general__orgName": true,
+      "general__universityName": true,
+      "general__timezone": true,
+    }));
+    setToastMessage(`✓ Applied ${preset.name} institutional configuration profile!`);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
 
   // Flatten all categories for quick lookup
   const allCategories = useMemo(() => {
@@ -277,6 +344,98 @@ const Settings = () => {
         </div>
       </div>
 
+      {/* 🏛️ MULTI-INSTITUTE CUSTOMIZER BANNER & INSTANT GOVERNANCE PRESETS */}
+      <div className="p-6 rounded-3xl bg-gradient-to-br from-black/80 via-[#0B0F19]/90 to-black/80 border border-cyan-500/30 shadow-[0_0_40px_rgba(6,182,212,0.15)] space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+              <span>Multi-Institute Enterprise Quick Configuration</span>
+            </div>
+            <h2 className="text-lg font-black text-white mt-1">
+              Customize For Your Institution ({activeInstitute.name})
+            </h2>
+            <p className="text-xs text-zinc-400 mt-0.5">
+              Switching institutional profiles instantly adapts charters, timezones, budget currencies, and governance rules.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {INSTITUTE_PRESETS.map((preset) => {
+              const isActive = activeInstitute.id === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  onClick={() => applyInstitutePreset(preset)}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                    isActive
+                      ? "bg-gradient-to-r from-cyan-500/30 to-violet-500/30 border-cyan-400 text-white shadow-[0_0_15px_rgba(6,182,212,0.3)]"
+                      : "bg-white/5 border-white/10 text-zinc-400 hover:text-white hover:bg-white/10"
+                  }`}
+                >
+                  <span>{preset.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 4 Instant Governance Capability Badges */}
+        <div className="pt-3 border-t border-white/10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center gap-2.5">
+            <span className="text-emerald-400 text-base">☑</span>
+            <div>
+              <div className="text-xs font-bold text-zinc-200">President-Only Requisitions</div>
+              <div className="text-[10px] text-zinc-500">Strict RBAC Tier-1 Access Enforced</div>
+            </div>
+          </div>
+          <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center gap-2.5">
+            <span className="text-cyan-400 text-base">☑</span>
+            <div>
+              <div className="text-xs font-bold text-zinc-200">Multi-Type Chat Attachments</div>
+              <div className="text-[10px] text-zinc-500">PDF, Code, Invoices & Video Storage</div>
+            </div>
+          </div>
+          <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center gap-2.5">
+            <span className="text-violet-400 text-base">☑</span>
+            <div>
+              <div className="text-xs font-bold text-zinc-200">Planet One 3D / 2D Charter</div>
+              <div className="text-[10px] text-zinc-500">Interactive Celestial Metro Navigation</div>
+            </div>
+          </div>
+          <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center gap-2.5">
+            <span className="text-amber-400 text-base">☑</span>
+            <div>
+              <div className="text-xs font-bold text-zinc-200">Micro-Payment Audit Ledger</div>
+              <div className="text-[10px] text-zinc-500">Itemized Financial Expenditure Audit</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 📊 ORDERLINESS MODULE GROUP FILTER BAR */}
+      <div className="flex flex-wrap items-center gap-2 bg-black/40 p-2 rounded-2xl border border-white/10 backdrop-blur-md">
+        <span className="px-3 text-xs font-mono font-bold text-zinc-400 uppercase">
+          Filter Orderly Groups:
+        </span>
+        {MODULE_GROUPS.map((group) => {
+          const active = moduleGroupFilter === group.id;
+          return (
+            <button
+              key={group.id}
+              onClick={() => setModuleGroupFilter(group.id)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                active
+                  ? "bg-gradient-to-r from-violet-600/40 to-cyan-500/30 text-white border border-cyan-400/50 shadow-[0_0_15px_rgba(6,182,212,0.2)]"
+                  : "text-zinc-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              {group.label}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Main Architecture Grid: Left Sidebar (21 Categories) + Right Workspace */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* LEFT COLUMN: 21 CATEGORIES SIDEBAR */}
@@ -322,7 +481,10 @@ const Settings = () => {
                   cat.description.toLowerCase().includes(searchQuery.toLowerCase());
                 const matchesPin =
                   !showPinnedOnly || pinnedCategories.includes(cat.id);
-                return matchesQuery && matchesPin;
+                const matchesGroup =
+                  moduleGroupFilter === "ALL" ||
+                  (MODULE_GROUPS.find((g) => g.id === moduleGroupFilter)?.ids || []).includes(cat.id);
+                return matchesQuery && matchesPin && matchesGroup;
               });
 
               if (matchingCategories.length === 0) return null;

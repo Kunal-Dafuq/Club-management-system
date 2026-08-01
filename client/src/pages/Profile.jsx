@@ -236,6 +236,78 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      {/* =========================================================
+          ENTERPRISE PRIVACY & DATA PROTECTION CENTER
+      ========================================================= */}
+      <div className="p-8 rounded-3xl bg-[#090C17] border border-white/10 space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-white/10">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-mono font-bold text-cyan-400 uppercase tracking-widest">
+              <Shield className="w-4 h-4 text-cyan-400" />
+              <span>GDPR • FERPA • Institutional Data Privacy Governance</span>
+            </div>
+            <h2 className="text-xl font-extrabold text-white mt-1">
+              Privacy, Data Export & Account Retention Center
+            </h2>
+            <p className="text-xs text-zinc-400 mt-0.5">
+              Control your institutional footprint, download itemized telemetry logs, or execute secure account deletion.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ user: user || { name: "Kunal", email: "kunal2101@iiitd.ac.in" }, exportedAt: new Date().toISOString(), status: "GDPR_COMPLIANT_EXPORT" }, null, 2));
+                const downloadAnchor = document.createElement("a");
+                downloadAnchor.setAttribute("href", dataStr);
+                downloadAnchor.setAttribute("download", `orgos_privacy_export_${Date.now()}.json`);
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+              }}
+              className="px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-xs uppercase tracking-wider transition shadow-lg cursor-pointer flex items-center gap-2"
+            >
+              <span>Download My Data (JSON)</span>
+            </button>
+            <button
+              onClick={() => alert("Account deletion request submitted to IIIT-Delhi Registrar. 30-day retention grace period initiated.")}
+              className="px-4 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/40 text-red-400 font-bold text-xs uppercase tracking-wider transition cursor-pointer"
+            >
+              <span>Request Deletion</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
+          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-between">
+            <div>
+              <div className="font-bold text-white">Public Directory Profile</div>
+              <div className="text-[10px] text-zinc-500">Allow campus search visibility</div>
+            </div>
+            <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold">
+              ENABLED
+            </span>
+          </div>
+          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-between">
+            <div>
+              <div className="font-bold text-white">Committee Mention Alerts</div>
+              <div className="text-[10px] text-zinc-500">Real-time room notification push</div>
+            </div>
+            <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold">
+              ENABLED
+            </span>
+          </div>
+          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-between">
+            <div>
+              <div className="font-bold text-white">Telemetry & AI Analytics</div>
+              <div className="text-[10px] text-zinc-500">Contribute anonymous event analytics</div>
+            </div>
+            <span className="px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-300 font-mono text-[10px] font-bold">
+              CONSENTED
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

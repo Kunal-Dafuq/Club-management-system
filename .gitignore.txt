@@ -1,24 +1,59 @@
-# dependencies
+# Dependencies
 node_modules/
+/.pnp
+.pnp.js
 
-# env files
+# Environment variables
 .env
+.env.*
+!.env.example
+!.env.template
 
-# logs
-*.log
-
-# build files
+# Build & production artifacts (Vite / Next.js / general build)
 dist/
+dist-ssr/
+build/
+.next/
+out/
+*.local
 
-# OS files
+# Testing & coverage
+coverage/
+*.lcov
+.nyc_output/
+
+# Editor & IDE directories
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# Vite cache
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Framework & bundler caches
 .vite/
+.eslintcache
+.cache/
 
-# Prisma generated files
+# Prisma & generated files
 .prisma/
-
-# coverage
-coverage/
+/generated/prisma

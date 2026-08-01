@@ -25,6 +25,7 @@ const Campus3D = ({ progress = 0 }) => {
   }, [progress]);
 
   useFrame((state) => {
+    if (visibility <= 0.01) return;
     const time = state.clock.getElapsedTime();
 
     // Subtle ambient lighting pulse on the Main Gates

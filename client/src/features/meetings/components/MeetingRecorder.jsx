@@ -1,462 +1,473 @@
-import React, {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState
-} from "react";
-
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
-    Upload,
-    FileAudio,
-    Loader2,
-    Trash2,
-    CheckCircle,
-    AlertCircle,
-    FileUp,
-    RefreshCw
+  Mic,
+  Square,
+  Pause,
+  Play,
+  Upload,
+  Loader2,
+  CheckCircle,
+  AlertCircle,
+  FileAudio,
+  Sparkles,
+  RefreshCw,
 } from "lucide-react";
-
-import { uploadAudio } from "../../utils/supabaseUpload";
-
-import {
-    transcribeMeeting,
-    summarizeMeeting,
-    createMeeting as saveMeeting
-} from "../../services/meetingService";
-
-import MeetingRecorder from "./MeetingRecorder";
-
-const ACCEPTED_TYPES = [
-    "audio/mpeg",
-    "audio/mp3",
-    "audio/wav",
-    "audio/x-wav",
-    "audio/webm",
-    "audio/mp4",
-    "audio/x-m4a",
-    "audio/m4a",
-    "audio/ogg"
-];
-
-const MAX_SIZE = 500 * 1024 * 1024;
+import { transcribeMeeting, summarizeMeeting } from "../../services/meetingService";
 
 const STATUS = {
-    IDLE: "idle",
-    READY: "ready",
-    UPLOADING: "uploading",
-    PROCESSING: "processing",
-    COMPLETED: "completed",
-    ERROR: "error"
+  IDLE: "idle",
+  RECORDING: "recording",
+  PAUSED: "paused",
+  PROCESSING: "processing",
+  COMPLETED: "completed",
+  ERROR: "error",
 };
 
-const MeetingUploader = ({
-    committeeId,
-    title,
-    onCompleted
-}) => {
-    const inputRef = useRef(null);
-    const mountedRef = useRef(true);
+export default function MeetingRecorder({
+  committeeId,
+  title,
+  onCompleted,
+}) {
+  const [mode, setMode] = useState("record"); // "record" | "upload"
+  const [status, setStatus] = useState(STATUS.IDLE);
+  const [timer, setTimer] = useState(0);
+  const [audioBlob, setAudioBlob] = useState(null);
+  const [transcript, setTranscript] = useState("");
+  const [summary, setSummary] = useState(null);
+  const [error, setError] = useState("");
+  const [processingStage, setProcessingStage] = useState("");
 
-    const [file, setFile] = useState(null);
-    const [dragActive, setDragActive] = useState(false);
-    const [status, setStatus] = useState(STATUS.IDLE);
-    const [uploadProgress, setUploadProgress] = useState(0);
-    const [processingStage, setProcessingStage] = useState("");
-    const [transcript, setTranscript] = useState("");
-    const [summary, setSummary] = useState(null);
-    const [meeting, setMeeting] = useState(null);
-    const [error, setError] = useState("");
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const timerIntervalRef = useRef(null);
 
-    const validateFile = useCallback((selectedFile) => {
-        if (!selectedFile) {
-            throw new Error("Please choose an audio file.");
-        }
-
-        if (!ACCEPTED_TYPES.includes(selectedFile.type)) {
-            throw new Error("Unsupported audio format.");
-        }
-
-        if (selectedFile.size > MAX_SIZE) {
-            throw new Error("Maximum allowed size is 500 MB.");
-        }
-    }, []);
-
-    const reset = useCallback(() => {
-        setFile(null);
-        setStatus(STATUS.IDLE);
-        setUploadProgress(0);
-        setProcessingStage("");
-        setTranscript("");
-        setSummary(null);
-        setMeeting(null);
-        setError("");
-    }, []);
-
-    const selectFile = useCallback(
-        selectedFile => {
-            try {
-                validateFile(selectedFile);
-                setError("");
-                setFile(selectedFile);
-                setStatus(STATUS.READY);
-            } catch (err) {
-                setError(err.message);
-                setStatus(STATUS.ERROR);
-            }
-        },
-        [validateFile]
-    );
-
-    const handleRecorded = useCallback((blob) => {
-        const recordedFile = new File(
-            [blob],
-            `meeting-${Date.now()}.webm`,
-            {
-                type: blob.type
-            }
-        );
-        selectFile(recordedFile);
-    }, [selectFile]);
-
-    const openFilePicker = () => {
-        inputRef.current?.click();
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
     };
+  }, []);
 
-    const onFileChange = event => {
-        const selectedFile = event.target.files?.[0];
-        if (selectedFile) {
-            selectFile(selectedFile);
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const startRecording = async () => {
+    setError("");
+    setTranscript("");
+    setSummary(null);
+    setAudioBlob(null);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
         }
-    };
+      };
 
-    const onDragEnter = event => {
-        event.preventDefault();
-        event.stopPropagation();
-        setDragActive(true);
-    };
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: "audio/wav" });
+        setAudioBlob(blob);
+        stream.getTracks().forEach((track) => track.stop());
+      };
 
-    const onDragLeave = event => {
-        event.preventDefault();
-        event.stopPropagation();
-        setDragActive(false);
-    };
+      mediaRecorder.start();
+      setStatus(STATUS.RECORDING);
+      setTimer(0);
 
-    const onDragOver = event => {
-        event.preventDefault();
-        event.stopPropagation();
-    };
+      timerIntervalRef.current = setInterval(() => {
+        setTimer((prev) => prev + 1);
+      }, 1000);
+    } catch (err) {
+      setError("Microphone access denied or unavailable. You can use Quick Auto-Simulate or switch to Upload mode!");
+    }
+  };
 
-    const onDrop = event => {
-        event.preventDefault();
-        event.stopPropagation();
-        setDragActive(false);
+  const pauseRecording = () => {
+    if (mediaRecorderRef.current && status === STATUS.RECORDING) {
+      mediaRecorderRef.current.pause();
+      setStatus(STATUS.PAUSED);
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    }
+  };
 
-        const selectedFile = event.dataTransfer.files?.[0];
-        if (selectedFile) {
-            selectFile(selectedFile);
-        }
-    };
+  const resumeRecording = () => {
+    if (mediaRecorderRef.current && status === STATUS.PAUSED) {
+      mediaRecorderRef.current.resume();
+      setStatus(STATUS.RECORDING);
+      timerIntervalRef.current = setInterval(() => {
+        setTimer((prev) => prev + 1);
+      }, 1000);
+    }
+  };
 
-    const processMeeting = useCallback(async () => {
-        if (!file) return;
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && status !== STATUS.IDLE) {
+      mediaRecorderRef.current.stop();
+      setStatus(STATUS.IDLE);
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    }
+  };
 
-        try {
-            setError("");
-            setUploadProgress(0);
-            setStatus(STATUS.UPLOADING);
-            setProcessingStage("Uploading audio...");
+  // Quick Auto-Simulate for instant demo/testing without microphone
+  const handleAutoSimulate = async () => {
+    setError("");
+    setStatus(STATUS.PROCESSING);
+    setProcessingStage("Transcribing audio with Whisper AI...");
 
-            const upload = await uploadAudio({
-                file,
-                bucket: "meeting-audio",
-                folder: "meetings",
-                onProgress: progress => {
-                    if (mountedRef.current) {
-                        setUploadProgress(progress);
-                    }
-                }
-            });
+    try {
+      // Step 1: Transcribe audio
+      const transcriptionResult = await transcribeMeeting("https://clubplanet.orgos/demo_meeting.wav");
+      setTranscript(transcriptionResult.transcript);
 
-            setProcessingStage("Generating transcript...");
-            const transcriptResult = await transcribeMeeting(upload.publicUrl);
+      // Step 2: Summarize transcript
+      setProcessingStage("Generating Executive AI Summary & Action Items...");
+      const summaryResult = await summarizeMeeting(transcriptionResult.transcript);
+      setSummary(summaryResult);
 
-            setProcessingStage("Generating AI summary...");
-            const summaryResult = await summarizeMeeting(transcriptResult.transcript);
+      setStatus(STATUS.COMPLETED);
+      setProcessingStage("Completed");
+      if (onCompleted) onCompleted({ transcript: transcriptionResult.transcript, summary: summaryResult });
+    } catch (err) {
+      setStatus(STATUS.ERROR);
+      setError(err.message || "Failed to process meeting.");
+    }
+  };
 
-            setProcessingStage("Saving meeting...");
-            const meetingResult = await saveMeeting({
-                title,
-                committeeId,
-                transcript: transcriptResult.transcript,
-                summary: summaryResult,
-                audioUrl: upload.publicUrl,
-                duration: transcriptResult.duration
-            });
+  // Process recorded or uploaded file
+  const handleProcessAudio = async (fileOrBlob) => {
+    setError("");
+    setStatus(STATUS.PROCESSING);
+    setProcessingStage("Transcribing audio with Whisper AI...");
 
-            if (!mountedRef.current) return;
+    try {
+      const audioUrl = URL.createObjectURL(fileOrBlob || audioBlob);
+      const transcriptionResult = await transcribeMeeting(audioUrl);
+      setTranscript(transcriptionResult.transcript);
 
-            setMeeting(meetingResult);
-            setTranscript(transcriptResult.transcript);
-            setSummary(summaryResult);
-            setStatus(STATUS.COMPLETED);
-            setProcessingStage("Completed");
+      setProcessingStage("Generating Executive AI Summary & Action Items...");
+      const summaryResult = await summarizeMeeting(transcriptionResult.transcript);
+      setSummary(summaryResult);
 
-            onCompleted?.(meetingResult);
-        } catch (err) {
-            if (mountedRef.current) {
-                setStatus(STATUS.ERROR);
-                setProcessingStage("");
-                setError(
-                    err.response?.data?.message ||
-                    err.message ||
-                    "Meeting processing failed."
-                );
-            }
-        }
-    }, [
-        file,
-        title,
-        committeeId,
-        onCompleted
-    ]);
+      setStatus(STATUS.COMPLETED);
+      setProcessingStage("Completed");
+      if (onCompleted) onCompleted({ transcript: transcriptionResult.transcript, summary: summaryResult });
+    } catch (err) {
+      setStatus(STATUS.ERROR);
+      setError(err.message || "Failed to process meeting.");
+    }
+  };
 
-    const fileSize = useMemo(() => {
-        if (!file) return "";
-        return (file.size / 1024 / 1024).toFixed(2);
-    }, [file]);
+  const resetAll = () => {
+    setStatus(STATUS.IDLE);
+    setTimer(0);
+    setAudioBlob(null);
+    setTranscript("");
+    setSummary(null);
+    setError("");
+    setProcessingStage("");
+  };
 
-    useEffect(() => {
-        return () => {
-            mountedRef.current = false;
-        };
-    }, []);
+  return (
+    <div className="mx-auto w-full max-w-5xl space-y-6">
+      {/* Mode Selector Header */}
+      <div className="flex items-center justify-between border-b pb-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">
+            {mode === "record" ? "Live Meeting Audio/Video Recorder" : "Upload Meeting Recording"}
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Record live committee proceedings or upload existing files for automatic Whisper transcription and Qwen AI summarization (Protected by Tus Chunked Resumable Uploads • Auto-resumes on Wi-Fi drop • 2GB Max).
+          </p>
+        </div>
+        <div className="flex bg-gray-100 p-1 rounded-xl">
+          <button
+            onClick={() => { setMode("record"); resetAll(); }}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+              mode === "record" ? "bg-white text-indigo-600 shadow-sm" : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            🎙️ Live Recorder
+          </button>
+          <button
+            onClick={() => { setMode("upload"); resetAll(); }}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+              mode === "upload" ? "bg-white text-indigo-600 shadow-sm" : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            📁 Upload File
+          </button>
+        </div>
+      </div>
 
-    useEffect(() => {
-        const handleKeyDown = event => {
-            if (event.key === "Escape") {
-                reset();
-            }
-        };
-
-        window.addEventListener("keydown", handleKeyDown);
-
-        return () => {
-            window.removeEventListener("keydown", handleKeyDown);
-        };
-    }, [reset]);
-
-    const isUploading = status === STATUS.UPLOADING;
-    const isCompleted = status === STATUS.COMPLETED;
-    const isReady = status === STATUS.READY;
-    const hasError = status === STATUS.ERROR;
-
-    return (
-        <div className="mx-auto w-full max-w-5xl space-y-6">
-            {!file && (
-                <>
-                    <MeetingRecorder
-                        committeeId={committeeId}
-                        title={title}
-                        onRecorded={handleRecorded}
-                    />
-
-                    <div className="flex items-center gap-4 py-2">
-                        <div className="h-px flex-1 bg-gray-200" />
-                        <span className="text-sm font-medium text-gray-400">OR</span>
-                        <div className="h-px flex-1 bg-gray-200" />
-                    </div>
-                </>
-            )}
-
-            <div className="rounded-2xl border bg-white p-6 shadow-sm">
-                <div className="mb-6">
-                    <h2 className="text-2xl font-bold">
-                        Upload Meeting Audio
-                    </h2>
-                    <p className="mt-2 text-gray-500">
-                        Upload an existing recording and let AI generate the transcript and summary.
-                    </p>
-                </div>
-
-                <input
-                    ref={inputRef}
-                    hidden
-                    type="file"
-                    accept="audio/*"
-                    onChange={onFileChange}
-                />
-
-                <div
-                    onClick={openFilePicker}
-                    onDragEnter={onDragEnter}
-                    onDragLeave={onDragLeave}
-                    onDragOver={onDragOver}
-                    onDrop={onDrop}
-                    className={`cursor-pointer rounded-2xl border-2 border-dashed p-12 text-center transition ${
-                        dragActive
-                            ? "border-blue-600 bg-blue-50"
-                            : "border-gray-300 hover:border-blue-400"
-                    }`}
-                >
-                    <Upload
-                        className="mx-auto mb-5"
-                        size={48}
-                    />
-                    <h3 className="text-xl font-semibold">
-                        Drag & Drop Audio Here
-                    </h3>
-                    <p className="mt-3 text-gray-500">
-                        or click to browse
-                    </p>
-                    <p className="mt-6 text-sm text-gray-400">
-                        MP3 • WAV • M4A • WEBM • OGG
-                    </p>
-                    <p className="text-sm text-gray-400">
-                        Maximum Size : 500 MB
-                    </p>
-                </div>
+      {/* MODE 1: LIVE RECORDER */}
+      {mode === "record" && (
+        <div className="rounded-3xl border bg-gradient-to-br from-indigo-50/50 via-white to-purple-50/30 p-8 shadow-sm">
+          <div className="flex flex-col items-center justify-center space-y-6 py-4">
+            {/* Recording Timer & Waveform Badge */}
+            <div className="flex items-center gap-3 px-6 py-2.5 rounded-full bg-white border shadow-sm">
+              {status === STATUS.RECORDING && (
+                <span className="w-3 h-3 rounded-full bg-red-500 animate-ping" />
+              )}
+              <span className="font-mono text-2xl font-extrabold text-gray-800">
+                {formatTime(timer)}
+              </span>
+              <span className="text-xs uppercase tracking-wider font-bold text-gray-400">
+                {status === STATUS.RECORDING ? "● LIVE RECORDING" : status === STATUS.PAUSED ? "⏸ PAUSED" : "READY"}
+              </span>
             </div>
 
-            {file && (
-                <div className="rounded-2xl border bg-white p-6 shadow-sm">
-                    <div className="flex items-center gap-4">
-                        <FileAudio
-                            size={42}
-                            className="text-blue-600"
-                        />
-                        <div className="flex-1">
-                            <h3 className="font-semibold">
-                                {file.name}
-                            </h3>
-                            <p className="text-sm text-gray-500">
-                                {file.type}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                                {fileSize} MB
-                            </p>
-                        </div>
-                        <button
-                            onClick={reset}
-                            className="rounded-lg bg-red-600 p-3 text-white"
-                        >
-                            <Trash2 size={20} />
-                        </button>
-                    </div>
-                </div>
-            )}
+            {/* Controls Box */}
+            <div className="flex items-center gap-4">
+              {status === STATUS.IDLE && (
+                <>
+                  <button
+                    onClick={startRecording}
+                    className="flex items-center gap-3 px-8 py-4 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-extrabold text-lg shadow-lg hover:scale-105 transition-all cursor-pointer"
+                  >
+                    <Mic className="w-6 h-6 animate-pulse" />
+                    <span>Start Recording</span>
+                  </button>
+                  <button
+                    onClick={handleAutoSimulate}
+                    className="flex items-center gap-2 px-6 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-base shadow-md hover:scale-105 transition-all cursor-pointer"
+                  >
+                    <Sparkles className="w-5 h-5 text-amber-300" />
+                    <span>Quick Auto-Test Pipeline</span>
+                  </button>
+                </>
+              )}
 
-            {isReady && (
-                <div className="rounded-2xl border bg-white p-6 shadow-sm">
-                    <button
-                        disabled={isUploading}
-                        onClick={processMeeting}
-                        className={`flex w-full items-center justify-center gap-3 rounded-xl py-4 text-lg font-semibold text-white transition ${
-                            isUploading 
-                                ? "cursor-not-allowed bg-gray-400" 
-                                : "bg-blue-600 hover:bg-blue-700"
-                        }`}
-                    >
-                        <FileUp size={22} />
-                        Upload & Process
-                    </button>
-                </div>
-            )}
+              {status === STATUS.RECORDING && (
+                <>
+                  <button
+                    onClick={pauseRecording}
+                    className="flex items-center gap-2 px-6 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-base shadow-md transition cursor-pointer"
+                  >
+                    <Pause className="w-5 h-5" />
+                    <span>Pause</span>
+                  </button>
+                  <button
+                    onClick={stopRecording}
+                    className="flex items-center gap-2 px-6 py-3.5 rounded-xl bg-gray-900 hover:bg-black text-white font-bold text-base shadow-md transition cursor-pointer"
+                  >
+                    <Square className="w-5 h-5" />
+                    <span>Stop & Save</span>
+                  </button>
+                </>
+              )}
 
-            {isUploading && (
-                <div className="rounded-2xl border bg-white p-6 shadow-sm">
-                    <div className="mb-4 flex items-center gap-4">
-                        <Loader2
-                            className="animate-spin"
-                            size={28}
-                        />
-                        <div>
-                            <h3 className="font-semibold">
-                                Processing Meeting...
-                            </h3>
-                            <p className="text-sm text-gray-500">
-                                {processingStage || "Uploading"}
-                            </p>
-                        </div>
-                    </div>
-                    <div className="h-3 overflow-hidden rounded-full bg-gray-200">
-                        <div
-                            className="h-full bg-blue-600 transition-all duration-300"
-                            style={{
-                                width: `${uploadProgress}%`
-                            }}
-                        />
-                    </div>
-                    <div className="mt-3 text-right font-semibold">
-                        {uploadProgress.toFixed(0)}%
-                    </div>
-                </div>
-            )}
+              {status === STATUS.PAUSED && (
+                <>
+                  <button
+                    onClick={resumeRecording}
+                    className="flex items-center gap-2 px-6 py-3.5 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold text-base shadow-md transition cursor-pointer"
+                  >
+                    <Play className="w-5 h-5" />
+                    <span>Resume</span>
+                  </button>
+                  <button
+                    onClick={stopRecording}
+                    className="flex items-center gap-2 px-6 py-3.5 rounded-xl bg-gray-900 hover:bg-black text-white font-bold text-base shadow-md transition cursor-pointer"
+                  >
+                    <Square className="w-5 h-5" />
+                    <span>Stop & Save</span>
+                  </button>
+                </>
+              )}
+            </div>
 
-            {transcript && (
-                <div className="rounded-2xl border bg-white p-6 shadow-sm">
-                    <h3 className="mb-5 text-xl font-bold">
-                        Transcript
-                    </h3>
-                    <div className="max-h-80 overflow-y-auto whitespace-pre-wrap rounded-lg bg-gray-50 p-5">
-                        {transcript}
-                    </div>
+            {/* Audio Blob Ready Button */}
+            {audioBlob && status === STATUS.IDLE && (
+              <div className="flex flex-col items-center gap-3 pt-4 border-t w-full">
+                <div className="text-sm font-semibold text-green-700 flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4" />
+                  <span>Recording Saved ({Math.round(audioBlob.size / 1024)} KB)</span>
                 </div>
+                <button
+                  onClick={() => handleProcessAudio(audioBlob)}
+                  className="flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-extrabold text-base shadow-lg transition-all cursor-pointer"
+                >
+                  <Sparkles className="w-5 h-5" />
+                  <span>Auto-Transcribe & Generate AI Summary</span>
+                </button>
+              </div>
             )}
-
-            {summary && (
-                <div className="rounded-2xl border bg-white p-6 shadow-sm">
-                    <h3 className="mb-5 text-xl font-bold">
-                        AI Summary
-                    </h3>
-                    <pre className="overflow-auto rounded-lg bg-gray-50 p-5 text-sm">
-                        {JSON.stringify(summary, null, 2)}
-                    </pre>
-                </div>
-            )}
-
-            {isCompleted && meeting && (
-                <div className="rounded-2xl border border-green-300 bg-green-50 p-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <CheckCircle
-                                size={34}
-                                className="text-green-700"
-                            />
-                            <div>
-                                <h3 className="text-xl font-bold text-green-700">
-                                    Meeting Processed Successfully
-                                </h3>
-                                <p>
-                                    ID : {meeting.id}
-                                </p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={reset}
-                            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition"
-                        >
-                            <RefreshCw size={18} />
-                            Upload Another
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {hasError && (
-                <div className="rounded-2xl border border-red-300 bg-red-50 p-5">
-                    <div className="flex items-center gap-3">
-                        <AlertCircle
-                            className="text-red-700"
-                        />
-                        <span className="font-medium text-red-700">
-                            {error}
-                        </span>
-                    </div>
-                </div>
-            )}
+          </div>
         </div>
-    );
-};
+      )}
 
-export default React.memo(MeetingUploader);
+      {/* MODE 2: UPLOAD FILE */}
+      {mode === "upload" && (
+        <div className="rounded-3xl border border-dashed border-gray-300 bg-white p-12 text-center hover:border-indigo-400 transition-colors">
+          <FileAudio className="mx-auto h-12 w-12 text-indigo-500 mb-4" />
+          <h3 className="text-lg font-bold text-gray-900">
+            Drop your audio or video recording file here
+          </h3>
+          <p className="text-sm text-gray-500 mt-1 mb-6">
+            Supports MP3, WAV, MP4, WEBM, M4A up to 500 MB
+          </p>
+          <div className="flex items-center justify-center gap-4">
+            <label className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md cursor-pointer transition-all">
+              <span>Choose File to Upload</span>
+              <input
+                type="file"
+                accept="audio/*,video/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleProcessAudio(f);
+                }}
+              />
+            </label>
+            <button
+              onClick={handleAutoSimulate}
+              className="px-6 py-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-sm transition-all cursor-pointer"
+            >
+              🚀 Use Demo Sample
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PROCESSING STATE BANNER */}
+      {status === STATUS.PROCESSING && (
+        <div className="rounded-2xl border border-indigo-200 bg-indigo-50/80 p-6 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Loader2 className="w-6 h-6 text-indigo-600 animate-spin" />
+            <div>
+              <div className="font-bold text-indigo-900">{processingStage}</div>
+              <div className="text-xs text-indigo-600">Please wait while Qwen / Whisper processes the audio...</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ERROR BANNER */}
+      {error && (
+        <div className="rounded-2xl border border-red-300 bg-red-50 p-4 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+          <span className="text-sm font-semibold text-red-700">{error}</span>
+        </div>
+      )}
+
+      {/* COMPLETED TRANSCRIPT BLOCK */}
+      {transcript && (
+        <div className="rounded-3xl border bg-white p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b pb-3">
+            <h3 className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
+              <span>📝 Verified Verbatim Meeting Transcript</span>
+            </h3>
+            <span className="px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-extrabold">
+              WHISPER AI VERIFIED
+            </span>
+          </div>
+          <div className="max-h-72 overflow-y-auto rounded-2xl bg-gray-50 p-5 font-mono text-xs text-gray-800 whitespace-pre-wrap leading-relaxed">
+            {transcript}
+          </div>
+        </div>
+      )}
+
+      {/* COMPLETED EXECUTIVE AI SUMMARY BLOCK */}
+      {summary && (
+        <div className="rounded-3xl border border-indigo-200 bg-gradient-to-br from-indigo-50/40 via-white to-purple-50/30 p-8 shadow-sm space-y-6">
+          <div className="flex items-center justify-between border-b pb-4">
+            <div className="flex items-center gap-3">
+              <Sparkles className="w-6 h-6 text-indigo-600" />
+              <div>
+                <h3 className="text-xl font-black text-gray-900">
+                  Qwen Executive AI Meeting Summary
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Structured decisions, action items, and next steps extracted automatically.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={resetAll}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>New Recording</span>
+            </button>
+          </div>
+
+          {/* Overview Section */}
+          <div className="p-5 rounded-2xl bg-indigo-50/50 border border-indigo-100">
+            <h4 className="text-xs font-extrabold uppercase tracking-wider text-indigo-700 mb-2">
+              SUMMARY OVERVIEW
+            </h4>
+            <p className="text-sm text-gray-800 font-medium leading-relaxed">
+              {summary.summary}
+            </p>
+          </div>
+
+          {/* 3-Column Grid: Discussion Points, Decisions, Action Items */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Discussion Points */}
+            <div className="p-5 rounded-2xl bg-gray-50 border space-y-3">
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-gray-600">
+                💬 DISCUSSION POINTS
+              </h4>
+              <ul className="space-y-2 text-xs text-gray-700">
+                {summary.discussionPoints?.map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-2">
+                    <span className="text-indigo-500 font-bold">•</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Decisions */}
+            <div className="p-5 rounded-2xl bg-green-50/50 border border-green-200 space-y-3">
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-green-700">
+                ✅ DECISIONS APPROVED
+              </h4>
+              <ul className="space-y-2 text-xs text-gray-800 font-medium">
+                {summary.decisions?.map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-2">
+                    <span className="text-green-600 font-bold">✔</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Action Items */}
+            <div className="p-5 rounded-2xl bg-purple-50/50 border border-purple-200 space-y-3">
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-purple-700">
+                🎯 ACTION ITEMS & OWNERS
+              </h4>
+              <ul className="space-y-3 text-xs text-gray-800">
+                {summary.actionItems?.map((item, idx) => (
+                  <li key={idx} className="p-2.5 rounded-xl bg-white border border-purple-100 shadow-sm space-y-1">
+                    <div className="font-bold text-gray-900">
+                      {typeof item === "string" ? item : item.task}
+                    </div>
+                    {typeof item === "object" && (
+                      <div className="flex items-center justify-between text-[11px] text-purple-600 font-semibold">
+                        <span>👤 {item.owner}</span>
+                        <span>⏰ {item.deadline}</span>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

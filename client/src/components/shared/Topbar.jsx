@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import AutoCompleteSearch from "../ui/AutoCompleteSearch";
 import { CLUBS_DATA, EVENTS_DATA } from "../../constants/landingData";
+import { Command, LogOut } from "lucide-react";
 
-const Topbar = () => {
+export default function Topbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
@@ -42,38 +43,40 @@ const Topbar = () => {
   };
 
   return (
-    <header className="h-16 border-b border-white/10 flex justify-between items-center px-8 bg-neutral-950/80 backdrop-blur-md sticky top-0 z-40">
-      <div className="w-80">
-        <AutoCompleteSearch
-          items={searchItems}
-          value={searchQuery}
-          onChange={setSearchQuery}
-          onSelect={handleSelect}
-          placeholder="Type 'A' (e.g. ABACUS Society)..."
-        />
-      </div>
-
-      <h1 className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-cyan-400 via-blue-400 to-violet-500 bg-clip-text text-transparent">
-        ClubPlanet OrgOS
-      </h1>
-
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-          <span className="text-sm font-semibold text-zinc-300">
-            {user?.name || "User"}
-          </span>
+    <header className="h-14 border-b border-white/[0.06] flex justify-between items-center px-8 bg-[#06080F]/90 backdrop-blur-xl sticky top-0 z-40">
+      <div className="flex items-center gap-6">
+        <div className="w-72">
+          <AutoCompleteSearch
+            items={searchItems}
+            value={searchQuery}
+            onChange={setSearchQuery}
+            onSelect={handleSelect}
+            placeholder="Search OrgOS (⌘K)..."
+          />
         </div>
 
         <button
-          onClick={logout}
-          className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-300 font-semibold text-xs px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
+          onClick={() => navigate("/")}
+          className="text-xs font-medium text-zinc-500 hover:text-white transition-colors hidden sm:inline-block cursor-pointer"
         >
-          Logout
+          Planet One →
+        </button>
+      </div>
+
+      <div className="flex items-center gap-6">
+        <span className="text-xs font-medium text-zinc-400">
+          {user?.name || "Kunal"}
+        </span>
+
+        <button
+          onClick={logout}
+          className="text-xs text-zinc-600 hover:text-red-400 transition-colors flex items-center gap-1.5 cursor-pointer"
+          title="Sign out of IIIT-Delhi OrgOS"
+        >
+          <span>Sign Out</span>
+          <LogOut className="w-3.5 h-3.5" />
         </button>
       </div>
     </header>
   );
-};
-
-export default Topbar;
+}

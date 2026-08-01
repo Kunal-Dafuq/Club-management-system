@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import AutoCompleteSearch from "../components/ui/AutoCompleteSearch";
+import RoleGovernanceBar from "../components/ui/RoleGovernanceBar";
 
 const INITIAL_KANBAN = {
   TODO: [
@@ -135,6 +136,7 @@ const Tasks = () => {
 
   return (
     <div className="space-y-8">
+      <RoleGovernanceBar />
       {/* Task Modal */}
       <AnimatePresence>
         {selectedTaskModal && (

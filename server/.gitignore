@@ -1,5 +1,53 @@
-node_modules
-# Keep environment variables out of version control
-.env
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
 
+# Environment variables
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Build & production artifacts
+dist/
+build/
+.next/
+out/
+*.local
+
+# Testing & coverage
+coverage/
+*.lcov
+.nyc_output/
+
+# Editor & IDE directories
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Prisma & generated files
+.prisma/
 /generated/prisma

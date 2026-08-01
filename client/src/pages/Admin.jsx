@@ -16,6 +16,7 @@ import {
   Search,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import RoleGovernanceBar from "../components/ui/RoleGovernanceBar";
 
 const SYSTEM_HEALTH_METRICS = [
   { label: "OrgOS API Gateway", status: "HEALTHY", val: "12.4ms", color: "text-emerald-400 border-emerald-500/40" },
@@ -37,6 +38,7 @@ const Admin = () => {
 
   return (
     <div className="space-y-8">
+      <RoleGovernanceBar />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

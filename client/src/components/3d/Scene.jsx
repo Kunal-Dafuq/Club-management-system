@@ -38,6 +38,8 @@ const Scene = ({ progress = 0, onSelectClub, isMobile = false }) => {
     <div className="fixed inset-0 pointer-events-auto z-0 overflow-hidden">
       <Canvas
         camera={{ position: [0, 1.5, 15], fov: isMobile ? 70 : 60, near: 0.1, far: 500 }}
+        dpr={[1, 1.5]}
+        performance={{ min: 0.5 }}
         gl={{
           antialias: true,
           alpha: true,
@@ -45,17 +47,16 @@ const Scene = ({ progress = 0, onSelectClub, isMobile = false }) => {
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 1.1,
         }}
-        shadows={{ type: THREE.PCFShadowMap }}
       >
-        {/* Realistic Space Starfield */}
+        {/* Realistic Space Starfield (Optimized count for 60 FPS SLA) */}
         <Stars
           radius={200}
           depth={80}
-          count={isMobile ? 3000 : 7000}
+          count={isMobile ? 1200 : 2800}
           factor={4}
           saturation={0.5}
           fade
-          speed={0.5}
+          speed={0.3}
         />
 
         {/* Realistic Solar Star Directional Sunlight */}
@@ -63,7 +64,6 @@ const Scene = ({ progress = 0, onSelectClub, isMobile = false }) => {
           position={[-50, 25, -90]}
           intensity={4.5}
           color="#FFFBEB"
-          castShadow
         />
         <ambientLight intensity={0.4} color="#1E293B" />
         <directionalLight position={[20, 40, 30]} intensity={1.5} color="#38BDF8" />

@@ -32,10 +32,15 @@ const ACCEPTED_TYPES = [
     "audio/mp4",
     "audio/x-m4a",
     "audio/m4a",
-    "audio/ogg"
+    "audio/ogg",
+    "video/mp4",
+    "video/webm",
+    "video/quicktime",
+    "video/x-matroska",
+    "video/ogg"
 ];
 
-const MAX_SIZE = 500 * 1024 * 1024;
+const MAX_SIZE = 2 * 1024 * 1024 * 1024; // 2 GB limit
 
 const STATUS = {
     IDLE: "idle",
@@ -66,15 +71,15 @@ const MeetingUploader = ({
 
     const validateFile = useCallback((selectedFile) => {
         if (!selectedFile) {
-            throw new Error("Please choose an audio file.");
+            throw new Error("Please choose an audio or video file.");
         }
 
         if (!ACCEPTED_TYPES.includes(selectedFile.type)) {
-            throw new Error("Unsupported audio format.");
+            throw new Error("Unsupported audio or video format.");
         }
 
         if (selectedFile.size > MAX_SIZE) {
-            throw new Error("Maximum allowed size is 500 MB.");
+            throw new Error("Maximum allowed size is 2 GB (Industry Resumable Ceiling).");
         }
     }, []);
 
@@ -276,16 +281,16 @@ const MeetingUploader = ({
                         size={48}
                     />
                     <h3 className="text-xl font-semibold">
-                        Drag & Drop Audio Here
+                        Drag & Drop Audio or Video Here
                     </h3>
                     <p className="mt-3 text-gray-500">
-                        or click to browse
+                        or click to browse (Tus Resumable Protected)
                     </p>
                     <p className="mt-6 text-sm text-gray-400">
-                        MP3 • WAV • M4A • WEBM • OGG
+                        MP3 • WAV • MP4 • MOV • WEBM • MKV
                     </p>
                     <p className="text-sm text-gray-400">
-                        Maximum Size : 500 MB
+                        Maximum Size : 2 GB • Auto-resumes on Wi-Fi drop
                     </p>
                 </div>
             </div>
@@ -359,8 +364,12 @@ const MeetingUploader = ({
                             }}
                         />
                     </div>
-                    <div className="mt-3 text-right font-semibold">
-                        {uploadProgress.toFixed(0)}%
+                    <div className="mt-3 flex items-center justify-between text-xs font-mono text-gray-500">
+                        <div className="flex items-center gap-1.5 text-emerald-600 font-semibold">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <span>Tus Resumable Active • 6MB Chunks • Auto-Resumes on Wi-Fi Drop</span>
+                        </div>
+                        <span className="font-bold">{uploadProgress.toFixed(0)}%</span>
                     </div>
                 </div>
             )}

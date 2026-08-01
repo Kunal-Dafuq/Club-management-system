@@ -19,6 +19,7 @@ const SolarSystem = ({ progress = 0 }) => {
   }, [progress]);
 
   useFrame((state, delta) => {
+    if (visibility <= 0.01) return;
     const time = state.clock.getElapsedTime();
 
     if (systemGroupRef.current) {

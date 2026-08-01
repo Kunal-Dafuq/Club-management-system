@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { EVENTS_DATA } from "../constants/landingData";
 import AutoCompleteSearch from "../components/ui/AutoCompleteSearch";
+import RoleGovernanceBar from "../components/ui/RoleGovernanceBar";
 
 const EVENT_CATEGORIES = [
   "All Events",
@@ -75,6 +76,7 @@ const Events = () => {
 
   return (
     <div className="space-y-10">
+      <RoleGovernanceBar />
       {/* QR Ticket Holographic Modal */}
       <AnimatePresence>
         {qrModalEvent && (

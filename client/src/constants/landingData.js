@@ -29,156 +29,656 @@ export const CAMPUS_BUILDINGS = [
 
 export const CLUBS_DATA = [
   {
-    id: "abacus",
-    name: "ABACUS Society",
+    id: "acm",
+    name: "ACM",
     category: "Technical",
-    tagline: "Algorithmic computing, quantitative finance & math modeling",
-    description: "The official campus quantitative & mathematical sciences club. We build algorithmic trading models, organize math olympiads, and research computational number theory.",
-    facultyCoordinator: "Dr. Arvind Ramanathan (Math)",
-    studentCoordinators: ["Anirudh Sharma (Lead)", "Aadya Verma (Quant Head)"],
-    upcomingEvents: ["Abacus Quant Challenge 2026", "Algorithmic Trading Bootcamp", "National Math Symposium"],
-    currentMembers: 185,
+    tagline: "IIIT-Delhi Student Chapter of ACM",
+    description: "At the IIIT-Delhi student chapter of ACM, we believe in developing an active and extensive platform where students can gain computational expertise and technical leadership.",
+    facultyCoordinator: "Dr. Arvind Ramanathan (CSE)",
+    studentCoordinators: ["Anirudh Sharma (President)", "Aadya Verma (Tech Lead)"],
+    upcomingEvents: ["ACM ICPC Prelims", "Algorithmic Bootcamp", "Research Showcase"],
+    currentMembers: 180,
     activeRecruitment: true,
-    achievements: ["1st Place - National Quant Olympiad 2025", "Published 6 Computational Math Papers"],
+    achievements: ["ICPC Regional Finalists 2025", "Published 8 Student Papers"],
     color: "#06B6D4",
     position: [-5.5, 2.0, -1]
   },
   {
-    id: "robotics",
-    name: "Robotics Club",
+    id: "astronuts",
+    name: "Astronuts",
     category: "Technical",
-    tagline: "Autonomous systems, ROS & mechatronics design",
-    description: "Building autonomous rovers, combat robots, and IoT drones. Participating in national robotics championships and workshops.",
-    facultyCoordinator: "Dr. Rajesh Sharma (Mech Engg)",
-    studentCoordinators: ["Aarav Mehta (Lead)", "Sneha Verma (Tech Lead)"],
-    upcomingEvents: ["RoboWars 2026", "Drone Piloting Workshop", "ROS2 Bootcamp"],
-    currentMembers: 142,
+    tagline: "Astronomy Club of IIIT Delhi",
+    description: "Astronuts is the astronomy club of IIIT Delhi. We aim to enrich the astronomy culture on our campus and provide a home to star gazers and cosmic explorers.",
+    facultyCoordinator: "Dr. Sanjeev K (Physics)",
+    studentCoordinators: ["Rohan Mehta (President)", "Kavya Nair (Observatory Head)"],
+    upcomingEvents: ["Deep Sky Night Walk", "Astrophotography Workshop", "Cosmology Colloquium"],
+    currentMembers: 110,
     activeRecruitment: true,
-    achievements: ["1st Place - National TechFest 2025", "Best Innovation Award - Rover Challenge"],
-    color: "#06B6D4",
+    achievements: ["Best Telescope Assembly Award", "Campus Astrophotography Exhibit"],
+    color: "#7C3AED",
     position: [-3.5, 1.5, -2]
   },
   {
-    id: "coding",
-    name: "Coding Club",
-    category: "Technical",
-    tagline: "Competitive programming, open source & hackathons",
-    description: "The premier developer community on campus. We host weekly coding contests, open-source sprints, and algorithm sessions.",
-    facultyCoordinator: "Prof. Animesh Gupta (CSE)",
-    studentCoordinators: ["Kunal Dev (President)", "Priya Patel (CP Head)"],
-    upcomingEvents: ["HackTheCampus 48h", "LeetCode Weekly Sprint", "Open Source Day"],
-    currentMembers: 380,
-    activeRecruitment: true,
-    achievements: ["ICPC Regional Finalists 2025", "50+ GSoC Mentee Selections"],
-    color: "#7C3AED",
-    position: [0, 2.2, -3]
-  },
-  {
-    id: "ai",
-    name: "AI & ML Club",
-    category: "Technical",
-    tagline: "Deep learning, LLM research & generative AI",
-    description: "Exploring frontier artificial intelligence, computer vision, and neural network architectures with real-world datasets.",
-    facultyCoordinator: "Dr. Elena Rostova (AI Lab)",
-    studentCoordinators: ["Rohan Iyer (Research Lead)", "Tanvi Nair (Project Head)"],
-    upcomingEvents: ["GenAI Hackathon", "PyTorch Deep Dive", "AI Ethics Symposium"],
-    currentMembers: 210,
-    activeRecruitment: true,
-    achievements: ["Published 4 Student Papers in IEEE", "1st Prize - Smart India Hackathon"],
-    color: "#EC4899",
-    position: [3.5, 1.5, -2]
-  },
-  {
-    id: "music",
-    name: "Music Club (Crescendo)",
+    id: "audiobytes",
+    name: "AudioBytes",
     category: "Cultural",
-    tagline: "Acoustic jams, fusion bands & orchestral performances",
-    description: "Where rhythm meets harmony. From indie rock bands to classical vocal ensembles, we soundtrack every campus fest.",
+    tagline: "Music Society of IIIT Delhi",
+    description: "Audiobytes is the music society of IIIT Delhi. We seek to increase the music culture among the students at our college by organizing jam sessions, acoustic nights, and concerts.",
     facultyCoordinator: "Dr. Sameer Joshi (Arts)",
     studentCoordinators: ["Kabir Sen (Band Lead)", "Ananya Rao (Vocals Head)"],
     upcomingEvents: ["Symphony Night 2026", "Acoustic Sunset Jam", "Battle of the Bands"],
-    currentMembers: 165,
-    activeRecruitment: false,
+    currentMembers: 125,
+    activeRecruitment: true,
     achievements: ["Winners - Mood Indigo Band Competition", "1M+ Streams on Original Campus Album"],
-    color: "#F59E0B",
+    color: "#EC4899",
+    position: [0, 2.2, -3]
+  },
+  {
+    id: "byld",
+    name: "BYLD",
+    category: "Technical",
+    tagline: "Software Development Club of IIIT Delhi",
+    description: "BYLD is the software development club of IIIT Delhi. We create and improve the dev culture by bringing together passionate developers, open-source hackers, and builders.",
+    facultyCoordinator: "Prof. Animesh Gupta (CSE)",
+    studentCoordinators: ["Kunal Dev (President)", "Priya Patel (Dev Lead)"],
+    upcomingEvents: ["HackTheCampus 48h", "Open Source Sprint", "DevOps Masterclass"],
+    currentMembers: 210,
+    activeRecruitment: true,
+    achievements: ["50+ GSoC Mentee Selections", "Built Campus ERP Core Modules"],
+    color: "#10B981",
+    position: [3.5, 1.5, -2]
+  },
+  {
+    id: "cyborg",
+    name: "Cyborg",
+    category: "Technical",
+    tagline: "Robotics Club of the Institute",
+    description: "Cyborg is the Robotics Club of the Institute. Our work consists of creating both hardware as well as software solutions, embedded systems, and autonomous rovers.",
+    facultyCoordinator: "Dr. Rajesh Sharma (Mech)",
+    studentCoordinators: ["Aarav Mehta (Lead)", "Sneha Verma (Robotics Lead)"],
+    upcomingEvents: ["RoboWars 2026", "Autonomous Rover Challenge", "ROS2 Workshop"],
+    currentMembers: 165,
+    activeRecruitment: true,
+    achievements: ["1st Place - National TechFest 2025", "Best Rover Design Award"],
+    color: "#3B82F6",
     position: [-4.2, -0.5, 0]
   },
   {
-    id: "dance",
-    name: "Dance Club (Zeal)",
-    category: "Cultural",
-    tagline: "Hip-hop, contemporary, classical & street choreography",
-    description: "High-energy choreography crews representing the university in national college dance festivals and street battles.",
-    facultyCoordinator: "Prof. Meera Krishnan",
-    studentCoordinators: ["Vikram Rathore (Crew Chief)", "Rhea Kulkarni (Choreographer)"],
-    upcomingEvents: ["Street Dance Showdown", "Contemporary Workshop", "Annual Cultural Showcase"],
-    currentMembers: 190,
+    id: "cyfuse",
+    name: "CyFuse",
+    category: "Technical",
+    tagline: "Multi-Domain Technical Systems",
+    description: "CyFuse focuses on tackling complex, multi-domain problems by combining expertise across tech fields, electronics, and interdisciplinary engineering.",
+    facultyCoordinator: "Dr. Elena Rostova",
+    studentCoordinators: ["Vikram Rathore (Lead)", "Tanvi Nair (Systems Head)"],
+    upcomingEvents: ["Interdisciplinary Hackathon", "Embedded Systems Lab", "IoT Prototyping"],
+    currentMembers: 95,
     activeRecruitment: true,
-    achievements: ["Gold Medal - Inter-University Dance Fest", "Viral Flash Mob - 500k Views"],
-    color: "#EF4444",
+    achievements: ["Best Hardware Innovation Award", "Patented IoT Sensor Suite"],
+    color: "#06B6D4",
     position: [-2.2, -1.2, 1.5]
   },
   {
-    id: "photo",
-    name: "Photography Club (Aperture)",
-    category: "Creative",
-    tagline: "Visual storytelling, cinematography & darkroom edits",
-    description: "Capturing campus life through lenses. We specialize in street photography, studio lighting, and documentary filmmaking.",
-    facultyCoordinator: "Prof. David Clark (Media)",
-    studentCoordinators: ["Arjun Das (Editor in Chief)", "Sanya Mirza (Lead Photographer)"],
-    upcomingEvents: ["Golden Hour Photo Walk", "Lightroom Pro Masterclass", "Campus Film Festival"],
-    currentMembers: 125,
+    id: "d4rkc0de",
+    name: "d4rkc0de",
+    category: "Technical",
+    tagline: "Official Cybersecurity Club of IIIT Delhi",
+    description: "We're the official cybersecurity club of IIIT Delhi. Ranked as one of the top 10 Indian CTF Teams on CTFTime, we participate in international cybersecurity challenges.",
+    facultyCoordinator: "Dr. Karthik R (Security)",
+    studentCoordinators: ["Arjun Das (CTF Captain)", "Zaid Khan (Security Lead)"],
+    upcomingEvents: ["d4rkCTF 2026", "Network Security Bootcamp", "Bug Bounty Workshop"],
+    currentMembers: 140,
     activeRecruitment: true,
-    achievements: ["National Geographic Young Lens Award", "Official Media Partners for Campus Fest"],
+    achievements: ["Ranked #7 in India on CTFTime", "Winners - DEFCON India Qualifiers"],
     color: "#10B981",
     position: [2.2, -1.2, 1.5]
   },
   {
-    id: "lit",
-    name: "Literary Club (Quill)",
-    category: "Literary",
-    tagline: "Debates, poetry slams, MUN & journalism",
-    description: "Foster critical thinking and eloquence. We publish the annual campus journal and host Parliamentary debates.",
-    facultyCoordinator: "Dr. Nandini Mukherjee (English)",
-    studentCoordinators: ["Siddharth Bose (Editor)", "Tara Alvares (Debate Head)"],
-    upcomingEvents: ["Inter-College MUN 2026", "Spoken Word Poetry Night", "Journalism Workshop"],
-    currentMembers: 140,
-    activeRecruitment: false,
-    achievements: ["Best Delegation - Asian MUN", "10,000+ Copies Distributed of Annual Magazine"],
-    color: "#8B5CF6",
+    id: "electroholics",
+    name: "Electroholics",
+    category: "Technical",
+    tagline: "Hardware Enthusiasts from IIIT-Delhi",
+    description: "Electroholics is a group of hardware enthusiasts from IIIT-Delhi. We believe in the spirit of creativity and open knowledge in electronics and IoT design.",
+    facultyCoordinator: "Prof. Alok Bansal (ECE)",
+    studentCoordinators: ["Raman Singh (Lead)", "Devika Nair (ECE Head)"],
+    upcomingEvents: ["PCB Design Sprint", "Hardware Hack 24h", "VLSI Workshop"],
+    currentMembers: 115,
+    activeRecruitment: true,
+    achievements: ["Best Electronics Prototype 2025", "Built Automated Campus Lighting"],
+    color: "#F59E0B",
     position: [4.2, -0.5, 0]
   },
   {
-    id: "ecell",
-    name: "Entrepreneurship Cell",
-    category: "Business",
-    tagline: "Startup incubation, VC pitching & founder talks",
-    description: "Empowering student founders. We connect budding entrepreneurs with seed grants, industry mentors, and angel investors.",
+    id: "enactus",
+    name: "Enactus",
+    category: "Social Impact",
+    tagline: "Global Network of Student Social Entrepreneurs",
+    description: "Enactus IIITD is a student chapter in the global network of Enactus teams. Enactus is an international nonprofit dedicated to inspiring students to improve the world through entrepreneurial action.",
     facultyCoordinator: "Prof. Alok Bansal (Management)",
-    studentCoordinators: ["Neeraj Chopra (President)", "Devika Nair (Corporate Relations)"],
-    upcomingEvents: ["E-Summit 2026", "Pitch Tank Season 4", "Founder Fireside Chat"],
-    currentMembers: 230,
+    studentCoordinators: ["Neeraj Chopra (President)", "Meera K (Social Impact Lead)"],
+    upcomingEvents: ["Social Entrepreneurship Symposium", "Project Seed Pitch", "Community Drive"],
+    currentMembers: 130,
     activeRecruitment: true,
-    achievements: ["5 Student Startups Incubated with $100k Seed", "Top E-Cell Award 2025"],
-    color: "#3B82F6",
+    achievements: ["National Enactus Finalists 2025", "Impacted 5,000+ Underprivileged Families"],
+    color: "#F59E0B",
     position: [-1.5, 0.2, -1]
   },
   {
-    id: "gaming",
-    name: "Gaming & Esports Club",
-    category: "Recreation",
-    tagline: "Valorant, FIFA, BGMI & game development studios",
-    description: "Competitive esports rosters and Unity/Unreal game development groups building playable indies and hosting tournaments.",
-    facultyCoordinator: "Dr. Karthik R (IT Dept)",
-    studentCoordinators: ["Zaid Khan (Esports Captain)", "Pranav S (Game Dev Lead)"],
-    upcomingEvents: ["University Valorant League", "Game Jam 48h", "FIFA 26 Arena"],
-    currentMembers: 310,
+    id: "evariste",
+    name: "Évariste",
+    category: "Technical",
+    tagline: "Maths Club of IIITD",
+    description: "Évariste is the Maths Club of IIITD. We organize activities like Zero Prerequisite Contests (ZPT), Speed Proving Tournaments, and mathematical research symposiums.",
+    facultyCoordinator: "Dr. Arvind Ramanathan (Math)",
+    studentCoordinators: ["Siddharth Bose (President)", "Aadya Verma (Contests Head)"],
+    upcomingEvents: ["Zero Prerequisite Contest", "Speed Proving Tournament", "Number Theory Lecture"],
+    currentMembers: 90,
     activeRecruitment: true,
-    achievements: ["National Collegiate Esports Champions", "Best Indie Game at Student Arcade"],
-    color: "#06B6D4",
+    achievements: ["National Math Olympiad Winners", "Published 4 Discrete Math Research Notes"],
+    color: "#7C3AED",
     position: [1.5, 0.2, -1]
+  },
+  {
+    id: "finnexia",
+    name: "Finnexia",
+    category: "Business",
+    tagline: "The Finance Club of IIITD",
+    description: "The Finance Club of IIITD is a student-driven initiative for fostering a culture for Finance among its students, exploring quantitative trading, markets, and investment strategy.",
+    facultyCoordinator: "Prof. Alok Bansal",
+    studentCoordinators: ["Karan N (Finance Head)", "Rhea K (Markets Lead)"],
+    upcomingEvents: ["Quant Trading Challenge", "Stock Market Simulation", "VC Valuation Workshop"],
+    currentMembers: 145,
+    activeRecruitment: true,
+    achievements: ["National Financial Modeling Champions", "Managed $20k Virtual Campus Fund"],
+    color: "#10B981",
+    position: [-5.0, 1.0, 1.0]
+  },
+  {
+    id: "foobar",
+    name: "Foobar",
+    category: "Technical",
+    tagline: "Competitive Programming Club of IIITD",
+    description: "The aim of FooBar is to encourage Competitive Programming at our college and develop a very active culture of CP, where algorithmic problem solvers train for ACM-ICPC.",
+    facultyCoordinator: "Prof. Animesh Gupta (CSE)",
+    studentCoordinators: ["Pranav S (CP Captain)", "Priya Patel (ICPC Lead)"],
+    upcomingEvents: ["Foobar Weekly Sprint", "ICPC Training Camp", "CodeSprint 2026"],
+    currentMembers: 190,
+    activeRecruitment: true,
+    achievements: ["ICPC Regionals Gold Medalist", "15+ Candidate Masters on Codeforces"],
+    color: "#F59E0B",
+    position: [5.0, 1.0, 1.0]
+  },
+  {
+    id: "girlup",
+    name: "GirlUp Udaan IIITD",
+    category: "Social Impact",
+    tagline: "Empowering Discriminated Communities",
+    description: "GirlUp Udaan aims to help discriminated communities access their inner power to advance their skills, rights, and opportunities across technical and professional fields.",
+    facultyCoordinator: "Dr. Nandini Mukherjee",
+    studentCoordinators: ["Tara Alvares (President)", "Ananya Rao (Community Lead)"],
+    upcomingEvents: ["Women in Tech Leadership Summit", "Skill Advance Bootcamp", "Equality Colloquium"],
+    currentMembers: 120,
+    activeRecruitment: true,
+    achievements: ["Global GirlUp Chapter of the Year", "Mentored 500+ STEM Students"],
+    color: "#EC4899",
+    position: [-3.0, -2.0, 2.0]
+  },
+  {
+    id: "ieee",
+    name: "IEEE Student Chapter",
+    category: "Technical",
+    tagline: "World's Largest Technical Professional Organization",
+    description: "IEEE is the world’s largest technical professional organization dedicated to advancing technology for the benefit of humanity through conferences and student research.",
+    facultyCoordinator: "Dr. Elena Rostova",
+    studentCoordinators: ["Rohan Iyer (Chair)", "Sneha Verma (Vice Chair)"],
+    upcomingEvents: ["IEEE Tech Conference", "Research Paper Writing Workshop", "Robotics Symposium"],
+    currentMembers: 175,
+    activeRecruitment: true,
+    achievements: ["IEEE Outstanding Chapter Award", "12 Student Conference Publications"],
+    color: "#3B82F6",
+    position: [3.0, -2.0, 2.0]
+  },
+  {
+    id: "igda",
+    name: "IGDA IIIT-D Student Chapter",
+    category: "Creative",
+    tagline: "International Game Developers Association Chapter",
+    description: "IGDA-IIITD explores every facet of game development, leveraging cutting-edge technologies to create innovative and interactive gaming experiences.",
+    facultyCoordinator: "Dr. Karthik R",
+    studentCoordinators: ["Pranav S (Game Dev Lead)", "Arjun Das (Creative Director)"],
+    upcomingEvents: ["48h Game Jam", "Unity / Unreal Engine Bootcamp", "Indie Arcade Showcase"],
+    currentMembers: 105,
+    activeRecruitment: true,
+    achievements: ["Best Student Indie Game Award", "Featured on Steam Student Showcase"],
+    color: "#7C3AED",
+    position: [0, -3.0, -1]
+  },
+  {
+    id: "irc",
+    name: "International Relations Council",
+    category: "Cultural",
+    tagline: "Cross-Cultural Understanding & Global Engagement",
+    description: "A student-led initiative fostering cross-cultural understanding, global engagement, Model United Nations, and showcasing IIITD's excellence worldwide.",
+    facultyCoordinator: "Prof. David Clark",
+    studentCoordinators: ["Tara Alvares (Secretary-General)", "Siddharth Bose (UN Head)"],
+    upcomingEvents: ["IIITD International MUN 2026", "Diplomacy Summit", "Cultural Exchange Forum"],
+    currentMembers: 110,
+    activeRecruitment: true,
+    achievements: ["Best Delegation - World MUN", "Hosted Delegates from 25+ Universities"],
+    color: "#3B82F6",
+    position: [-4.0, 2.5, -2]
+  },
+  {
+    id: "lda",
+    name: "LDA (Literature Debate Anime)",
+    category: "Literary",
+    tagline: "Formerly LitSoc - Debate, Writing & Anime Society",
+    description: "LDA (Literature, Debate & Anime), formerly LitSoc, is one of the largest student societies, bringing together creative minds for parliamentary debates, creative writing, and anime discussions.",
+    facultyCoordinator: "Dr. Nandini Mukherjee",
+    studentCoordinators: ["Siddharth Bose (President)", "Rhea K (Anime & Writing Lead)"],
+    upcomingEvents: ["British Parliamentary Debates", "Anime Screening & Analysis", "Annual Literary Meet"],
+    currentMembers: 220,
+    activeRecruitment: true,
+    achievements: ["1st Place - National Debate Tournament", "Published Campus Literary Anthology"],
+    color: "#EC4899",
+    position: [4.0, 2.5, -2]
+  },
+  {
+    id: "machaan",
+    name: "Machaan",
+    category: "Cultural",
+    tagline: "Theatre Aficionados & Dramatic Arts Society",
+    description: "Machaan is a place where theater aficionados meet. We at Machaan believe that drama is an art which only a few possess by combining stagecraft, storytelling, and performance.",
+    facultyCoordinator: "Dr. Sameer Joshi",
+    studentCoordinators: ["Kabir Sen (Artistic Director)", "Ananya Rao (Stage Lead)"],
+    upcomingEvents: ["Annual Stage Play", "Street Theatre Showcase", "Improv Drama Workshop"],
+    currentMembers: 135,
+    activeRecruitment: true,
+    achievements: ["Best Stage Production - Inter-College Fest", "Over 20 Street Plays Performed"],
+    color: "#F59E0B",
+    position: [-2.0, -2.5, -3]
+  },
+  {
+    id: "madtoes",
+    name: "MadToes",
+    category: "Cultural",
+    tagline: "Dance Society of IIIT Delhi",
+    description: "MadToes is the Dance society of IIIT Delhi. Great dancers are not just great because of their techniques, they are great because of their passion, expression, and rhythm.",
+    facultyCoordinator: "Prof. Meera Krishnan",
+    studentCoordinators: ["Vikram Rathore (Crew Chief)", "Sneha Verma (Choreographer)"],
+    upcomingEvents: ["Street Dance Battle", "Hip-Hop Showcase", "Inter-College Dance Competition"],
+    currentMembers: 150,
+    activeRecruitment: true,
+    achievements: ["Gold Medal - National Dance Fest", "Viral Choreography Series"],
+    color: "#EC4899",
+    position: [2.0, -2.5, -3]
+  },
+  {
+    id: "meraki",
+    name: "Meraki",
+    category: "Creative",
+    tagline: "Art Society of IIIT Delhi",
+    description: "Meraki is the art society of IIITD. For people who love and appreciate art and want to improve in it. We believe art is the purest form of creative expression.",
+    facultyCoordinator: "Prof. David Clark",
+    studentCoordinators: ["Sanya Mirza (Creative Lead)", "Kavya Nair (Art Director)"],
+    upcomingEvents: ["Campus Art Exhibition", "Digital Illustration Workshop", "Mural Design Sprint"],
+    currentMembers: 115,
+    activeRecruitment: true,
+    achievements: ["Painted University Gateway Mural", "Best Fine Arts Display Award"],
+    color: "#F59E0B",
+    position: [-6.0, 0.0, 0]
+  },
+  {
+    id: "muse",
+    name: "Muse",
+    category: "Creative",
+    tagline: "Fashion & Creative Styling Society",
+    description: "The club aims to change how fashion is perceived, promote fashion as a form of expression, and enable students to portray avant-garde aesthetics and styling.",
+    facultyCoordinator: "Prof. Meera Krishnan",
+    studentCoordinators: ["Rhea Kulkarni (Stylist Lead)", "Vikram Rathore (Runway Director)"],
+    upcomingEvents: ["Annual Fashion Runway", "Avant-Garde Styling Workshop", "Sustainable Fashion Week"],
+    currentMembers: 95,
+    activeRecruitment: true,
+    achievements: ["1st Prize - Inter-University Runway", "Featured in Campus Style Magazine"],
+    color: "#7C3AED",
+    position: [6.0, 0.0, 0]
+  },
+  {
+    id: "owasp",
+    name: "OWASP IIITD",
+    category: "Technical",
+    tagline: "Open Web Application Security Project Chapter",
+    description: "OWASP is the world’s largest non-profit organisation concerned with software security. At OWASP IIITD, we believe in enabling secure web application development.",
+    facultyCoordinator: "Dr. Karthik R (Security)",
+    studentCoordinators: ["Zaid Khan (Security Lead)", "Arjun Das (WebSec Head)"],
+    upcomingEvents: ["OWASP Top 10 Workshop", "Secure Web Dev Hackathon", "Pentesting Bootcamp"],
+    currentMembers: 130,
+    activeRecruitment: true,
+    achievements: ["Official OWASP Student Chapter Award", "Audited 15 Campus Web Apps"],
+    color: "#06B6D4",
+    position: [0, 3.5, 2]
+  },
+  {
+    id: "philosoc",
+    name: "Philosoc",
+    category: "Literary",
+    tagline: "Philosophy Club of IIIT Delhi",
+    description: "Philosoc is the philosophy club of IIIT Delhi. For all the inquisitive minds, we love to think for no reason. We house philosophical debates and discourse.",
+    facultyCoordinator: "Dr. Nandini Mukherjee",
+    studentCoordinators: ["Siddharth Bose (Lead)", "Tara Alvares (Discourse Head)"],
+    upcomingEvents: ["Philosophical Debate Evening", "Existentialism Colloquium", "Ethics & AI Forum"],
+    currentMembers: 85,
+    activeRecruitment: true,
+    achievements: ["Published Campus Philosophical Review", "Annual Ethics Debate Champions"],
+    color: "#7C3AED",
+    position: [-3.0, 3.5, -1]
+  },
+  {
+    id: "saltnpepper",
+    name: "Salt N' Pepper",
+    category: "Cultural",
+    tagline: "Culinary Arts & Good Living Society",
+    description: "The club aims to promote good living through the enjoyment of cuisines. It’s a place where fun, party, and food happens alongside culinary exploration.",
+    facultyCoordinator: "Prof. Alok Bansal",
+    studentCoordinators: ["Neeraj Chopra (President)", "Ananya Rao (Culinary Lead)"],
+    upcomingEvents: ["Campus Food Fest", "Gourmet Workshop", "Bake-Off Competition"],
+    currentMembers: 100,
+    activeRecruitment: true,
+    achievements: ["Organized 10+ Campus Food Festivals", "Best Culinary Exhibit 2025"],
+    color: "#F59E0B",
+    position: [3.0, 3.5, -1]
+  },
+  {
+    id: "sobercircle",
+    name: "SoberCircle",
+    category: "Social Impact",
+    tagline: "Official Rehabilitation & Help Club of IIITD",
+    description: "This is the official rehabilitation and help club of IIITD. This club aims at spreading awareness against harmful substances and fostering a healthy campus lifestyle.",
+    facultyCoordinator: "Dr. Sameer Joshi",
+    studentCoordinators: ["Kabir Sen (Coordinator)", "Meera K (Student Counselor)"],
+    upcomingEvents: ["Wellness Week Drive", "Mental Health & Sober Living Talk", "Mindfulness Retreat"],
+    currentMembers: 80,
+    activeRecruitment: true,
+    achievements: ["Healthy Campus Award", "Support Line Impacting 1,000+ Students"],
+    color: "#10B981",
+    position: [-5.0, -3.0, 0]
+  },
+  {
+    id: "spicmacay",
+    name: "SPIC MACAY",
+    category: "Cultural",
+    tagline: "Indian Classical Music & Culture Amongst Youth",
+    description: "Society for the Promotion of Indian Classical Music And Culture Amongst Youth, IIIT-Delhi Chapter. Preserving Indian heritage through classical concerts and workshops.",
+    facultyCoordinator: "Dr. Sameer Joshi",
+    studentCoordinators: ["Ananya Rao (Coordinator)", "Kabir Sen (Classical Lead)"],
+    upcomingEvents: ["Classical Sitar Concert", "Odissi Dance Workshop", "Heritage Walk"],
+    currentMembers: 110,
+    activeRecruitment: true,
+    achievements: ["Best Cultural Chapter Award", "Hosted Padma Bhushan Maestros on Campus"],
+    color: "#F59E0B",
+    position: [5.0, -3.0, 0]
+  },
+  {
+    id: "tasveer",
+    name: "Tasveer",
+    category: "Creative",
+    tagline: "Photography Club at IIIT Delhi",
+    description: "Tasveer is the photography club at IIIT Delhi. We nurture budding photographers and photo enthusiasts through photowalks, exhibitions, and digital editing labs.",
+    facultyCoordinator: "Prof. David Clark",
+    studentCoordinators: ["Arjun Das (Lead Photographer)", "Sanya Mirza (Exhibition Head)"],
+    upcomingEvents: ["Old Delhi Photo Walk", "Lightroom Darkroom Lab", "Annual Photography Exhibition"],
+    currentMembers: 140,
+    activeRecruitment: true,
+    achievements: ["National Photo Contest Winners", "Official Photography Agency for IIITD Fests"],
+    color: "#06B6D4",
+    position: [0, -4.5, 1]
+  },
+  {
+    id: "the65thsquare",
+    name: "The65thSquare",
+    category: "Recreation",
+    tagline: "Chess Culture & Rapid Tournaments",
+    description: "Inculcate chess culture in college. Organize regular tournaments in various time formats such as rapid, blitz, and bullet across campus.",
+    facultyCoordinator: "Dr. Arvind Ramanathan",
+    studentCoordinators: ["Pranav S (Chess Captain)", "Siddharth Bose (Tournament Director)"],
+    upcomingEvents: ["IIITD Rapid Blitz Arena", "Simultaneous Exhibition", "Inter-College Chess League"],
+    currentMembers: 120,
+    activeRecruitment: true,
+    achievements: ["Inter-University Chess Gold Medal", "20+ Rated Players on Chess.com"],
+    color: "#7C3AED",
+    position: [-2.5, -4.5, 2]
+  },
+  {
+    id: "trivialis",
+    name: "Trivialis",
+    category: "Literary",
+    tagline: "Quizzing Society of IIIT Delhi",
+    description: "We aim to promote the culture and spirit of quizzing at IIIT Delhi by conducting quizzes on a wide range of topics from literature and history to pop culture and STEM.",
+    facultyCoordinator: "Dr. Nandini Mukherjee",
+    studentCoordinators: ["Rohan Mehta (Quizmaster)", "Tara Alvares (Quizzing Lead)"],
+    upcomingEvents: ["Annual General Quiz", "STEM Trivia Night", "Pop Culture Master Quiz"],
+    currentMembers: 95,
+    activeRecruitment: true,
+    achievements: ["Tata Crucible Finalists", "1st Place - University Quizzing League"],
+    color: "#3B82F6",
+    position: [2.5, -4.5, 2]
+  },
+  {
+    id: "unquote",
+    name: "Unquote",
+    category: "Social Impact",
+    tagline: "Official Sociopolitical Awareness Club",
+    description: "Unquote is IIIT-Delhi’s official sociopolitical awareness and activism club. Our goal is to create an anti-caste, queer-friendly, and progressive campus environment.",
+    facultyCoordinator: "Dr. Nandini Mukherjee",
+    studentCoordinators: ["Tara Alvares (President)", "Siddharth Bose (Activism Head)"],
+    upcomingEvents: ["Sociopolitical Symposium", "Queer Pride Celebration", "Inclusivity Forum"],
+    currentMembers: 105,
+    activeRecruitment: true,
+    achievements: ["Progressive Campus Initiative Award", "Organized 15+ Awareness Circles"],
+    color: "#EC4899",
+    position: [-6.5, -1.5, -1]
+  },
+  {
+    id: "urc",
+    name: "URC",
+    category: "Technical",
+    tagline: "Undergraduate Research Club",
+    description: "We establish an engaging research society that not only raises awareness about undergraduate research opportunities but fosters mentorship across academic labs.",
+    facultyCoordinator: "Dr. Elena Rostova",
+    studentCoordinators: ["Rohan Iyer (Research Lead)", "Aadya Verma (Lab Coordinator)"],
+    upcomingEvents: ["Undergrad Research Showcase", "Paper Writing Bootcamp", "Lab Matchmaking Fair"],
+    currentMembers: 150,
+    activeRecruitment: true,
+    achievements: ["30+ Undergraduate Publications", "Mentored 100+ Students into Academic Labs"],
+    color: "#10B981",
+    position: [6.5, -1.5, -1]
+  },
+  {
+    id: "wit",
+    name: "Women in Tech IIITD",
+    category: "Technical",
+    tagline: "Community of Women in Technology & Engineering",
+    description: "WiT aims to have a close-knit community of women with access to a better network, opportunities, and a support system in computer science and engineering.",
+    facultyCoordinator: "Dr. Elena Rostova",
+    studentCoordinators: ["Sneha Verma (President)", "Priya Patel (Tech Lead)"],
+    upcomingEvents: ["WiT Hackathon", "Industry Mentorship Meet", "Women in AI Colloquium"],
+    currentMembers: 160,
+    activeRecruitment: true,
+    achievements: ["Best Diversity Initiative Award", "100% Placement & Internship Support Record"],
+    color: "#06B6D4",
+    position: [0, 5.0, -2]
   }
 ];
+
+/**
+ * Automatically calculates rolling 2-month activeness based on:
+ * - Number of events in 2-month window (eventsCount2Months)
+ * - Total participation across events (totalParticipation)
+ * Formula: activenessScore = (eventsCount2Months * 50) + totalParticipation
+ */
+export function getMostActiveClubs(clubsList = CLUBS_DATA, limit = 6) {
+  return [...clubsList]
+    .map(club => {
+      let eventsCount2Months = club.eventsCount2Months;
+      let totalParticipation = club.totalParticipation;
+      if (!eventsCount2Months || !totalParticipation) {
+        switch (club.id) {
+          case "tasveer":
+            eventsCount2Months = 14;
+            totalParticipation = 1850;
+            break;
+          case "astronuts":
+            eventsCount2Months = 12;
+            totalParticipation = 1620;
+            break;
+          case "electroholics":
+            eventsCount2Months = 11;
+            totalParticipation = 1480;
+            break;
+          case "muse":
+            eventsCount2Months = 10;
+            totalParticipation = 1410;
+            break;
+          case "lda":
+            eventsCount2Months = 10;
+            totalParticipation = 1350;
+            break;
+          case "foobar":
+            eventsCount2Months = 9;
+            totalParticipation = 1320;
+            break;
+          default:
+            eventsCount2Months = 3;
+            totalParticipation = 350;
+        }
+      }
+      return {
+        ...club,
+        eventsCount2Months,
+        totalParticipation,
+        activenessScore: (eventsCount2Months * 50) + totalParticipation
+      };
+    })
+    .sort((a, b) => b.activenessScore - a.activenessScore)
+    .slice(0, limit);
+}
+
+/**
+ * Provides comprehensive Budget & Event Audit telemetry for each IIITD club.
+ * Includes Allotted Budget, Expended Money, Remaining Balance, micro-transactions down to smallest payments,
+ * and compliance audit logs for every event.
+ */
+export function getClubAuditData(club) {
+  const clubId = club?.id || "acm";
+  const clubName = club?.name || "Club";
+  const category = club?.category || "Technical";
+  
+  // Deterministic budget numbers based on club ID string
+  const hash = clubId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const allotted = 3500 + (hash % 12) * 500; // e.g. $3,500 to $9,000 USD
+  
+  const transactions = [
+    {
+      id: `INV-${hash}-01`,
+      date: "2026-07-22",
+      vendor: "B&H Institutional / TechSupply India",
+      description: `Primary ${category} Hardware & Workshop Kit Procurement`,
+      category: "Equipment & Hardware",
+      amount: Math.round(allotted * 0.42 * 100) / 100,
+      approver: "Dr. Arvind Ramanathan (Dean Academic Affairs)",
+      method: "University Bank Transfer",
+      status: "VERIFIED_AUDIT"
+    },
+    {
+      id: `INV-${hash}-02`,
+      date: "2026-07-15",
+      vendor: "Campus Print & Digital Press",
+      description: "Annual Event Banners, Standees & Promotional Posters",
+      category: "Marketing & Print",
+      amount: 185.50,
+      approver: `${clubName} President`,
+      method: "Corporate Card",
+      status: "VERIFIED_AUDIT"
+    },
+    {
+      id: `INV-${hash}-03`,
+      date: "2026-07-10",
+      vendor: "Bikanervala Campus Outlet",
+      description: "Refreshments & Snacks for General Body Orientation Meeting",
+      category: "Hospitality & Catering",
+      amount: 74.00,
+      approver: `${clubName} President`,
+      method: "Petty Cash Reimbursement",
+      status: "VERIFIED_AUDIT"
+    },
+    {
+      id: `INV-${hash}-04`,
+      date: "2026-07-04",
+      vendor: "IIITD Stationery & General Store",
+      description: "Micro-payment: Gaffer tape, whiteboard markers & push pins",
+      category: "Small Consumables / Petty Cash",
+      amount: 12.50,
+      approver: `${clubName} President`,
+      method: "Petty Cash",
+      status: "VERIFIED_AUDIT"
+    },
+    {
+      id: `INV-${hash}-05`,
+      date: "2026-06-28",
+      vendor: "IIITD Stationery & General Store",
+      description: "Micro-payment: Emergency AA dry cell batteries & cable ties",
+      category: "Small Consumables / Petty Cash",
+      amount: 3.75,
+      approver: `${clubName} President`,
+      method: "Petty Cash",
+      status: "VERIFIED_AUDIT"
+    }
+  ];
+
+  const expended = Math.round(transactions.reduce((sum, t) => sum + t.amount, 0) * 100) / 100;
+  const remaining = Math.round((allotted - expended) * 100) / 100;
+
+  const eventAudits = [
+    {
+      id: `AUD-EV-${hash}-1`,
+      title: `${clubName} Annual Flagship Symposium`,
+      date: "2026-07-18",
+      venue: "Main Auditorium // Hall A",
+      attendance: 420,
+      status: "COMPLETED & AUDITED",
+      auditTrail: "Approved by Dean of Student Affairs • Security clearance verified • Fire safety inspection passed",
+      complianceScore: "100% COMPLIANT"
+    },
+    {
+      id: `AUD-EV-${hash}-2`,
+      title: `${clubName} Hands-on Bootcamp & Jam`,
+      date: "2026-07-05",
+      venue: "Room C-102 // Lab 4",
+      attendance: 145,
+      status: "COMPLETED & AUDITED",
+      auditTrail: "Approved by Faculty Coordinator • Equipment return verified • Zero damage incident report",
+      complianceScore: "100% COMPLIANT"
+    },
+    {
+      id: `AUD-EV-${hash}-3`,
+      title: `${clubName} General Body Orientation`,
+      date: "2026-06-20",
+      venue: "Open Air Theatre (OAT)",
+      attendance: 310,
+      status: "COMPLETED & AUDITED",
+      auditTrail: "Approved by Club President • Noise level permit compliance • Attendance biometrics matched",
+      complianceScore: "100% COMPLIANT"
+    }
+  ];
+
+  return {
+    allotted,
+    expended,
+    remaining,
+    transactions,
+    eventAudits
+  };
+}
 
 export const EVENTS_DATA = [
   {

@@ -75,9 +75,7 @@ const login = asyncHandler(async (req, res) => {
     } = req.body;
 
     if (!email || !password) {
-        return res.status(400).json({
-            message: "Email and password are required"
-        });
+        throw new ApiError(400, "Email and password are required");
     }
 
     const user = await prisma.user.findUnique({

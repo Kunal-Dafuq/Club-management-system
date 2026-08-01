@@ -34,7 +34,7 @@ export const SETTINGS_DOMAINS = [
     categories: [
       {
         id: "general",
-        name: "1. General Workspace Settings",
+        name: "General Workspace Settings",
         icon: Globe,
         badge: "CORE",
         badgeColor: "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
@@ -52,7 +52,7 @@ export const SETTINGS_DOMAINS = [
       },
       {
         id: "branding",
-        name: "2. Organization Branding",
+        name: "Organization Branding",
         icon: Palette,
         description: "Complete white-label customization of logos, favicons, splash screens, certificate watermarks, and login aesthetics.",
         compliance: "WHITE-LABEL ACTIVE",
@@ -66,7 +66,7 @@ export const SETTINGS_DOMAINS = [
       },
       {
         id: "appearance",
-        name: "17. Appearance & Display Engine",
+        name: "Appearance & Display Engine",
         icon: Moon,
         description: "Configure hardware-accelerated 60 FPS Framer Motion animations, dark glassmorphism blur intensity, and layout density.",
         compliance: "60 FPS RENDER SLA",
@@ -84,7 +84,7 @@ export const SETTINGS_DOMAINS = [
     categories: [
       {
         id: "security",
-        name: "3. Authentication & Security",
+        name: "Authentication & Security",
         icon: ShieldAlert,
         badge: "CRITICAL",
         badgeColor: "bg-red-500/20 text-red-300 border-red-500/40",
@@ -100,7 +100,7 @@ export const SETTINGS_DOMAINS = [
       },
       {
         id: "userMgmt",
-        name: "4. User & Directory Management",
+        name: "User & Directory Management",
         icon: Users,
         description: "Manage platform user directory, bulk CSV import/export, student coordinators, alumni, faculty advisors, and guests.",
         compliance: "DIRECTORY SYNC",
@@ -113,7 +113,7 @@ export const SETTINGS_DOMAINS = [
       },
       {
         id: "rbac",
-        name: "5. RBAC Role & Permission Management",
+        name: "RBAC Role & Permission Management",
         icon: Key,
         badge: "RBAC",
         badgeColor: "bg-violet-500/20 text-violet-300 border-violet-500/40",
@@ -128,7 +128,7 @@ export const SETTINGS_DOMAINS = [
       },
       {
         id: "compliance",
-        name: "18. Compliance, FERPA & Privacy",
+        name: "Compliance, FERPA & Privacy",
         icon: Lock,
         badge: "LEGAL",
         badgeColor: "bg-amber-500/20 text-amber-300 border-amber-500/40",
@@ -143,7 +143,7 @@ export const SETTINGS_DOMAINS = [
       },
       {
         id: "multiTenancy",
-        name: "22. Multi-Tenancy & Org Isolation",
+        name: "Multi-Tenancy & Org Isolation",
         icon: Building2,
         description: "Manage department/faculty hierarchical isolation, student graduation offboarding, and club dissolution workflows.",
         compliance: "TENANT ISOLATED",
@@ -160,7 +160,7 @@ export const SETTINGS_DOMAINS = [
     categories: [
       {
         id: "clubGov",
-        name: "6. Club Management Settings",
+        name: "Club Management Settings",
         icon: Compass,
         description: "Configure campus recruitment windows, membership/committee limits, automatic joining rules, and archival lifecycles.",
         compliance: "CHARTER VERIFIED",
@@ -173,7 +173,7 @@ export const SETTINGS_DOMAINS = [
       },
       {
         id: "eventConfig",
-        name: "7. Event & RSVP Configuration",
+        name: "Event & RSVP Configuration",
         icon: Calendar,
         description: "Configure RSVP ticketing rules, registration capacity limits, holographic QR pass generation, and digital certificates.",
         compliance: "QR CRYPTO PASS",
@@ -186,7 +186,7 @@ export const SETTINGS_DOMAINS = [
       },
       {
         id: "taskConfig",
-        name: "8. Task Management Settings",
+        name: "Task Management Settings",
         icon: CheckSquare,
         description: "Configure Linear/ClickUp Kanban default columns, priority colored badges, due date automation, and recurrence.",
         compliance: "SPRINT VELOCITY",
@@ -198,20 +198,22 @@ export const SETTINGS_DOMAINS = [
       },
       {
         id: "chatConfig",
-        name: "9. Chat & Communication",
+        name: "Chat & Communication",
         icon: MessageSquare,
         description: "Manage channel messaging permissions, AI typing indicators, message deletion policies, file upload size, and moderation.",
         compliance: "E2E SOCKET SYNC",
         related: ["taskConfig", "aiConfig"],
         fields: [
-          { key: "maxUploadMb", label: "Max Channel Attachment Size (MB)", type: "number", default: "25" },
+          { key: "maxUploadMb", label: "Standard Attachment Limit — Gmail/Outlook Email Compatible (MB)", type: "number", default: "25" },
+          { key: "maxResumableUploadMb", label: "Tus Resumable Document Mode Limit — WhatsApp/Telegram Standard (MB)", type: "number", default: "2048" },
+          { key: "enableClientImageCompression", label: "Auto-Compress Photos on Client Browser (10MB RAW Cap → <1MB WebP)", type: "toggle", default: true },
           { key: "enableAiModeration", label: "Real-Time AI Word Filter & Moderation", type: "toggle", default: true },
           { key: "readReceipts", label: "Show Online Read Receipts", type: "toggle", default: true },
         ],
       },
       {
         id: "meetingConfig",
-        name: "10. Meeting Management",
+        name: "Meeting Management",
         icon: Radio,
         description: "Configure audio recording rules, AI transcription retention, Neural Executive Summaries, and Action Item Kanban sync.",
         compliance: "AI TRANSCRIBER ONLINE",
@@ -224,7 +226,7 @@ export const SETTINGS_DOMAINS = [
       },
       {
         id: "notifConfig",
-        name: "11. Notification Center",
+        name: "Notification Center",
         icon: Bell,
         description: "Configure real-time push alerts, daily morning email digests, silent hours, and priority budget approval alerts.",
         compliance: "REAL-TIME TELEMETRY",
@@ -242,7 +244,7 @@ export const SETTINGS_DOMAINS = [
     categories: [
       {
         id: "aiConfig",
-        name: "12. AI Configuration & Quotas",
+        name: "AI Configuration & Quotas",
         icon: Sparkles,
         badge: "AI",
         badgeColor: "bg-pink-500/20 text-pink-300 border-pink-500/40",
@@ -257,7 +259,7 @@ export const SETTINGS_DOMAINS = [
       },
       {
         id: "automation",
-        name: "15. Workflow Automation & Cron",
+        name: "Workflow Automation & Cron",
         icon: Zap,
         description: "Configure automated workflows, member onboarding sequences, event RSVP reminder cron jobs, and auto-archival.",
         compliance: "CRON WORKERS ACTIVE",
@@ -269,7 +271,7 @@ export const SETTINGS_DOMAINS = [
       },
       {
         id: "integrations",
-        name: "16. Webhooks & External Integrations",
+        name: "Webhooks & External Integrations",
         icon: Webhook,
         description: "Connect third-party developer webhooks, Google Workspace calendar sync, Discord #announcements mirror, and GitHub.",
         compliance: "REST API v2.4",
@@ -287,7 +289,7 @@ export const SETTINGS_DOMAINS = [
     categories: [
       {
         id: "storage",
-        name: "13. CDN & File Storage Configuration",
+        name: "CDN & File Storage Configuration",
         icon: HardDrive,
         description: "Manage AWS S3 / Cloudflare CDN storage buckets, attachment quotas, allowed MIME types, and automated virus scanning.",
         compliance: "CLOUDFLARE R2 + SCAN",
@@ -300,7 +302,7 @@ export const SETTINGS_DOMAINS = [
       },
       {
         id: "analytics",
-        name: "14. Analytics & KPI Reporting",
+        name: "Analytics & KPI Reporting",
         icon: BarChart3,
         description: "Configure real-time dashboard KPI metrics, event attendance heatmaps, budget burn-down exports, and scheduled reports.",
         compliance: "60 FPS TELEMETRY",
@@ -312,7 +314,7 @@ export const SETTINGS_DOMAINS = [
       },
       {
         id: "auditLogs",
-        name: "19. Tamper-Evident Audit Logs",
+        name: "Tamper-Evident Audit Logs",
         icon: FileText,
         badge: "IMMUTABLE",
         badgeColor: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
@@ -326,7 +328,7 @@ export const SETTINGS_DOMAINS = [
       },
       {
         id: "backup",
-        name: "20. Backup, Rollback & Disaster Recovery",
+        name: "Backup, Rollback & Disaster Recovery",
         icon: RotateCcw,
         badge: "RECOVERY",
         badgeColor: "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
@@ -340,7 +342,7 @@ export const SETTINGS_DOMAINS = [
       },
       {
         id: "developer",
-        name: "21. Developer Settings & API Keys",
+        name: "Developer Settings & API Keys",
         icon: Code,
         description: "Manage OAuth 2.0 Clients, REST API Bearer tokens, rate limiting rules, beta feature flags, and debug telemetry.",
         compliance: "API GATEWAY 12.4ms",
