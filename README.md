@@ -44,39 +44,15 @@ npm run dev
 
 ## 🛡️ 9-Phase Production Readiness & OrgOS Vision Architecture
 
-* **Phase 1 — Core Authentication & Infrastructure**:
-  * Complete end-to-end authentication (JWT, Session Persistence, Automatic 401 Unauthorized Handling).
-  * Verified Club, Event, Task (Kanban), Chat (Socket.io), Meeting (Whisper STT + Qwen AI), Notification, and Dashboard modules.
-* **Phase 2 — Complete Feature Verification & Business Logic**:
-  * Verified real-world workflows across Club lifecycle, Events (RSVP/waitlists), Kanban Tasks, real-time Chat, AI Meetings, Notifications, and Executive Dashboard.
-* **Phase 3 — UI & UX Refinement**:
-  * Executive Cyber-Ring Loading states (`Loader.jsx`).
-  * Branded Empty and Error states across search, filters, and tables (`Clubs.jsx`).
-  * Framer Motion micro-interactions and high-contrast glassmorphic styling.
-* **Phase 4 — Performance Optimization**:
-  * React `lazy` + `<Suspense>` route-level code splitting.
-  * Vite Rolldown manual chunks separating Three.js (`vendor-three`), Framer Motion (`vendor-animations`), Lucide icons, and React core (`vendor-react`).
-* **Phase 5 — Security Hardening**:
-  * Strict JWT validation, `TokenExpiredError` detection, and database-backed `membershipMap` permission resolution.
-  * File MIME and size limit validators (images <= 10MB, videos <= 100MB, documents <= 50MB).
-  * Role-based committee leadership checks (`canManageCommittee`, `canDeleteCommittee`).
-* **Phase 6 — Accessibility (WCAG AA Compliant)**:
-  * Visible keyboard focus rings (`:focus-visible` with cyan outline).
-  * Screen reader `.sr-only` utility classes.
-  * `@media (prefers-reduced-motion: reduce)` support.
-* **Phase 7 — Testing & Quality Assurance**:
-  * Backend integration verification: `npm test` runs syntax & module graph validation.
-  * Frontend production build: `npx vite build` verified cleanly in `2.42s`.
-* **Phase 8 — Production Infrastructure (Docker & CI/CD)**:
-  * Multi-container Docker Compose (`postgres`, `server`, `client`).
-  * Automated GitHub Actions CI/CD pipeline (`.github/workflows/ci.yml`).
-  * Structured request logging (`requestLogger.js`) and audit logging (`auditLogger.js`).
-* **Phase 9 — Advanced Features (OrgOS Vision)**:
-  * Integrated `OrgOSCopilot.jsx` floating suite in `DashboardLayout.jsx`.
-  * AI Announcement Generator (Qwen NLP templates for Technical, Astronomy, and Creative clubs).
-  * AI Task Recommendation Engine for committee Kanban boards.
-  * Flagship QR Code check-in scanner simulation and Cryptographic Digital Certificate verification.
-  * Institutional Room Booking Roster and Student Council Budget Manager (₹1,25,000 allocation tracking).
+* **Phase 1 — Core Authentication & Infrastructure**: Complete end-to-end authentication (JWT, Session Persistence, Automatic 401 Unauthorized Handling). Verified Club, Event, Task (Kanban), Chat (Socket.io), Meeting (Whisper STT + Qwen AI), Notification, and Dashboard modules.
+* **Phase 2 — Complete Feature Verification & Business Logic**: Verified real-world workflows across Club lifecycle, Events (RSVP/waitlists), Kanban Tasks, real-time Chat, AI Meetings, Notifications, and Executive Dashboard.
+* **Phase 3 — UI & UX Refinement**: Executive Cyber-Ring Loading states (`Loader.jsx`). Branded Empty and Error states across search, filters, and tables (`Clubs.jsx`). Framer Motion micro-interactions and high-contrast glassmorphic styling.
+* **Phase 4 — Performance Optimization**: React `lazy` + `<Suspense>` route-level code splitting. Vite Rolldown manual chunks separating Three.js (`vendor-three`), Framer Motion (`vendor-animations`), Lucide icons, and React core (`vendor-react`).
+* **Phase 5 — Security Hardening**: Strict JWT validation, `TokenExpiredError` detection, and database-backed `membershipMap` permission resolution. File MIME and size limit validators (images <= 10MB, videos <= 100MB, documents <= 50MB). Role-based committee leadership checks (`canManageCommittee`, `canDeleteCommittee`). Resumable uploads backed by Tus 6MB Chunked Resumable Protocol.
+* **Phase 6 — Accessibility (WCAG AA Compliant)**: Visible keyboard focus rings (`:focus-visible` with cyan outline). Screen reader `.sr-only` utility classes. `@media (prefers-reduced-motion: reduce)` support.
+* **Phase 7 — Testing & Quality Assurance**: Backend integration verification: `npm test` runs syntax & module graph validation. Frontend production build: `npx vite build` verified cleanly in `2.42s`.
+* **Phase 8 — Production Infrastructure (Docker & CI/CD)**: Multi-container Docker Compose (`postgres`, `server`, `client`). Automated GitHub Actions CI/CD pipeline (`.github/workflows/ci.yml`). Structured request logging (`requestLogger.js`) and audit logging (`auditLogger.js`).
+* **Phase 9 — Advanced Features (OrgOS Vision)**: Integrated `OrgOSCopilot.jsx` floating suite in `DashboardLayout.jsx`. AI Announcement Generator (Qwen NLP templates for Technical, Astronomy, and Creative clubs). AI Task Recommendation Engine for committee Kanban boards. Flagship QR Code check-in scanner simulation and Cryptographic Digital Certificate verification. Institutional Room Booking Roster and Student Council Budget Manager (₹1,25,000 allocation tracking).
 
 ---
 
@@ -111,8 +87,27 @@ ClubPlanet consolidates multiple standalone SaaS applications into isolated, hig
 * **Club & Event Lifecycle**: Dynamic club profiles, recruitment status, event capacity management, waitlists, RSVP tracking, and QR code check-in verification.
 * **Productivity Kanban**: Drag-and-drop task boards using `@dnd-kit`, due date warnings, priority flags, attachments, and nested comment threads.
 * **Real-Time Collaboration**: Socket.io messaging with typing indicators, online presence, message search, pinned drawers, replies, reactions, and media sidebars.
-* **AI Intelligence Suite**: Integrated audio recording pipelines, Whisper-based speech-to-text transcription, local LLM meeting summaries (Qwen / Ollama), and AI announcement/task generators.
 * **Institutional Operations**: Room booking roster management, Student Council budget tracking, cryptographic certificate verification, and real-time notification centers.
+
+---
+
+## ⚡ Automated AI Meeting Intelligence Pipeline
+
+ClubPlanet features a zero-friction, end-to-end processing engine for committee meetings:
+
+```
+[Live Recorder] ──> [Tus Chunked Staging] ──> [Whisper STT] ──> [Qwen 2.5 LLM] ──> [PostgreSQL & Socket.io Broadcast]
+```
+
+* **Automatic Audio Capture & Staging**: Stopping the live recorder (`mediaRecorder.onstop`) packages the stream into a high-fidelity WAV/WebM blob. Transfer is protected via the Tus 6MB Chunked Resumable Protocol to handle network interruptions seamlessly.
+* **Speech-to-Text Transcription (Whisper AI)**: The file is sent to `POST /api/meetings/transcribe` to generate a verbatim committee transcript complete with timestamps and speaker labels (e.g., `[00:01:05] Priya Patel (Treasurer): Regarding the budget allocation...`). Includes a High-Precision Committee Audio fallback mechanism.
+* **Executive AI Summarization (Qwen 2.5 via Ollama)**: The transcript passes to `POST /api/meetings/summarize`, where the local Qwen LLM parses proceedings into structured JSON containing:
+  * **Executive Summary**: Brief 2–3 sentence overview
+  * **Discussion Points**: Bulleted highlights
+  * **Key Decisions**: Resolutions voted on
+  * **Action Items**: Assigned tasks with owners & deadlines
+  * **Next Steps**: Follow-up roadmaps
+* **Database Persistence & Real-Time Broadcast**: Records are persisted in PostgreSQL (`CommitteeMeeting` & `MeetingSummary` tables) and broadcast via Socket.io (`meeting-summary-ready`), instantly updating screens across all connected committee members.
 
 ---
 
@@ -120,8 +115,8 @@ ClubPlanet consolidates multiple standalone SaaS applications into isolated, hig
 
 * **Frontend**: React, Vite, Tailwind CSS, Framer Motion, GSAP, Socket.IO Client, Axios, React Router, Context API.
 * **Backend**: Node.js, Express.js, Socket.IO, Prisma ORM, Zod, bcrypt, JWT, Cron Workers.
-* **Database & Storage**: PostgreSQL 16 (`clubplanet_prod`), Supabase, Multer.
-* **AI Pipeline**: Ollama (Qwen Local LLM), Whisper STT.
+* **Database & Storage**: PostgreSQL 16 (`clubplanet_prod`), Supabase, Multer, Tus Resumable Protocol.
+* **AI Pipeline**: Ollama (Qwen 2.5 Local LLM), Whisper Speech-to-Text.
 * **DevOps & Infrastructure**: Docker, Docker Compose, GitHub Actions CI/CD, Nginx.
 
 ---
