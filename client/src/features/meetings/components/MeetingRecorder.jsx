@@ -79,6 +79,7 @@ export default function MeetingRecorder({
         const blob = new Blob(audioChunksRef.current, { type: "audio/wav" });
         setAudioBlob(blob);
         stream.getTracks().forEach((track) => track.stop());
+        handleProcessAudio(blob);
       };
 
       mediaRecorder.start();

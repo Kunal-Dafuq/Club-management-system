@@ -84,3 +84,36 @@ html {
 .animate-slideIn {
   animation: slideIn 0.25s ease;
 }
+
+/* ============================================================================
+   PHASE 10: UNIVERSAL MULTI-SCREEN OMNIPRESENCE
+   (Mobile 320px -> Tablet 640px -> Laptop 1024px -> TV / 4K Displays 1920px+)
+   ============================================================================ */
+
+/* 1. Mobile & Tablet Touch-Friendly Constraints */
+@media (max-width: 1023px) {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* 2. Horizontal Scroll Resilient Table Container (Prevents any data vanishing) */
+.table-responsive-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 3. TV & 4K Conference Display Scaling (10-Foot UI for IIIT-Delhi Student Council) */
+@media (min-width: 1920px) {
+  html {
+    font-size: 17px !important;
+  }
+}
+
+@media (min-width: 2560px) {
+  html {
+    font-size: 19px !important;
+  }
+}
